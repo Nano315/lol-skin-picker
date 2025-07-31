@@ -1,10 +1,14 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("lcu", {
-  /** Récupère l’état courant (promesse) */
+  /* état connection */
   getStatus: () => ipcRenderer.invoke("get-lcu-status"),
-  /** Écoute les changements “connected / disconnected” */
-  onStatus: (callback: (s: string) => void) => {
-    ipcRenderer.on("lcu-status", (_e, s) => callback(s));
+  onStatus: (cb: (s: string) => void) => {
+    ipcRenderer.on("lcu-status", (_e, s) => cb(s));
+  },
+  /* gameflow */
+  getPhase: () => ipcRenderer.invoke("get-gameflow-phase"),
+  onPhase: (cb: (p: string) => void) => {
+    ipcRenderer.on("gameflow-phase", (_e, p) => cb(p));
   },
 });

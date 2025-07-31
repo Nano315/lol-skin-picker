@@ -1,35 +1,41 @@
 import { useEffect, useState } from "react";
 
-/*  Déclare l’API que le preload injecte dans window
-    (sinon TypeScript râle). */
 declare global {
   interface Window {
     lcu: {
       getStatus: () => Promise<string>;
       onStatus: (cb: (s: string) => void) => void;
+      getPhase: () => Promise<string>;
+      onPhase: (cb: (p: string) => void) => void;
     };
   }
 }
 
 export default function App() {
-  const [status, setStatus] = useState<string>("checking");
+  const [status, setStatus] = useState("checking");
+  const [phase, setPhase] = useState("Unknown");
 
-  /* 1. état initial  •  2. abonnement temps-réel */
+  /* initial + listeners */
   useEffect(() => {
     window.lcu.getStatus().then(setStatus);
+    window.lcu.getPhase().then(setPhase);
     window.lcu.onStatus(setStatus);
+    window.lcu.onPhase(setPhase);
   }, []);
 
-  const label =
+  const statusLabel =
     status === "connected"
-      ? "✅ Connecté au client League"
+      ? "✅ LCU connecté"
       : status === "disconnected"
       ? "🔴 Client non détecté"
       : "⏳ Recherche du client…";
 
   return (
-    <div className="h-screen flex items-center justify-center bg-black text-white text-xl">
-      {label}
+    <div className="h-screen flex flex-col items-center justify-center bg-black text-white gap-4">
+      <div className="text-xl">{statusLabel}</div>
+      <div className="text-lg">
+        Gameflow : <span className="font-mono">{phase}</span>
+      </div>
     </div>
   );
 }
