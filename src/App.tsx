@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
 
 declare global {
+  interface OwnedSkin {
+    id: number;
+    name: string;
+    chromas: string[];
+  }
   interface Window {
     lcu: {
       getStatus: () => Promise<string>;
       onStatus: (cb: (s: string) => void) => void;
       getPhase: () => Promise<string>;
       onPhase: (cb: (p: string) => void) => void;
+      getSkins: () => Promise<OwnedSkin[]>;
+      onSkins: (cb: (s: OwnedSkin[]) => void) => void;
     };
   }
 }
@@ -14,13 +21,15 @@ declare global {
 export default function App() {
   const [status, setStatus] = useState("checking");
   const [phase, setPhase] = useState("Unknown");
+  const [skins, setSkins] = useState<OwnedSkin[]>([]);
 
-  /* initial + listeners */
   useEffect(() => {
     window.lcu.getStatus().then(setStatus);
     window.lcu.getPhase().then(setPhase);
+    window.lcu.getSkins().then(setSkins);
     window.lcu.onStatus(setStatus);
     window.lcu.onPhase(setPhase);
+    window.lcu.onSkins(setSkins);
   }, []);
 
   const statusLabel =
@@ -31,11 +40,30 @@ export default function App() {
       : "⏳ Recherche du client…";
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-black text-white gap-4">
-      <div className="text-xl">{statusLabel}</div>
-      <div className="text-lg">
+    <div className="h-screen overflow-auto bg-black text-white p-6">
+      <div className="text-xl mb-4">{statusLabel}</div>
+      <div className="text-lg mb-4">
         Gameflow : <span className="font-mono">{phase}</span>
       </div>
+
+      {skins.length > 0 && (
+        <ul className="space-y-2">
+          {skins.map((s) => (
+            <li key={s.id}>
+              <div className="font-semibold">{s.name}</div>
+              {s.chromas.length > 0 ? (
+                <ul className="ml-4 list-disc">
+                  {s.chromas.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="ml-4 text-gray-400">Aucun chroma</div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

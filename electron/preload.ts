@@ -1,14 +1,19 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { OwnedSkin } from "./championSkins.js"; // ← import uniquement type
 
 contextBridge.exposeInMainWorld("lcu", {
-  /* état connection */
+  /* connexion */
   getStatus: () => ipcRenderer.invoke("get-lcu-status"),
-  onStatus: (cb: (s: string) => void) => {
-    ipcRenderer.on("lcu-status", (_e, s) => cb(s));
-  },
+  onStatus: (cb: (s: string) => void) =>
+    ipcRenderer.on("lcu-status", (_e, s) => cb(s)),
+
   /* gameflow */
   getPhase: () => ipcRenderer.invoke("get-gameflow-phase"),
-  onPhase: (cb: (p: string) => void) => {
-    ipcRenderer.on("gameflow-phase", (_e, p) => cb(p));
-  },
+  onPhase: (cb: (p: string) => void) =>
+    ipcRenderer.on("gameflow-phase", (_e, p) => cb(p)),
+
+  /* skins + chromas */
+  getSkins: () => ipcRenderer.invoke("get-owned-skins"),
+  onSkins: (cb: (s: OwnedSkin[]) => void) =>
+    ipcRenderer.on("owned-skins", (_e, list) => cb(list as OwnedSkin[])),
 });
