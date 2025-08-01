@@ -10,20 +10,23 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/* ---------------- instances ---------------- */
 let win: BrowserWindow | null = null;
 
-/* ── watchers ───────────────────────────── */
 const lcu = new LcuWatcher();
 const gameflow = new GameflowWatcher();
 const skins = new ChampionSkinWatcher();
 
-/* ── relais événements → renderer ───────── */
+/* ---------------- relais vers renderer ---------------- */
 lcu.on("status", (status: LcuStatus, creds?: LockCreds) => {
   win?.webContents.send("lcu-status", status);
 
   if (status === "connected" && creds) {
+    /* (re)déploie TOUT avec les nouvelles credenciales */
     gameflow.setCreds(creds);
-    skins.setCreds(creds);
+
+    skins.setCreds(creds); // hard-reset
+    skins.start(); // démarre immédiatement, même hors ChampSelect
   } else {
     gameflow.stop();
     skins.stop();
@@ -32,19 +35,14 @@ lcu.on("status", (status: LcuStatus, creds?: LockCreds) => {
 
 gameflow.on("phase", (phase) => {
   win?.webContents.send("gameflow-phase", phase);
-  if (phase === "ChampSelect") {
-    skins.start();
-  } else {
-    skins.stop();
-  }
+  /* plus besoin de start/stop ici */
 });
 
-/* Relais skins → renderer */
-skins.on('skins', (list: OwnedSkin[]) => {
-  win?.webContents.send('owned-skins', list);
+skins.on("skins", (list: OwnedSkin[]) => {
+  win?.webContents.send("owned-skins", list);
 });
 
-/* ── fenêtre ────────────────────────────── */
+/* ---------------- fenêtre ---------------- */
 function createWindow() {
   win = new BrowserWindow({
     width: 900,
@@ -65,10 +63,10 @@ function createWindow() {
   lcu.start(); // déclenche toute la chaîne
 }
 
-/* ── IPC sync (renderer → main) ─────────── */
+/* ---------------- IPC synchrone ---------------- */
 ipcMain.handle("get-lcu-status", () => lcu.status);
 ipcMain.handle("get-gameflow-phase", () => gameflow.phase);
-ipcMain.handle('get-owned-skins', () => skins.skins);
+ipcMain.handle("get-owned-skins", () => skins.skins);
 
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());
