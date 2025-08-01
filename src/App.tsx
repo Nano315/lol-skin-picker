@@ -4,7 +4,7 @@ declare global {
   interface OwnedSkin {
     id: number;
     name: string;
-    chromas: string[];
+    chromas: { id: number; name: string }[];
   }
   interface Window {
     lcu: {
@@ -54,7 +54,7 @@ export default function App() {
               {s.chromas.length > 0 ? (
                 <ul className="ml-4 list-disc">
                   {s.chromas.map((c) => (
-                    <li key={c}>{c}</li>
+                    <li key={c.id}>{c.name}</li>
                   ))}
                 </ul>
               ) : (
