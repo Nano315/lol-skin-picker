@@ -112,6 +112,23 @@ export class ChampionSkinWatcher extends EventEmitter {
     this.lastAppliedChampion = this.currentChampion;
   }
 
+  /** Reroll uniquement le chroma pour le skin courant */
+  async rerollChroma() {
+    const skin = this.skins.find((s) => s.id === this.selectedSkinId);
+    if (!skin || skin.chromas.length === 0) return;
+
+    let chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
+    if (skin.chromas.length > 1) {
+      while (chroma.id === this.selectedChromaId) {
+        chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
+      }
+    }
+
+    await this.applySkin(chroma.id);
+    this.selectedChromaId = chroma.id;
+    this.emit("selection", this.getSelection());
+  }
+
   /* ---------- boucle principale ---------- */
   private async tick() {
     if (!this.creds) return;

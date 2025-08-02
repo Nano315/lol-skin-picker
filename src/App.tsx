@@ -17,6 +17,7 @@ declare global {
       getIncludeDefault: () => Promise<boolean>;
       toggleIncludeDefault: () => Promise<void>;
       rerollSkin: () => Promise<void>;
+      rerollChroma: () => Promise<void>;
       getSelection: () => Promise<{ skinId: number; chromaId: number }>;
       onSelection: (
         cb: (s: { skinId: number; chromaId: number }) => void
@@ -82,18 +83,38 @@ export default function App() {
       </div>
 
       {phase === "ChampSelect" && (
-        <button onClick={() => window.lcu.rerollSkin()}>Reroll Skin</button>
+        <div>
+          <button
+            onClick={() =>
+              window.lcu
+                .rerollSkin()
+                .then(() => window.lcu.getSelection().then(setSelection))
+            }
+          >
+            Reroll Skin
+          </button>
+
+          {selSkin?.chromas.length ? (
+            <button
+              onClick={() =>
+                window.lcu
+                  .rerollChroma()
+                  .then(() => window.lcu.getSelection().then(setSelection))
+              }
+            >
+              Reroll Chroma
+            </button>
+          ) : null}
+        </div>
       )}
 
       {selSkin && (
-        <div className="mt-6 text-lg">
-          Skin sélectionné&nbsp;:{" "}
-          <span className="font-semibold">{selSkin.name}</span>
+        <div>
+          Skin sélectionné&nbsp;: <span>{selSkin.name}</span>
           {selChroma && (
             <>
               {" "}
-              — Chroma&nbsp;:{" "}
-              <span className="font-semibold">{selChroma.name}</span>
+              — Chroma&nbsp;: <span>{selChroma.name}</span>
             </>
           )}
         </div>

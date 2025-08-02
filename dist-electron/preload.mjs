@@ -15,6 +15,7 @@ electron.contextBridge.exposeInMainWorld("lcu", {
   toggleIncludeDefault: () => electron.ipcRenderer.invoke("toggle-include-default"),
   /* actions */
   rerollSkin: () => electron.ipcRenderer.invoke("reroll-skin"),
+  rerollChroma: () => electron.ipcRenderer.invoke("reroll-chroma"),
   getSelection: () => electron.ipcRenderer.invoke("get-selection"),
   onSelection: (cb) => electron.ipcRenderer.on("selection", (_e, s) => cb(s))
 });

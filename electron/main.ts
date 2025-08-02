@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, Menu } from "electron";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -57,16 +57,21 @@ skins.on(
 function createWindow() {
   win = new BrowserWindow({
     width: 900,
-    height: 680,
+    height: 563,
+    resizable: false, // ← l’utilisateur ne peut plus redimensionner
+    maximizable: false, // ← désactive le bouton “plein écran” (Windows / Linux)
+    fullscreenable: false, // ← désactive ⌥⌘F sur macOS
     webPreferences: {
       preload: join(__dirname, "preload.mjs"),
       contextIsolation: true,
     },
   });
 
+  Menu.setApplicationMenu(null); // supprime entièrement la barre de menu
+
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
-    win.webContents.openDevTools();
+    //win.webContents.openDevTools();
   } else {
     win.loadFile(join(__dirname, "../renderer/index.html"));
   }
@@ -82,6 +87,7 @@ ipcMain.handle("get-owned-skins", () => skins.skins);
 ipcMain.handle("get-include-default", () => skins.getIncludeDefault());
 ipcMain.handle("toggle-include-default", () => skins.toggleIncludeDefault());
 ipcMain.handle("reroll-skin", () => skins.rerollSkin());
+ipcMain.handle("reroll-chroma", () => skins.rerollChroma());
 ipcMain.handle("get-selection", () => skins.getSelection());
 
 app.whenReady().then(createWindow);
