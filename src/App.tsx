@@ -17,6 +17,10 @@ declare global {
       getIncludeDefault: () => Promise<boolean>;
       toggleIncludeDefault: () => Promise<void>;
       rerollSkin: () => Promise<void>;
+      getSelection: () => Promise<{ skinId: number; chromaId: number }>;
+      onSelection: (
+        cb: (s: { skinId: number; chromaId: number }) => void
+      ) => void;
     };
   }
 }
@@ -26,6 +30,10 @@ export default function App() {
   const [phase, setPhase] = useState("Unknown");
   const [skins, setSkins] = useState<OwnedSkin[]>([]);
   const [includeDefault, setIncludeDefault] = useState(true);
+  const [selection, setSelection] = useState<{
+    skinId: number;
+    chromaId: number;
+  }>({ skinId: 0, chromaId: 0 });
 
   useEffect(() => {
     window.lcu.getStatus().then(setStatus);
@@ -35,6 +43,8 @@ export default function App() {
     window.lcu.onPhase(setPhase);
     window.lcu.onSkins(setSkins);
     window.lcu.getIncludeDefault().then(setIncludeDefault);
+    window.lcu.getSelection().then(setSelection);
+    window.lcu.onSelection(setSelection);
   }, []);
 
   const statusLabel =
@@ -43,6 +53,9 @@ export default function App() {
       : status === "disconnected"
       ? "🔴 Client non détecté"
       : "⏳ Recherche du client…";
+
+  const selSkin = skins.find((s) => s.id === selection.skinId);
+  const selChroma = selSkin?.chromas.find((c) => c.id === selection.chromaId);
 
   return (
     <div>
@@ -72,23 +85,18 @@ export default function App() {
         <button onClick={() => window.lcu.rerollSkin()}>Reroll Skin</button>
       )}
 
-      {skins.length > 0 && (
-        <ul>
-          {skins.map((s) => (
-            <li key={s.id}>
-              <div>{s.name}</div>
-              {s.chromas.length > 0 ? (
-                <ul>
-                  {s.chromas.map((c) => (
-                    <li key={c.id}>{c.name}</li>
-                  ))}
-                </ul>
-              ) : (
-                <div>Aucun chroma</div>
-              )}
-            </li>
-          ))}
-        </ul>
+      {selSkin && (
+        <div className="mt-6 text-lg">
+          Skin sélectionné&nbsp;:{" "}
+          <span className="font-semibold">{selSkin.name}</span>
+          {selChroma && (
+            <>
+              {" "}
+              — Chroma&nbsp;:{" "}
+              <span className="font-semibold">{selChroma.name}</span>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

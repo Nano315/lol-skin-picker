@@ -38,9 +38,20 @@ gameflow.on("phase", (phase) => {
   /* plus besoin de start/stop ici */
 });
 
-skins.on("skins", (list: OwnedSkin[]) => {
-  win?.webContents.send("owned-skins", list);
-});
+/* ---------------- relais vers renderer ---------------- */
+skins.on(
+  "skins",
+  ((list: OwnedSkin[]) => {
+    win?.webContents.send("owned-skins", list);
+  }) as (...args: unknown[]) => void // ← cast ajouté
+);
+
+skins.on(
+  "selection",
+  ((sel: { skinId: number; chromaId: number }) => {
+    win?.webContents.send("selection", sel);
+  }) as (...args: unknown[]) => void // idem pour selection
+);
 
 /* ---------------- fenêtre ---------------- */
 function createWindow() {
@@ -71,6 +82,7 @@ ipcMain.handle("get-owned-skins", () => skins.skins);
 ipcMain.handle("get-include-default", () => skins.getIncludeDefault());
 ipcMain.handle("toggle-include-default", () => skins.toggleIncludeDefault());
 ipcMain.handle("reroll-skin", () => skins.rerollSkin());
+ipcMain.handle("get-selection", () => skins.getSelection());
 
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());

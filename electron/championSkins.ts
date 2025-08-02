@@ -30,6 +30,10 @@ export interface OwnedSkin {
   chromas: { id: number; name: string }[];
 }
 
+interface SelectionRes {
+  selectedSkinId?: number;
+}
+
 /* ---- watcher + auto-apply ---- */
 export class ChampionSkinWatcher extends EventEmitter {
   private creds: LockCreds | null = null;
@@ -41,6 +45,9 @@ export class ChampionSkinWatcher extends EventEmitter {
 
   private includeDefaultSkin = true;
 
+  private selectedSkinId = 0;
+  private selectedChromaId = 0;
+
   skins: OwnedSkin[] = [];
 
   /* ---------- gestion des creds ---------- */
@@ -50,11 +57,13 @@ export class ChampionSkinWatcher extends EventEmitter {
     this.summonerId = null;
     this.lastAppliedChampion = 0;
   }
+
   start() {
     if (!this.creds || this.poller) return;
     void this.tick();
     this.poller = setInterval(() => this.tick(), 2000);
   }
+
   stop() {
     if (this.poller) clearInterval(this.poller);
     this.poller = null;
@@ -65,12 +74,18 @@ export class ChampionSkinWatcher extends EventEmitter {
       this.emit("skins", []);
     }
   }
+
   getIncludeDefault() {
     return this.includeDefaultSkin;
   }
+
   toggleIncludeDefault() {
     this.includeDefaultSkin = !this.includeDefaultSkin;
     if (this.currentChampion) this.rerollSkin();
+  }
+
+  getSelection() {
+    return { skinId: this.selectedSkinId, chromaId: this.selectedChromaId };
   }
 
   /** Reroll manuel (skin + chroma éventuelle) */
@@ -88,6 +103,11 @@ export class ChampionSkinWatcher extends EventEmitter {
       : pick.id;
 
     await this.applySkin(finalId);
+
+    this.selectedSkinId = pick.id;
+    this.selectedChromaId = finalId !== pick.id ? finalId : 0;
+    this.emit("selection", this.getSelection());
+
     /* on “fige” le champion courant pour éviter auto-reroll immédiat */
     this.lastAppliedChampion = this.currentChampion;
   }
@@ -101,6 +121,7 @@ export class ChampionSkinWatcher extends EventEmitter {
       this.currentChampion = champ;
       await this.refreshSkinsAndMaybeApply();
     }
+    await this.updateManualSelection();
   }
 
   /* ---------- helpers ---------- */
@@ -181,16 +202,21 @@ export class ChampionSkinWatcher extends EventEmitter {
     if (this.currentChampion !== this.lastAppliedChampion && owned.length) {
       const pool = this.includeDefaultSkin
         ? owned
-        : owned.filter((s) => s.id % 1000 !== 0) || owned; // garde au moins 1
-      const pickedSkin = pool[Math.floor(Math.random() * pool.length)];
+        : owned.filter((s) => s.id % 1000 !== 0) || owned;
 
-      const finalSkinId = pickedSkin.chromas.length
+      const pickedSkin = pool[Math.floor(Math.random() * pool.length)];
+      const finalId = pickedSkin.chromas.length
         ? pickedSkin.chromas[
             Math.floor(Math.random() * pickedSkin.chromas.length)
           ].id
         : pickedSkin.id;
 
-      await this.applySkin(finalSkinId);
+      await this.applySkin(finalId);
+
+      this.selectedSkinId = pickedSkin.id;
+      this.selectedChromaId = finalId !== pickedSkin.id ? finalId : 0;
+      this.emit("selection", this.getSelection());
+
       this.lastAppliedChampion = this.currentChampion;
     }
   }
@@ -214,11 +240,61 @@ export class ChampionSkinWatcher extends EventEmitter {
     }
   }
 
-  /* ---- EventEmitter typings ---- */
-  override on(event: "skins", fn: (l: OwnedSkin[]) => void): this {
-    return super.on(event, fn);
+  /** détecte la sélection faite directement dans le client */
+  private async updateManualSelection() {
+    if (!this.creds || !this.currentChampion) return;
+
+    const { protocol, port, password } = this.creds;
+    const url = `${protocol}://127.0.0.1:${port}/lol-champ-select/v1/session/my-selection`;
+    const auth = Buffer.from(`riot:${password}`).toString("base64");
+
+    try {
+      const data = (await fetch(url, {
+        headers: { Authorization: `Basic ${auth}` },
+      }).then((r) => r.json())) as SelectionRes;
+
+      const selId = data.selectedSkinId ?? 0;
+
+      if (
+        !selId ||
+        selId === this.selectedChromaId ||
+        selId === this.selectedSkinId
+      )
+        return;
+
+      /* retrouve le skin / chroma correspondant dans la liste courante */
+      let skinId = selId;
+      let chromaId = 0;
+
+      const directSkin = this.skins.find((s) => s.id === selId);
+      if (directSkin) {
+        skinId = directSkin.id;
+      } else {
+        for (const s of this.skins) {
+          const c = s.chromas.find((ch) => ch.id === selId);
+          if (c) {
+            skinId = s.id;
+            chromaId = c.id;
+            break;
+          }
+        }
+      }
+
+      this.selectedSkinId = skinId;
+      this.selectedChromaId = chromaId;
+      this.emit("selection", this.getSelection());
+    } catch {
+      /* ignore erreurs réseau */
+    }
   }
-  override emit(event: "skins", l: OwnedSkin[]): boolean {
-    return super.emit(event, l);
+
+  /* ---- EventEmitter typings ---- */
+  override on(event: string, listener: (...args: unknown[]) => void): this {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return super.on(event, listener as (...args: any[]) => void);
+  }
+
+  override emit(event: string, ...args: unknown[]): boolean {
+    return super.emit(event, ...args);
   }
 }
