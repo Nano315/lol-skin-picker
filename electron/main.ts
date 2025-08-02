@@ -70,6 +70,7 @@ ipcMain.handle("get-owned-skins", () => skins.skins);
 
 ipcMain.handle("get-include-default", () => skins.getIncludeDefault());
 ipcMain.handle("toggle-include-default", () => skins.toggleIncludeDefault());
+ipcMain.handle("reroll-skin", () => skins.rerollSkin());
 
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());

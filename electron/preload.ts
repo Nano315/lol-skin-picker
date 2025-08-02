@@ -20,4 +20,7 @@ contextBridge.exposeInMainWorld("lcu", {
   /* options */
   getIncludeDefault: () => ipcRenderer.invoke("get-include-default"),
   toggleIncludeDefault: () => ipcRenderer.invoke("toggle-include-default"),
+
+  /* actions */
+  rerollSkin: () => ipcRenderer.invoke("reroll-skin"),
 });

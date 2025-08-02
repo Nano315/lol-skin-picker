@@ -70,7 +70,26 @@ export class ChampionSkinWatcher extends EventEmitter {
   }
   toggleIncludeDefault() {
     this.includeDefaultSkin = !this.includeDefaultSkin;
-    if (this.currentChampion) this.refreshSkinsAndMaybeApply();
+    if (this.currentChampion) this.rerollSkin();
+  }
+
+  /** Reroll manuel (skin + chroma éventuelle) */
+  async rerollSkin() {
+    if (!this.skins.length) return;
+
+    /* pool respectant le toggle */
+    const pool = this.includeDefaultSkin
+      ? this.skins
+      : this.skins.filter((s) => s.id % 1000 !== 0) || this.skins;
+
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    const finalId = pick.chromas.length
+      ? pick.chromas[Math.floor(Math.random() * pick.chromas.length)].id
+      : pick.id;
+
+    await this.applySkin(finalId);
+    /* on “fige” le champion courant pour éviter auto-reroll immédiat */
+    this.lastAppliedChampion = this.currentChampion;
   }
 
   /* ---------- boucle principale ---------- */

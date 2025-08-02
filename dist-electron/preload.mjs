@@ -12,5 +12,7 @@ electron.contextBridge.exposeInMainWorld("lcu", {
   onSkins: (cb) => electron.ipcRenderer.on("owned-skins", (_e, list) => cb(list)),
   /* options */
   getIncludeDefault: () => electron.ipcRenderer.invoke("get-include-default"),
-  toggleIncludeDefault: () => electron.ipcRenderer.invoke("toggle-include-default")
+  toggleIncludeDefault: () => electron.ipcRenderer.invoke("toggle-include-default"),
+  /* actions */
+  rerollSkin: () => electron.ipcRenderer.invoke("reroll-skin")
 });

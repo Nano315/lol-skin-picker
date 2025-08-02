@@ -16,6 +16,7 @@ declare global {
       onSkins: (cb: (s: OwnedSkin[]) => void) => void;
       getIncludeDefault: () => Promise<boolean>;
       toggleIncludeDefault: () => Promise<void>;
+      rerollSkin: () => Promise<void>;
     };
   }
 }
@@ -44,14 +45,14 @@ export default function App() {
       : "⏳ Recherche du client…";
 
   return (
-    <div className="h-screen overflow-auto bg-black text-white p-6">
-      <div className="text-xl mb-4">{statusLabel}</div>
-      <div className="text-lg mb-4">
-        Gameflow : <span className="font-mono">{phase}</span>
+    <div>
+      <div>{statusLabel}</div>
+      <div>
+        Gameflow : <span>{phase}</span>
       </div>
 
-      <div className="mt-4">
-        <label className="inline-flex items-center gap-2 cursor-pointer">
+      <div>
+        <label>
           <input
             type="checkbox"
             checked={includeDefault}
@@ -62,25 +63,28 @@ export default function App() {
                   window.lcu.getIncludeDefault().then(setIncludeDefault)
                 )
             }
-            className="h-4 w-4"
           />
           Include default skin
         </label>
       </div>
 
+      {phase === "ChampSelect" && (
+        <button onClick={() => window.lcu.rerollSkin()}>Reroll Skin</button>
+      )}
+
       {skins.length > 0 && (
-        <ul className="space-y-2">
+        <ul>
           {skins.map((s) => (
             <li key={s.id}>
-              <div className="font-semibold">{s.name}</div>
+              <div>{s.name}</div>
               {s.chromas.length > 0 ? (
-                <ul className="ml-4 list-disc">
+                <ul>
                   {s.chromas.map((c) => (
                     <li key={c.id}>{c.name}</li>
                   ))}
                 </ul>
               ) : (
-                <div className="ml-4 text-gray-400">Aucun chroma</div>
+                <div>Aucun chroma</div>
               )}
             </li>
           ))}
