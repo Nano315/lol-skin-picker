@@ -65,6 +65,7 @@ function createWindow() {
     resizable: false, // ← l’utilisateur ne peut plus redimensionner
     maximizable: false, // ← désactive le bouton “plein écran” (Windows / Linux)
     fullscreenable: false, // ← désactive ⌥⌘F sur macOS
+    icon: join(__dirname, "../public/icon.ico"),
     webPreferences: {
       preload: join(__dirname, "preload.mjs"),
       contextIsolation: true,
@@ -72,6 +73,14 @@ function createWindow() {
   });
 
   Menu.setApplicationMenu(null); // supprime entièrement la barre de menu
+
+  /* ---- icône de tray (caché / affiché) ---- */
+  const trayIcon = nativeImage.createFromPath(
+    join(__dirname, "../public/icon.ico")
+  );
+  tray = new Tray(trayIcon);
+  tray.setToolTip("LoL Skin Picker");
+  tray.on("double-click", () => (win!.isVisible() ? win!.hide() : win!.show()));
 
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
@@ -81,14 +90,6 @@ function createWindow() {
   }
 
   lcu.start(); // déclenche toute la chaîne
-
-  // === icône barre système ===
-  const icon = nativeImage.createFromPath(
-    join(__dirname, "../public/icon.png")
-  ); // mets ton icône ici
-  tray = new Tray(icon);
-  tray.setToolTip("LoL Skin Picker");
-  tray.on("double-click", () => (win!.isVisible() ? win!.hide() : win!.show()));
 }
 
 /* ---------------- IPC synchrone ---------------- */
