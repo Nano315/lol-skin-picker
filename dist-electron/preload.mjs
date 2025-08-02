@@ -9,5 +9,8 @@ electron.contextBridge.exposeInMainWorld("lcu", {
   onPhase: (cb) => electron.ipcRenderer.on("gameflow-phase", (_e, p) => cb(p)),
   /* skins + chromas */
   getSkins: () => electron.ipcRenderer.invoke("get-owned-skins"),
-  onSkins: (cb) => electron.ipcRenderer.on("owned-skins", (_e, list) => cb(list))
+  onSkins: (cb) => electron.ipcRenderer.on("owned-skins", (_e, list) => cb(list)),
+  /* options */
+  getIncludeDefault: () => electron.ipcRenderer.invoke("get-include-default"),
+  toggleIncludeDefault: () => electron.ipcRenderer.invoke("toggle-include-default")
 });

@@ -68,5 +68,8 @@ ipcMain.handle("get-lcu-status", () => lcu.status);
 ipcMain.handle("get-gameflow-phase", () => gameflow.phase);
 ipcMain.handle("get-owned-skins", () => skins.skins);
 
+ipcMain.handle("get-include-default", () => skins.getIncludeDefault());
+ipcMain.handle("toggle-include-default", () => skins.toggleIncludeDefault());
+
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());

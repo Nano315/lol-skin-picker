@@ -39,6 +39,8 @@ export class ChampionSkinWatcher extends EventEmitter {
   private currentChampion = 0;
   private lastAppliedChampion = 0;
 
+  private includeDefaultSkin = true;
+
   skins: OwnedSkin[] = [];
 
   /* ---------- gestion des creds ---------- */
@@ -62,6 +64,13 @@ export class ChampionSkinWatcher extends EventEmitter {
       this.skins = [];
       this.emit("skins", []);
     }
+  }
+  getIncludeDefault() {
+    return this.includeDefaultSkin;
+  }
+  toggleIncludeDefault() {
+    this.includeDefaultSkin = !this.includeDefaultSkin;
+    if (this.currentChampion) this.refreshSkinsAndMaybeApply();
   }
 
   /* ---------- boucle principale ---------- */
@@ -151,7 +160,11 @@ export class ChampionSkinWatcher extends EventEmitter {
 
     /* -- tirage aléatoire + application -- */
     if (this.currentChampion !== this.lastAppliedChampion && owned.length) {
-      const pickedSkin = owned[Math.floor(Math.random() * owned.length)];
+      const pool = this.includeDefaultSkin
+        ? owned
+        : owned.filter((s) => s.id % 1000 !== 0) || owned; // garde au moins 1
+      const pickedSkin = pool[Math.floor(Math.random() * pool.length)];
+
       const finalSkinId = pickedSkin.chromas.length
         ? pickedSkin.chromas[
             Math.floor(Math.random() * pickedSkin.chromas.length)

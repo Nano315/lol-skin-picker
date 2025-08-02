@@ -14,6 +14,8 @@ declare global {
       onPhase: (cb: (p: string) => void) => void;
       getSkins: () => Promise<OwnedSkin[]>;
       onSkins: (cb: (s: OwnedSkin[]) => void) => void;
+      getIncludeDefault: () => Promise<boolean>;
+      toggleIncludeDefault: () => Promise<void>;
     };
   }
 }
@@ -22,6 +24,7 @@ export default function App() {
   const [status, setStatus] = useState("checking");
   const [phase, setPhase] = useState("Unknown");
   const [skins, setSkins] = useState<OwnedSkin[]>([]);
+  const [includeDefault, setIncludeDefault] = useState(true);
 
   useEffect(() => {
     window.lcu.getStatus().then(setStatus);
@@ -30,6 +33,7 @@ export default function App() {
     window.lcu.onStatus(setStatus);
     window.lcu.onPhase(setPhase);
     window.lcu.onSkins(setSkins);
+    window.lcu.getIncludeDefault().then(setIncludeDefault);
   }, []);
 
   const statusLabel =
@@ -44,6 +48,24 @@ export default function App() {
       <div className="text-xl mb-4">{statusLabel}</div>
       <div className="text-lg mb-4">
         Gameflow : <span className="font-mono">{phase}</span>
+      </div>
+
+      <div className="mt-4">
+        <label className="inline-flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={includeDefault}
+            onChange={() =>
+              window.lcu
+                .toggleIncludeDefault()
+                .then(() =>
+                  window.lcu.getIncludeDefault().then(setIncludeDefault)
+                )
+            }
+            className="h-4 w-4"
+          />
+          Include default skin
+        </label>
       </div>
 
       {skins.length > 0 && (

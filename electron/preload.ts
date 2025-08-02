@@ -16,4 +16,8 @@ contextBridge.exposeInMainWorld("lcu", {
   getSkins: () => ipcRenderer.invoke("get-owned-skins"),
   onSkins: (cb: (s: OwnedSkin[]) => void) =>
     ipcRenderer.on("owned-skins", (_e, list) => cb(list as OwnedSkin[])),
+
+  /* options */
+  getIncludeDefault: () => ipcRenderer.invoke("get-include-default"),
+  toggleIncludeDefault: () => ipcRenderer.invoke("toggle-include-default"),
 });
