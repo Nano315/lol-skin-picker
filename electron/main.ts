@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from "electron";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,11 +17,14 @@ const lcu = new LcuWatcher();
 const gameflow = new GameflowWatcher();
 const skins = new ChampionSkinWatcher();
 
+let tray: Tray | null = null;
+
 /* ---------------- relais vers renderer ---------------- */
 lcu.on("status", (status: LcuStatus, creds?: LockCreds) => {
   win?.webContents.send("lcu-status", status);
 
   if (status === "connected" && creds) {
+    win?.show();
     /* (re)déploie TOUT avec les nouvelles credenciales */
     gameflow.setCreds(creds);
 
@@ -30,6 +33,7 @@ lcu.on("status", (status: LcuStatus, creds?: LockCreds) => {
   } else {
     gameflow.stop();
     skins.stop();
+    win?.hide();
   }
 });
 
@@ -77,6 +81,14 @@ function createWindow() {
   }
 
   lcu.start(); // déclenche toute la chaîne
+
+  // === icône barre système ===
+  const icon = nativeImage.createFromPath(
+    join(__dirname, "../public/icon.png")
+  ); // mets ton icône ici
+  tray = new Tray(icon);
+  tray.setToolTip("LoL Skin Picker");
+  tray.on("double-click", () => (win!.isVisible() ? win!.hide() : win!.show()));
 }
 
 /* ---------------- IPC synchrone ---------------- */
