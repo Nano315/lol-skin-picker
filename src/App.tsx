@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "./App.css";
 
 /* ---------- types globaux ---------- */
 type Selection = {
@@ -91,25 +92,28 @@ export default function App() {
     ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`
     : "";
 
+  function connectionLabel(): string {
+    if (status === "disconnected") return "Not connected to client";
+    if (status === "checking") return "Searching for client…";
+    
+    /* connected */
+    if (phase === "None") return "Connected to client";
+    return phase; // ex: Lobby, ChampSelect, InProgress…
+  }
+
   /* ---------- rendu ---------- */
   return (
-    <div>
-      <div className="flex items-center gap-3 text-xl">
-        {iconUrl && (
-          <img src={iconUrl} alt="icon" className="w-10 h-10 rounded" />
-        )}
-        <span>
-          {status === "connected"
-            ? "✅ LCU connecté"
-            : status === "disconnected"
-            ? "🔴 Client non détecté"
-            : "⏳ Recherche du client…"}
-        </span>
-      </div>
+    <div className="app">
+      {/* ---------- header ---------- */}
+      <header className="header">
+        <div className="logo">Skin&nbsp;Picker</div>
 
-      <div>
-        Gameflow : <span>{phase}</span>
-      </div>
+        <div className="connection">
+          <div className="state">{connectionLabel()}</div>
+
+          {iconUrl && <img src={iconUrl} alt="summoner" className="avatar" />}
+        </div>
+      </header>
 
       <div>
         <label>

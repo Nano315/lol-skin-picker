@@ -1,0 +1,46 @@
+/* -------- layout global -------- */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* -------- header -------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+}
+
+/* logo à gauche */
+.logo {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.connection {
+  display: flex;
+  align-items: center;
+  gap: 24px; /* espace entre le label et l’avatar */
+}
+
+/* label de connexion / phase */
+.state {
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+
+/* icône d’invocateur à droite */
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* -------- contenu principal -------- */
+.main {
+  flex: 1;
+  padding: 24px;
+}
