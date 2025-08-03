@@ -48,6 +48,8 @@ export class ChampionSkinWatcher extends EventEmitter {
   private selectedSkinId = 0;
   private selectedChromaId = 0;
 
+  private autoRollEnabled = true;
+
   skins: OwnedSkin[] = [];
 
   /* ---------- gestion des creds ---------- */
@@ -81,11 +83,20 @@ export class ChampionSkinWatcher extends EventEmitter {
 
   toggleIncludeDefault() {
     this.includeDefaultSkin = !this.includeDefaultSkin;
-    if (this.currentChampion) this.rerollSkin();
+    if (this.autoRollEnabled && this.currentChampion) this.rerollSkin();
   }
 
   getSelection() {
     return { skinId: this.selectedSkinId, chromaId: this.selectedChromaId };
+  }
+
+  getAutoRoll() {
+    return this.autoRollEnabled;
+  }
+
+  toggleAutoRoll() {
+    this.autoRollEnabled = !this.autoRollEnabled;
+    if (this.autoRollEnabled && this.currentChampion) this.rerollSkin(); // relance seulement si on vient d’activer
   }
 
   /** Reroll manuel (skin + chroma éventuelle) */
@@ -216,7 +227,11 @@ export class ChampionSkinWatcher extends EventEmitter {
     this.emit("skins", owned);
 
     /* -- tirage aléatoire + application -- */
-    if (this.currentChampion !== this.lastAppliedChampion && owned.length) {
+    if (
+      this.autoRollEnabled &&
+      this.currentChampion !== this.lastAppliedChampion &&
+      owned.length
+    ) {
       const pool = this.includeDefaultSkin
         ? owned
         : owned.filter((s) => s.id % 1000 !== 0) || owned;

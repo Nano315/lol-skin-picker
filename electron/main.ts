@@ -66,6 +66,7 @@ function createWindow() {
     maximizable: false, // ← désactive le bouton “plein écran” (Windows / Linux)
     fullscreenable: false, // ← désactive ⌥⌘F sur macOS
     icon: join(__dirname, "../public/icon.ico"),
+    show: false,
     webPreferences: {
       preload: join(__dirname, "preload.mjs"),
       contextIsolation: true,
@@ -102,6 +103,8 @@ ipcMain.handle("toggle-include-default", () => skins.toggleIncludeDefault());
 ipcMain.handle("reroll-skin", () => skins.rerollSkin());
 ipcMain.handle("reroll-chroma", () => skins.rerollChroma());
 ipcMain.handle("get-selection", () => skins.getSelection());
+ipcMain.handle("get-auto-roll", () => skins.getAutoRoll());
+ipcMain.handle("toggle-auto-roll", () => skins.toggleAutoRoll());
 
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());

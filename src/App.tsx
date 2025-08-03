@@ -16,6 +16,8 @@ declare global {
       onSkins: (cb: (s: OwnedSkin[]) => void) => void;
       getIncludeDefault: () => Promise<boolean>;
       toggleIncludeDefault: () => Promise<void>;
+      toggleAutoRoll: () => Promise<void>;
+      getAutoRoll: () => Promise<boolean>;
       rerollSkin: () => Promise<void>;
       rerollChroma: () => Promise<void>;
       getSelection: () => Promise<{ skinId: number; chromaId: number }>;
@@ -35,6 +37,7 @@ export default function App() {
     skinId: number;
     chromaId: number;
   }>({ skinId: 0, chromaId: 0 });
+  const [autoRoll, setAutoRoll] = useState(true);
 
   useEffect(() => {
     window.lcu.getStatus().then(setStatus);
@@ -46,6 +49,7 @@ export default function App() {
     window.lcu.getIncludeDefault().then(setIncludeDefault);
     window.lcu.getSelection().then(setSelection);
     window.lcu.onSelection(setSelection);
+    window.lcu.getAutoRoll().then(setAutoRoll);
   }, []);
 
   const statusLabel =
@@ -79,6 +83,21 @@ export default function App() {
             }
           />
           Include default skin
+        </label>
+      </div>
+
+      <div>
+        <label>
+          <input
+            type="checkbox"
+            checked={autoRoll}
+            onChange={() =>
+              window.lcu
+                .toggleAutoRoll()
+                .then(() => window.lcu.getAutoRoll().then(setAutoRoll))
+            }
+          />
+          Auto roll on champion lock
         </label>
       </div>
 

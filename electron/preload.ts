@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld("lcu", {
   /* options */
   getIncludeDefault: () => ipcRenderer.invoke("get-include-default"),
   toggleIncludeDefault: () => ipcRenderer.invoke("toggle-include-default"),
+  getAutoRoll: () => ipcRenderer.invoke("get-auto-roll"),
+  toggleAutoRoll: () => ipcRenderer.invoke("toggle-auto-roll"),
 
   /* actions */
   rerollSkin: () => ipcRenderer.invoke("reroll-skin"),
