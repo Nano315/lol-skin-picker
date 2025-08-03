@@ -39,8 +39,23 @@
   object-fit: cover;
 }
 
-/* -------- contenu principal -------- */
+/* -------- main -------- */
 .main {
   flex: 1;
-  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* centrer horizontalement */
+}
+
+/* image du skin */
+.skin-wrapper {
+  width: 660px;
+  height: 371px;
+}
+
+.skin-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 40px;
 }

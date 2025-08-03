@@ -88,6 +88,8 @@ export default function App() {
         }_${selection.skinId - selection.championId * 1000}.jpg`
       : "";
 
+  const displayedSkin = splashUrl || "/fallback-skin.png";
+
   const iconUrl = iconId
     ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`
     : "";
@@ -95,7 +97,7 @@ export default function App() {
   function connectionLabel(): string {
     if (status === "disconnected") return "Not connected to client";
     if (status === "checking") return "Searching for client…";
-    
+
     /* connected */
     if (phase === "None") return "Connected to client";
     return phase; // ex: Lobby, ChampSelect, InProgress…
@@ -115,79 +117,74 @@ export default function App() {
         </div>
       </header>
 
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            checked={includeDefault}
-            onChange={() =>
-              window.lcu
-                .toggleIncludeDefault()
-                .then(() =>
-                  window.lcu.getIncludeDefault().then(setIncludeDefault)
-                )
-            }
+      <main className="main">
+        <div className="skin-wrapper">
+          <img
+            src={displayedSkin}
+            alt="current skin"
+            className="skin-img"
+            width="660"
+            height="371"
           />
-          Include default skin
-        </label>
-      </div>
-
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            checked={autoRoll}
-            onChange={() =>
-              window.lcu
-                .toggleAutoRoll()
-                .then(() => window.lcu.getAutoRoll().then(setAutoRoll))
-            }
-          />
-          Auto roll on champion lock
-        </label>
-      </div>
-
-      {phase === "ChampSelect" && (
-        <div>
-          <button
-            onClick={() =>
-              window.lcu
-                .rerollSkin()
-                .then(() => window.lcu.getSelection().then(setSelection))
-            }
-          >
-            Reroll Skin
-          </button>
-
-          {selSkin?.chromas.length ? (
-            <button
-              onClick={() =>
-                window.lcu
-                  .rerollChroma()
-                  .then(() => window.lcu.getSelection().then(setSelection))
-              }
-            >
-              Reroll Chroma
-            </button>
-          ) : null}
         </div>
-      )}
 
-      {selSkin && (
-        <div>
-          <div>
-            Skin sélectionné&nbsp;: <span>{selSkin.name}</span>
-            {selChroma && (
-              <>
-                {" "}
-                — Chroma&nbsp;: <span>{selChroma.name}</span>
-              </>
-            )}
+        <div className="buttons">
+          <div className="options-wrapper">
+            <label>
+              <input
+                type="checkbox"
+                checked={includeDefault}
+                onChange={() =>
+                  window.lcu
+                    .toggleIncludeDefault()
+                    .then(() =>
+                      window.lcu.getIncludeDefault().then(setIncludeDefault)
+                    )
+                }
+              />
+              Include default skin
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={autoRoll}
+                onChange={() =>
+                  window.lcu
+                    .toggleAutoRoll()
+                    .then(() => window.lcu.getAutoRoll().then(setAutoRoll))
+                }
+              />
+              Auto roll on champion lock
+            </label>
           </div>
 
-          {splashUrl && <img src={splashUrl} alt="Skin splash" />}
+          {phase === "ChampSelect" && (
+            <div className="reroll-wrapper">
+              <button
+                onClick={() =>
+                  window.lcu
+                    .rerollSkin()
+                    .then(() => window.lcu.getSelection().then(setSelection))
+                }
+              >
+                Reroll Skin
+              </button>
+
+              {selSkin?.chromas.length ? (
+                <button
+                  onClick={() =>
+                    window.lcu
+                      .rerollChroma()
+                      .then(() => window.lcu.getSelection().then(setSelection))
+                  }
+                >
+                  Reroll Chroma
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
-      )}
+      </main>
     </div>
   );
 }
