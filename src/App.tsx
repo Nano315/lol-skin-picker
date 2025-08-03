@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
 
+/* ---------- types globaux ---------- */
+type Selection = {
+  championId: number;
+  championAlias: string;
+  skinId: number;
+  chromaId: number;
+};
+
 declare global {
   interface OwnedSkin {
     id: number;
@@ -14,16 +22,18 @@ declare global {
       onPhase: (cb: (p: string) => void) => void;
       getSkins: () => Promise<OwnedSkin[]>;
       onSkins: (cb: (s: OwnedSkin[]) => void) => void;
+
       getIncludeDefault: () => Promise<boolean>;
       toggleIncludeDefault: () => Promise<void>;
-      toggleAutoRoll: () => Promise<void>;
+
       getAutoRoll: () => Promise<boolean>;
+      toggleAutoRoll: () => Promise<void>;
+
       rerollSkin: () => Promise<void>;
       rerollChroma: () => Promise<void>;
-      getSelection: () => Promise<{ skinId: number; chromaId: number }>;
-      onSelection: (
-        cb: (s: { skinId: number; chromaId: number }) => void
-      ) => void;
+
+      getSelection: () => Promise<Selection>;
+      onSelection: (cb: (s: Selection) => void) => void;
     };
   }
 }
@@ -33,25 +43,34 @@ export default function App() {
   const [phase, setPhase] = useState("Unknown");
   const [skins, setSkins] = useState<OwnedSkin[]>([]);
   const [includeDefault, setIncludeDefault] = useState(true);
-  const [selection, setSelection] = useState<{
-    skinId: number;
-    chromaId: number;
-  }>({ skinId: 0, chromaId: 0 });
   const [autoRoll, setAutoRoll] = useState(true);
 
+  const [selection, setSelection] = useState<Selection>({
+    championId: 0,
+    championAlias: "",
+    skinId: 0,
+    chromaId: 0,
+  });
+
+  /* ---------- effets ---------- */
   useEffect(() => {
     window.lcu.getStatus().then(setStatus);
     window.lcu.getPhase().then(setPhase);
     window.lcu.getSkins().then(setSkins);
+
+    window.lcu.getIncludeDefault().then(setIncludeDefault);
+    window.lcu.getAutoRoll().then(setAutoRoll);
+
+    window.lcu.getSelection().then(setSelection);
+
+    /* listeners */
     window.lcu.onStatus(setStatus);
     window.lcu.onPhase(setPhase);
     window.lcu.onSkins(setSkins);
-    window.lcu.getIncludeDefault().then(setIncludeDefault);
-    window.lcu.getSelection().then(setSelection);
     window.lcu.onSelection(setSelection);
-    window.lcu.getAutoRoll().then(setAutoRoll);
   }, []);
 
+  /* ---------- données dérivées ---------- */
   const statusLabel =
     status === "connected"
       ? "✅ LCU connecté"
@@ -62,9 +81,18 @@ export default function App() {
   const selSkin = skins.find((s) => s.id === selection.skinId);
   const selChroma = selSkin?.chromas.find((c) => c.id === selection.chromaId);
 
+  const splashUrl =
+    selection.skinId && selection.championAlias
+      ? `http://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
+          selection.championAlias
+        }_${selection.skinId - selection.championId * 1000}.jpg`
+      : "";
+
+  /* ---------- rendu ---------- */
   return (
     <div>
       <div>{statusLabel}</div>
+
       <div>
         Gameflow : <span>{phase}</span>
       </div>
@@ -129,13 +157,17 @@ export default function App() {
 
       {selSkin && (
         <div>
-          Skin sélectionné&nbsp;: <span>{selSkin.name}</span>
-          {selChroma && (
-            <>
-              {" "}
-              — Chroma&nbsp;: <span>{selChroma.name}</span>
-            </>
-          )}
+          <div>
+            Skin sélectionné&nbsp;: <span>{selSkin.name}</span>
+            {selChroma && (
+              <>
+                {" "}
+                — Chroma&nbsp;: <span>{selChroma.name}</span>
+              </>
+            )}
+          </div>
+
+          {splashUrl && <img src={splashUrl} alt="Skin splash" />}
         </div>
       )}
     </div>

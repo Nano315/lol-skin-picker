@@ -2,6 +2,19 @@ import fetch from "node-fetch";
 import { EventEmitter } from "node:events";
 import type { LockCreds } from "./lcu.js";
 
+/* --- alias mapping CommunityDragon (id ⇒ alias) --- */
+const aliasMap = new Map<number, string>();
+async function ensureAliasMap() {
+  if (aliasMap.size) return;
+  const url =
+    "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-summary.json";
+  const data = (await fetch(url).then((r) => r.json())) as {
+    id: number;
+    alias: string;
+  }[];
+  data.forEach((ch) => aliasMap.set(ch.id, ch.alias));
+}
+
 /* ---- réponses API ---- */
 interface SummonerRes {
   summonerId?: number;
@@ -87,7 +100,12 @@ export class ChampionSkinWatcher extends EventEmitter {
   }
 
   getSelection() {
-    return { skinId: this.selectedSkinId, chromaId: this.selectedChromaId };
+    return {
+      championId: this.currentChampion,
+      championAlias: aliasMap.get(this.currentChampion) ?? "",
+      skinId: this.selectedSkinId,
+      chromaId: this.selectedChromaId,
+    };
   }
 
   getAutoRoll() {
@@ -189,6 +207,7 @@ export class ChampionSkinWatcher extends EventEmitter {
   private async refreshSkinsAndMaybeApply() {
     if (!this.creds || this.summonerId === null || !this.currentChampion)
       return;
+    await ensureAliasMap();
     const { protocol, port, password } = this.creds;
     const base = `${protocol}://127.0.0.1:${port}`;
     const headers = {

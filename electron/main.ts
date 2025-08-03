@@ -50,12 +50,9 @@ skins.on(
   }) as (...args: unknown[]) => void // ← cast ajouté
 );
 
-skins.on(
-  "selection",
-  ((sel: { skinId: number; chromaId: number }) => {
-    win?.webContents.send("selection", sel);
-  }) as (...args: unknown[]) => void // idem pour selection
-);
+skins.on("selection", ((sel) => win?.webContents.send("selection", sel)) as (
+  ...args: unknown[]
+) => void);
 
 /* ---------------- fenêtre ---------------- */
 function createWindow() {

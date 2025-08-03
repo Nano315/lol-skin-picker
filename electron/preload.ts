@@ -28,6 +28,6 @@ contextBridge.exposeInMainWorld("lcu", {
   rerollChroma: () => ipcRenderer.invoke("reroll-chroma"),
 
   getSelection: () => ipcRenderer.invoke("get-selection"),
-  onSelection: (cb: (s: { skinId: number; chromaId: number }) => void) =>
-    ipcRenderer.on("selection", (_e, s) => cb(s)),
+  onSelection: (cb: (s: unknown) => void) =>
+    ipcRenderer.on("selection", (_e, sel) => cb(sel)),
 });
