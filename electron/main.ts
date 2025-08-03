@@ -54,6 +54,10 @@ skins.on("selection", ((sel) => win?.webContents.send("selection", sel)) as (
   ...args: unknown[]
 ) => void);
 
+skins.on("icon", (id: number) => {
+  win?.webContents.send("summoner-icon", id);
+});
+
 /* ---------------- fenêtre ---------------- */
 function createWindow() {
   win = new BrowserWindow({
@@ -102,6 +106,8 @@ ipcMain.handle("reroll-chroma", () => skins.rerollChroma());
 ipcMain.handle("get-selection", () => skins.getSelection());
 ipcMain.handle("get-auto-roll", () => skins.getAutoRoll());
 ipcMain.handle("toggle-auto-roll", () => skins.toggleAutoRoll());
+
+ipcMain.handle("get-summoner-icon", () => skins.getProfileIcon());
 
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());

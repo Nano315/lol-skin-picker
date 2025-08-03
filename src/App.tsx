@@ -34,6 +34,9 @@ declare global {
 
       getSelection: () => Promise<Selection>;
       onSelection: (cb: (s: Selection) => void) => void;
+
+      getSummonerIcon: () => Promise<number>;
+      onSummonerIcon: (cb: (id: number) => void) => void;
     };
   }
 }
@@ -52,6 +55,8 @@ export default function App() {
     chromaId: 0,
   });
 
+  const [iconId, setIconId] = useState(0);
+
   /* ---------- effets ---------- */
   useEffect(() => {
     window.lcu.getStatus().then(setStatus);
@@ -62,25 +67,19 @@ export default function App() {
     window.lcu.getAutoRoll().then(setAutoRoll);
 
     window.lcu.getSelection().then(setSelection);
+    window.lcu.getSummonerIcon().then(setIconId);
 
     /* listeners */
     window.lcu.onStatus(setStatus);
     window.lcu.onPhase(setPhase);
     window.lcu.onSkins(setSkins);
     window.lcu.onSelection(setSelection);
+    window.lcu.onSummonerIcon(setIconId);
   }, []);
 
   /* ---------- données dérivées ---------- */
-  const statusLabel =
-    status === "connected"
-      ? "✅ LCU connecté"
-      : status === "disconnected"
-      ? "🔴 Client non détecté"
-      : "⏳ Recherche du client…";
-
   const selSkin = skins.find((s) => s.id === selection.skinId);
   const selChroma = selSkin?.chromas.find((c) => c.id === selection.chromaId);
-
   const splashUrl =
     selection.skinId && selection.championAlias
       ? `http://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
@@ -88,10 +87,25 @@ export default function App() {
         }_${selection.skinId - selection.championId * 1000}.jpg`
       : "";
 
+  const iconUrl = iconId
+    ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`
+    : "";
+
   /* ---------- rendu ---------- */
   return (
     <div>
-      <div>{statusLabel}</div>
+      <div className="flex items-center gap-3 text-xl">
+        {iconUrl && (
+          <img src={iconUrl} alt="icon" className="w-10 h-10 rounded" />
+        )}
+        <span>
+          {status === "connected"
+            ? "✅ LCU connecté"
+            : status === "disconnected"
+            ? "🔴 Client non détecté"
+            : "⏳ Recherche du client…"}
+        </span>
+      </div>
 
       <div>
         Gameflow : <span>{phase}</span>

@@ -4,6 +4,9 @@ electron.contextBridge.exposeInMainWorld("lcu", {
   /* connexion */
   getStatus: () => electron.ipcRenderer.invoke("get-lcu-status"),
   onStatus: (cb) => electron.ipcRenderer.on("lcu-status", (_e, s) => cb(s)),
+  /* Icon */
+  getSummonerIcon: () => electron.ipcRenderer.invoke("get-summoner-icon"),
+  onSummonerIcon: (cb) => electron.ipcRenderer.on("summoner-icon", (_e, id) => cb(id)),
   /* gameflow */
   getPhase: () => electron.ipcRenderer.invoke("get-gameflow-phase"),
   onPhase: (cb) => electron.ipcRenderer.on("gameflow-phase", (_e, p) => cb(p)),

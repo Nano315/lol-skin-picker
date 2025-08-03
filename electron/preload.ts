@@ -7,6 +7,11 @@ contextBridge.exposeInMainWorld("lcu", {
   onStatus: (cb: (s: string) => void) =>
     ipcRenderer.on("lcu-status", (_e, s) => cb(s)),
 
+  /* Icon */
+  getSummonerIcon: () => ipcRenderer.invoke("get-summoner-icon"),
+  onSummonerIcon: (cb: (id: number) => void) =>
+    ipcRenderer.on("summoner-icon", (_e, id) => cb(id)),
+
   /* gameflow */
   getPhase: () => ipcRenderer.invoke("get-gameflow-phase"),
   onPhase: (cb: (p: string) => void) =>

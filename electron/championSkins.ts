@@ -20,6 +20,7 @@ interface SummonerRes {
   summonerId?: number;
   accountId?: number;
   id?: number;
+  profileIconId?: number;
 }
 interface SkinRes {
   id: number;
@@ -60,6 +61,8 @@ export class ChampionSkinWatcher extends EventEmitter {
 
   private selectedSkinId = 0;
   private selectedChromaId = 0;
+
+  private profileIconId = 0;
 
   private autoRollEnabled = true;
 
@@ -115,6 +118,10 @@ export class ChampionSkinWatcher extends EventEmitter {
   toggleAutoRoll() {
     this.autoRollEnabled = !this.autoRollEnabled;
     if (this.autoRollEnabled && this.currentChampion) this.rerollSkin(); // relance seulement si on vient d’activer
+  }
+
+  getProfileIcon() {
+    return this.profileIconId;
   }
 
   /** Reroll manuel (skin + chroma éventuelle) */
@@ -181,6 +188,8 @@ export class ChampionSkinWatcher extends EventEmitter {
         headers: { Authorization: `Basic ${auth}` },
       }).then((r) => r.json())) as SummonerRes;
       this.summonerId = r.summonerId ?? r.accountId ?? r.id ?? null;
+      this.profileIconId = r.profileIconId ?? 0;
+      this.emit("icon", this.profileIconId);
     } catch {
       this.summonerId = null;
     }
@@ -340,12 +349,28 @@ export class ChampionSkinWatcher extends EventEmitter {
   }
 
   /* ---- EventEmitter typings ---- */
-  override on(event: string, listener: (...args: unknown[]) => void): this {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return super.on(event, listener as (...args: any[]) => void);
+  /* surcharges (aucun corps) */
+  on(event: "skins", fn: (l: OwnedSkin[]) => void): this;
+  on(
+    event: "selection",
+    fn: (s: { skinId: number; chromaId: number }) => void
+  ): this;
+  on(event: "icon", fn: (id: number) => void): this;
+
+  /* implémentation générique — doit accepter TOUS les cas */
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  override on(event: string, listener: (...args: any[]) => void): this {
+    return super.on(event, listener);
   }
 
-  override emit(event: string, ...args: unknown[]): boolean {
+  /* surcharges emit */
+  emit(event: "skins", l: OwnedSkin[]): boolean;
+  emit(event: "selection", s: { skinId: number; chromaId: number }): boolean;
+  emit(event: "icon", id: number): boolean;
+
+  /* implémentation générique */
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  override emit(event: string, ...args: any[]): boolean {
     return super.emit(event, ...args);
   }
 }
