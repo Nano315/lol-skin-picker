@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import GradientText from "./components/GradientText/GradientText";
 
 /* ---------- types globaux ---------- */
 type Selection = {
@@ -217,7 +218,7 @@ export default function App() {
     <div className="app">
       {/* ---------- header ---------- */}
       <header className="header">
-        <div className="logo">Skin&nbsp;Picker</div>
+        <div className="logo">Skin Picker</div>
 
         <div className="connection">
           <div className="state">{connectionLabel()}</div>
@@ -245,26 +246,55 @@ export default function App() {
         </div>
 
         {/* -------- reroll (centre sous l'image) -------- */}
-        {phase === "ChampSelect" && (
+        {phase !== "ChampSelect" && (
           <div className="reroll-wrapper">
+            {/* ---- bouton skin ---- */}
             <button
+              className="reroll-btn"
               onClick={() =>
                 window.lcu
                   .rerollSkin()
                   .then(() => window.lcu.getSelection().then(setSelection))
               }
             >
-              Reroll Skin
+              <GradientText
+                className="reroll-text"
+                animationSpeed={6}
+                colors={[
+                  "#ffffff",
+                  "#727272ff",
+                  "#ffffff",
+                  "#727272ff",
+                  "#ffffff",
+                ]}
+              >
+                Reroll Skin
+              </GradientText>
             </button>
-            {skins.find((s) => s.id === selection.skinId)?.chromas.length ? (
+
+            {/* ---- bouton chroma (affiché seulement si chromas) ---- */}
+            {!skins.find((s) => s.id === selection.skinId)?.chromas.length ? (
               <button
+                className="reroll-btn"
                 onClick={() =>
                   window.lcu
                     .rerollChroma()
                     .then(() => window.lcu.getSelection().then(setSelection))
                 }
               >
-                Reroll Chroma
+                <GradientText
+                  className="reroll-text"
+                  animationSpeed={6}
+                  colors={[
+                    "#6248FF",
+                    "#E5FF48",
+                    "#FF48ED",
+                    "#48BDFF",
+                    "#6248FF",
+                  ]}
+                >
+                  Reroll Chroma
+                </GradientText>
               </button>
             ) : null}
           </div>

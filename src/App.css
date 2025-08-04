@@ -106,16 +106,30 @@
 
 /* -------- reroll wrapper (sous l’image) -------- */
 .reroll-wrapper {
-  margin-top: 18px;
+  margin-top: 22px;
   display: flex;
-  gap: 12px;
+  gap: 16px;
 }
 
-.reroll-wrapper button {
-  padding: 8px 14px;
-  border-radius: 6px;
-  background: #1e232a;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  font-size: 0.9rem;
+/* ---- style commun aux 2 boutons ---- */
+.reroll-btn {
+  border: none; /* on masque le <button> natif */
+  background: transparent;
+  padding: 0;
   cursor: pointer;
+}
+
+/* ---- conteneur gradient ---- */
+.reroll-text {
+  /* même « capsule » que les options, mais + grande */
+  padding: 12px 22px;
+  border-radius: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  background: #13171d;
+}
+
+/* texte plus visible que pour les options */
+.reroll-text .text-content {
+  font-size: 1.05rem; /* ← légèrement plus grand */
+  font-weight: 600;
 }
