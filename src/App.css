@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
+  padding: 18px 24px;
 }
 
 /* logo à gauche */
@@ -41,10 +41,11 @@
 
 /* -------- main -------- */
 .main {
+  position: relative; /* ► pour l’options-wrapper absolue */
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center; /* centrer horizontalement */
+  align-items: center;
 }
 
 /* image du skin */
@@ -60,4 +61,61 @@
   height: 100%;
   object-fit: cover;
   border-radius: 40px;
+}
+
+/* -------- options (bas-gauche) -------- */
+.options-wrapper {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  background: #13171d;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.option input {
+  position: absolute; /* masqué mais garde l’accessibilité */
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e23670; /* rouge par défaut (= false) */
+}
+
+.option input:checked + .dot {
+  background: #4ac97e; /* vert quand checked */
+}
+
+/* -------- reroll wrapper (sous l’image) -------- */
+.reroll-wrapper {
+  margin-top: 18px;
+  display: flex;
+  gap: 12px;
+}
+
+.reroll-wrapper button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: #1e232a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.9rem;
+  cursor: pointer;
 }

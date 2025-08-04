@@ -43,7 +43,7 @@ declare global {
 }
 
 /* ---------- util ---------- */
-function hexToRgba(h: string, alpha = 0.5) {
+const hexToRgba = (h: string, alpha = 0.5) => {
   const res = /^#?([0-9a-f]{6})$/i.exec(h);
   if (!res) return null;
   const int = parseInt(res[1], 16);
@@ -51,9 +51,10 @@ function hexToRgba(h: string, alpha = 0.5) {
   const g = (int >> 8) & 255;
   const b = int & 255;
   return `rgba(${r},${g},${b},${alpha})`;
-}
+};
 
 export default function App() {
+  /* -------- états -------- */
   const [status, setStatus] = useState("checking");
   const [phase, setPhase] = useState("Unknown");
   const [skins, setSkins] = useState<OwnedSkin[]>([]);
@@ -70,7 +71,7 @@ export default function App() {
   const [iconId, setIconId] = useState(0);
   const [chromaColor, setChromaColor] = useState<string | null>(null);
 
-  /* -------- helpers persistance -------- */
+  /* -------- helpers persistance (localStorage) -------- */
   const savePref = (k: "includeDefault" | "autoRoll", v: boolean) =>
     localStorage.setItem(`pref-${k}`, String(v));
   const readPref = (k: "includeDefault" | "autoRoll") => {
@@ -99,7 +100,7 @@ export default function App() {
       });
   };
 
-  /* ---------- effets ---------- */
+  /* ---------- effets init ---------- */
   useEffect(() => {
     window.lcu.getStatus().then(setStatus);
     window.lcu.getPhase().then(setPhase);
@@ -118,8 +119,7 @@ export default function App() {
     window.lcu.onSelection(setSelection);
     window.lcu.onSummonerIcon(setIconId);
 
-    /* ► après avoir récupéré les valeurs courantes, on applique
-       éventuellement la préférence sauvegardée */
+    /* appliquer préférences stockées */
     Promise.all([
       window.lcu.getIncludeDefault(),
       window.lcu.getAutoRoll(),
@@ -131,19 +131,15 @@ export default function App() {
         window.lcu
           .toggleIncludeDefault()
           .then(() => setIncludeDefault(incPref));
-      } else {
-        setIncludeDefault(incSrv);
-      }
+      } else setIncludeDefault(incSrv);
 
       if (autoPref !== null && autoPref !== autoSrv) {
         window.lcu.toggleAutoRoll().then(() => setAutoRoll(autoPref));
-      } else {
-        setAutoRoll(autoSrv);
-      }
+      } else setAutoRoll(autoSrv);
     });
   }, []);
 
-  /* ---------- fetch chroma color when it changes ---------- */
+  /* ---------- chroma color ---------- */
   useEffect(() => {
     async function fetchColor() {
       if (!selection.chromaId) {
@@ -156,7 +152,7 @@ export default function App() {
           ? (arr[0] as string)
           : null;
 
-      /* ----- 1) tentative : fichier chroma dédié -------------------- */
+      /* 1) fichier chroma direct */
       try {
         const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/chromas/${selection.chromaId}.json`;
         const data = await fetch(url).then((r) => (r.ok ? r.json() : null));
@@ -164,7 +160,6 @@ export default function App() {
           pickHex(data?.colorsHexPrefixed) ||
           pickHex(data?.colorsHex) ||
           pickHex(data?.colors);
-
         if (hex) {
           setChromaColor(hexToRgba(hex));
           return;
@@ -173,59 +168,49 @@ export default function App() {
         /* ignore */
       }
 
-      /* ----- 2) fallback : fichier champion -> skin -> chroma -------- */
+      /* 2) fallback via champion */
       if (!selection.championId || !selection.skinId) {
         setChromaColor(null);
         return;
       }
 
       try {
-        /** types minimaux pour ce que l’on lit */
-        type CDragonChroma = { id: number; colors?: string[] };
-        type CDragonSkin = { id: number; chromas?: CDragonChroma[] };
-        type CDragonChamp = { skins?: CDragonSkin[] };
+        type CChroma = { id: number; colors?: string[] };
+        type CSkin = { id: number; chromas?: CChroma[] };
+        type CChamp = { skins?: CSkin[] };
 
         const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champions/${selection.championId}.json`;
-        const champ: CDragonChamp = await fetch(url).then((r) => r.json());
-
+        const champ: CChamp = await fetch(url).then((r) => r.json());
         const skin = champ.skins?.find((s) => s.id === selection.skinId);
         const chroma = skin?.chromas?.find((c) => c.id === selection.chromaId);
-
         const hex = pickHex(chroma?.colors);
         setChromaColor(hex ? hexToRgba(hex) : null);
       } catch {
         setChromaColor(null);
       }
     }
-
     fetchColor();
   }, [selection.championId, selection.skinId, selection.chromaId]);
 
   /* ---------- données dérivées ---------- */
-  const selSkin = skins.find((s) => s.id === selection.skinId);
-  //const selChroma = selSkin?.chromas.find((c) => c.id === selection.chromaId);
   const splashUrl =
     selection.skinId && selection.championAlias
       ? `http://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
           selection.championAlias
         }_${selection.skinId - selection.championId * 1000}.jpg`
       : "";
-
   const displayedSkin = splashUrl || "/fallback-skin.png";
 
   const iconUrl = iconId
     ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`
     : "/fallback-icon.png";
 
-  function connectionLabel(): string {
-    if (status === "disconnected") return "Not connected to client";
-    if (phase === "Unknown") return "Not connected to client";
+  const connectionLabel = () => {
+    if (status === "disconnected" || phase === "Unknown")
+      return "Not connected to client";
     if (status === "checking") return "Searching for client…";
-
-    /* connected */
-    if (phase === "None") return "Connected to client";
-    return phase; // ex: Lobby, ChampSelect, InProgress…
-  }
+    return phase === "None" ? "Connected to client" : phase;
+  };
 
   /* ---------- rendu ---------- */
   return (
@@ -236,12 +221,12 @@ export default function App() {
 
         <div className="connection">
           <div className="state">{connectionLabel()}</div>
-
           {iconUrl && <img src={iconUrl} alt="summoner" className="avatar" />}
         </div>
       </header>
 
       <main className="main">
+        {/* skin affiché */}
         <div
           className="skin-wrapper"
           style={
@@ -259,51 +244,53 @@ export default function App() {
           />
         </div>
 
-        <div className="buttons">
-          <div className="options-wrapper">
-            <label>
-              <input
-                type="checkbox"
-                checked={includeDefault}
-                onChange={handleToggleInclude}
-              />
-              Include default skin
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={autoRoll}
-                onChange={handleToggleAuto}
-              />
-              Auto roll on champion lock
-            </label>
-          </div>
-
-          {phase === "ChampSelect" && (
-            <div className="reroll-wrapper">
+        {/* -------- reroll (centre sous l'image) -------- */}
+        {phase === "ChampSelect" && (
+          <div className="reroll-wrapper">
+            <button
+              onClick={() =>
+                window.lcu
+                  .rerollSkin()
+                  .then(() => window.lcu.getSelection().then(setSelection))
+              }
+            >
+              Reroll Skin
+            </button>
+            {skins.find((s) => s.id === selection.skinId)?.chromas.length ? (
               <button
                 onClick={() =>
                   window.lcu
-                    .rerollSkin()
+                    .rerollChroma()
                     .then(() => window.lcu.getSelection().then(setSelection))
                 }
               >
-                Reroll Skin
+                Reroll Chroma
               </button>
+            ) : null}
+          </div>
+        )}
 
-              {selSkin?.chromas.length ? (
-                <button
-                  onClick={() =>
-                    window.lcu
-                      .rerollChroma()
-                      .then(() => window.lcu.getSelection().then(setSelection))
-                  }
-                >
-                  Reroll Chroma
-                </button>
-              ) : null}
-            </div>
-          )}
+        {/* -------- options (fixé bas-gauche) -------- */}
+        <div className="options-wrapper">
+          <label className="option">
+            <input
+              type="checkbox"
+              checked={includeDefault}
+              onChange={handleToggleInclude}
+            />
+            <span className="dot" />
+            <span className="txt">Include default skin</span>
+          </label>
+
+          <label className="option">
+            <input
+              type="checkbox"
+              checked={autoRoll}
+              onChange={handleToggleAuto}
+            />
+            <span className="dot" />
+            <span className="txt">Auto roll on champion lock</span>
+          </label>
         </div>
       </main>
     </div>
