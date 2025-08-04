@@ -42,6 +42,17 @@ declare global {
   }
 }
 
+/* ---------- util ---------- */
+function hexToRgba(h: string, alpha = 0.5) {
+  const res = /^#?([0-9a-f]{6})$/i.exec(h);
+  if (!res) return null;
+  const int = parseInt(res[1], 16);
+  const r = (int >> 16) & 255;
+  const g = (int >> 8) & 255;
+  const b = int & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 export default function App() {
   const [status, setStatus] = useState("checking");
   const [phase, setPhase] = useState("Unknown");
@@ -57,6 +68,7 @@ export default function App() {
   });
 
   const [iconId, setIconId] = useState(0);
+  const [chromaColor, setChromaColor] = useState<string | null>(null);
 
   /* ---------- effets ---------- */
   useEffect(() => {
@@ -78,9 +90,67 @@ export default function App() {
     window.lcu.onSummonerIcon(setIconId);
   }, []);
 
+  /* ---------- fetch chroma color when it changes ---------- */
+  useEffect(() => {
+    async function fetchColor() {
+      if (!selection.chromaId) {
+        setChromaColor(null);
+        return;
+      }
+
+      const pickHex = (arr?: unknown) =>
+        Array.isArray(arr) && typeof arr[0] === "string"
+          ? (arr[0] as string)
+          : null;
+
+      /* ----- 1) tentative : fichier chroma dédié -------------------- */
+      try {
+        const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/chromas/${selection.chromaId}.json`;
+        const data = await fetch(url).then((r) => (r.ok ? r.json() : null));
+        const hex =
+          pickHex(data?.colorsHexPrefixed) ||
+          pickHex(data?.colorsHex) ||
+          pickHex(data?.colors);
+
+        if (hex) {
+          setChromaColor(hexToRgba(hex));
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+
+      /* ----- 2) fallback : fichier champion -> skin -> chroma -------- */
+      if (!selection.championId || !selection.skinId) {
+        setChromaColor(null);
+        return;
+      }
+
+      try {
+        /** types minimaux pour ce que l’on lit */
+        type CDragonChroma = { id: number; colors?: string[] };
+        type CDragonSkin = { id: number; chromas?: CDragonChroma[] };
+        type CDragonChamp = { skins?: CDragonSkin[] };
+
+        const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champions/${selection.championId}.json`;
+        const champ: CDragonChamp = await fetch(url).then((r) => r.json());
+
+        const skin = champ.skins?.find((s) => s.id === selection.skinId);
+        const chroma = skin?.chromas?.find((c) => c.id === selection.chromaId);
+
+        const hex = pickHex(chroma?.colors);
+        setChromaColor(hex ? hexToRgba(hex) : null);
+      } catch {
+        setChromaColor(null);
+      }
+    }
+
+    fetchColor();
+  }, [selection.championId, selection.skinId, selection.chromaId]);
+
   /* ---------- données dérivées ---------- */
   const selSkin = skins.find((s) => s.id === selection.skinId);
-  const selChroma = selSkin?.chromas.find((c) => c.id === selection.chromaId);
+  //const selChroma = selSkin?.chromas.find((c) => c.id === selection.chromaId);
   const splashUrl =
     selection.skinId && selection.championAlias
       ? `http://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
@@ -92,10 +162,11 @@ export default function App() {
 
   const iconUrl = iconId
     ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`
-    : "";
+    : "/fallback-icon.png";
 
   function connectionLabel(): string {
     if (status === "disconnected") return "Not connected to client";
+    if (phase === "Unknown") return "Not connected to client";
     if (status === "checking") return "Searching for client…";
 
     /* connected */
@@ -118,7 +189,14 @@ export default function App() {
       </header>
 
       <main className="main">
-        <div className="skin-wrapper">
+        <div
+          className="skin-wrapper"
+          style={
+            chromaColor
+              ? { boxShadow: `1px 1px 111.3px 50px ${chromaColor}` }
+              : undefined
+          }
+        >
           <img
             src={displayedSkin}
             alt="current skin"

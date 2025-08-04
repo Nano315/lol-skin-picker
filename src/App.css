@@ -51,6 +51,8 @@
 .skin-wrapper {
   width: 660px;
   height: 371px;
+  border-radius: 40px; /* arrondi commun à l’ombre et à l’image */
+  transition: box-shadow 0.25s;
 }
 
 .skin-img {
