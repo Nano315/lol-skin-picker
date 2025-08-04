@@ -70,6 +70,35 @@ export default function App() {
   const [iconId, setIconId] = useState(0);
   const [chromaColor, setChromaColor] = useState<string | null>(null);
 
+  /* -------- helpers persistance -------- */
+  const savePref = (k: "includeDefault" | "autoRoll", v: boolean) =>
+    localStorage.setItem(`pref-${k}`, String(v));
+  const readPref = (k: "includeDefault" | "autoRoll") => {
+    const raw = localStorage.getItem(`pref-${k}`);
+    return raw !== null ? raw === "true" : null;
+  };
+
+  /* -------- actions -------- */
+  const handleToggleInclude = () => {
+    window.lcu
+      .toggleIncludeDefault()
+      .then(() => window.lcu.getIncludeDefault())
+      .then((val) => {
+        setIncludeDefault(val);
+        savePref("includeDefault", val);
+      });
+  };
+
+  const handleToggleAuto = () => {
+    window.lcu
+      .toggleAutoRoll()
+      .then(() => window.lcu.getAutoRoll())
+      .then((val) => {
+        setAutoRoll(val);
+        savePref("autoRoll", val);
+      });
+  };
+
   /* ---------- effets ---------- */
   useEffect(() => {
     window.lcu.getStatus().then(setStatus);
@@ -88,6 +117,30 @@ export default function App() {
     window.lcu.onSkins(setSkins);
     window.lcu.onSelection(setSelection);
     window.lcu.onSummonerIcon(setIconId);
+
+    /* ► après avoir récupéré les valeurs courantes, on applique
+       éventuellement la préférence sauvegardée */
+    Promise.all([
+      window.lcu.getIncludeDefault(),
+      window.lcu.getAutoRoll(),
+    ]).then(([incSrv, autoSrv]) => {
+      const incPref = readPref("includeDefault");
+      const autoPref = readPref("autoRoll");
+
+      if (incPref !== null && incPref !== incSrv) {
+        window.lcu
+          .toggleIncludeDefault()
+          .then(() => setIncludeDefault(incPref));
+      } else {
+        setIncludeDefault(incSrv);
+      }
+
+      if (autoPref !== null && autoPref !== autoSrv) {
+        window.lcu.toggleAutoRoll().then(() => setAutoRoll(autoPref));
+      } else {
+        setAutoRoll(autoSrv);
+      }
+    });
   }, []);
 
   /* ---------- fetch chroma color when it changes ---------- */
@@ -212,13 +265,7 @@ export default function App() {
               <input
                 type="checkbox"
                 checked={includeDefault}
-                onChange={() =>
-                  window.lcu
-                    .toggleIncludeDefault()
-                    .then(() =>
-                      window.lcu.getIncludeDefault().then(setIncludeDefault)
-                    )
-                }
+                onChange={handleToggleInclude}
               />
               Include default skin
             </label>
@@ -226,11 +273,7 @@ export default function App() {
               <input
                 type="checkbox"
                 checked={autoRoll}
-                onChange={() =>
-                  window.lcu
-                    .toggleAutoRoll()
-                    .then(() => window.lcu.getAutoRoll().then(setAutoRoll))
-                }
+                onChange={handleToggleAuto}
               />
               Auto roll on champion lock
             </label>
