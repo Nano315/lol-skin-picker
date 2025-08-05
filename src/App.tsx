@@ -247,6 +247,7 @@ export default function App() {
         </div>
 
         {/* -------- reroll (centre sous l'image) -------- */}
+        {phase === "ChampSelect" && selection.championId !== 0 && (
           <div className="reroll-wrapper">
             {/* ---- bouton skin ---- */}
             <button
@@ -276,7 +277,7 @@ export default function App() {
             </button>
 
             {/* ---- bouton chroma (affiché seulement si chromas) ---- */}
-            {!skins.find((s) => s.id === selection.skinId)?.chromas.length ? (
+            {skins.find((s) => s.id === selection.skinId)?.chromas.length ? (
               <button
                 className="reroll-btn"
                 onClick={() =>
@@ -304,6 +305,7 @@ export default function App() {
               </button>
             ) : null}
           </div>
+        )}
 
         {/* -------- options (fixé bas-gauche) -------- */}
         <div className="options-wrapper">
