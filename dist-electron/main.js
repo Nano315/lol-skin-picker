@@ -1,4 +1,4 @@
 import "electron";
 import "node:path";
 import "node:url";
-import "./main-BsuAeTTI.js";
+import "./main-ieP6p9Jd.js";
