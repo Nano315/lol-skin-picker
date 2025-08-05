@@ -53,7 +53,7 @@
   display: inline-block;
   position: relative;
   z-index: 2;
-  background-size: 300% 100%;
+  background-size: 400% 100%;
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -64,7 +64,7 @@
 .gradient-icon {
   display: inline-block;
   flex: 0 0 auto;
-  background-size: 900% 100%;
+  background-size: 1200% 100%;
   animation: gradient linear infinite;
   /* Le masque (mask-image) est injecté en inline-style pour inclure la data-URL */
 }
