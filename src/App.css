@@ -67,10 +67,10 @@
 .options-wrapper {
   position: absolute;
   bottom: 24px;
-  left: 24px;
+  left: 245px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: raw;
+  gap: 16px;
 }
 
 .option {
@@ -81,7 +81,7 @@
   border-radius: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.18);
   background: #13171d;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   cursor: pointer;
   user-select: none;
 }
