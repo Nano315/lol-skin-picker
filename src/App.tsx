@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import GradientText from "./components/GradientText/GradientText";
+import { faPalette, faDice } from "@fortawesome/free-solid-svg-icons";
 
 /* ---------- types globaux ---------- */
 type Selection = {
@@ -262,11 +263,14 @@ export default function App() {
                 animationSpeed={6}
                 colors={[
                   "#ffffff",
-                  "#727272ff",
+                  "#a3a3a3ff",
                   "#ffffff",
-                  "#727272ff",
+                  "#a3a3a3ff",
                   "#ffffff",
                 ]}
+                icon={faDice}
+                iconSize={"1.9em"}
+                gap={"1em"}
               >
                 Reroll Skin
               </GradientText>
@@ -292,6 +296,9 @@ export default function App() {
                     "#48BDFF",
                     "#6248FF",
                   ]}
+                  icon={faPalette}
+                  iconSize={"1.9em"}
+                  gap={"1em"}
                 >
                   Reroll Chroma
                 </GradientText>

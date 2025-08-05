@@ -1,7 +1,7 @@
 .animated-gradient-text {
   position: relative;
   margin: 0 auto;
-  display: flex;
+  display: inline-flex; /* inline pour s’aligner avec le texte environnant */
   max-width: fit-content;
   flex-direction: row;
   align-items: center;
@@ -11,14 +11,12 @@
   transition: box-shadow 0.5s ease-out;
   overflow: hidden;
   cursor: pointer;
+  /* l’espacement icône/texte est géré par le gap inline-style */
 }
 
 .gradient-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-size: 300% 100%;
   animation: gradient linear infinite;
   border-radius: inherit;
@@ -29,14 +27,12 @@
 .gradient-overlay::before {
   content: "";
   position: absolute;
-  left: 0;
-  top: 0;
-  border-radius: inherit;
-  width: calc(100% - 2px);
-  height: calc(100% - 2px);
   left: 50%;
   top: 50%;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
   transform: translate(-50%, -50%);
+  border-radius: inherit;
   background-color: #060010;
   z-index: -1;
 }
@@ -45,11 +41,9 @@
   0% {
     background-position: 0% 50%;
   }
-
   50% {
     background-position: 100% 50%;
   }
-
   100% {
     background-position: 0% 50%;
   }
@@ -64,4 +58,13 @@
   -webkit-background-clip: text;
   color: transparent;
   animation: gradient linear infinite;
+}
+
+/* L’icône utilise un MASQUE + le même dégradé animé */
+.gradient-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-size: 900% 100%;
+  animation: gradient linear infinite;
+  /* Le masque (mask-image) est injecté en inline-style pour inclure la data-URL */
 }

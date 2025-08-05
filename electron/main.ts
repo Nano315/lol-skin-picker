@@ -62,7 +62,7 @@ skins.on("icon", (id: number) => {
 function createWindow() {
   win = new BrowserWindow({
     width: 900,
-    height: 800, // 563
+    height: 690, // 563
     resizable: false, // ← l’utilisateur ne peut plus redimensionner
     maximizable: false, // ← désactive le bouton “plein écran” (Windows / Linux)
     fullscreenable: false, // ← désactive ⌥⌘F sur macOS
