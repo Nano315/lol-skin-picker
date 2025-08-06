@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import GradientText from "./components/GradientText/GradientText";
 import { faPalette, faDice } from "@fortawesome/free-solid-svg-icons";
+import fallbackSkin from "/fallback-skin.png?url";
+import fallbackIcon from "/fallback-icon.png?url";
+
 
 /* ---------- types globaux ---------- */
 type Selection = {
@@ -201,11 +204,11 @@ export default function App() {
           selection.championAlias
         }_${selection.skinId - selection.championId * 1000}.jpg`
       : "";
-  const displayedSkin = splashUrl || "/fallback-skin.png";
+  const displayedSkin = splashUrl || fallbackSkin;
 
   const iconUrl = iconId
     ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`
-    : "/fallback-icon.png";
+    : fallbackIcon;
 
   const connectionLabel = () => {
     if (status === "disconnected" || phase === "Unknown")

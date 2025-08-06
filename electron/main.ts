@@ -60,13 +60,18 @@ skins.on("icon", (id: number) => {
 
 /* ---------------- fenêtre ---------------- */
 function createWindow() {
+  const resolveAsset = (p: string) =>
+    app.isPackaged
+      ? join(process.resourcesPath, "assets", p)
+      : join(__dirname, "..", "public", p);
+
   win = new BrowserWindow({
     width: 900,
     height: 645, // 563
     resizable: false, // ← l’utilisateur ne peut plus redimensionner
     maximizable: false, // ← désactive le bouton “plein écran” (Windows / Linux)
     fullscreenable: false, // ← désactive ⌥⌘F sur macOS
-    icon: join(__dirname, "../public/icon.ico"),
+    icon: resolveAsset("icon.ico"),
     show: false,
     webPreferences: {
       preload: join(__dirname, "preload.mjs"),
@@ -77,9 +82,7 @@ function createWindow() {
   Menu.setApplicationMenu(null); // supprime entièrement la barre de menu
 
   /* ---- icône de tray (caché / affiché) ---- */
-  const trayIcon = nativeImage.createFromPath(
-    join(__dirname, "../public/icon.ico")
-  );
+  const trayIcon = nativeImage.createFromPath(resolveAsset("icon.ico"));
   tray = new Tray(trayIcon);
   tray.setToolTip("LoL Skin Picker");
   tray.on("double-click", () => (win!.isVisible() ? win!.hide() : win!.show()));

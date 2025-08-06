@@ -90,4 +90,9 @@
     version: "1.0.0",
     description: "Applique automatiquement un skin/chroma aléatoire durant la phase de sélection de champion de League of Legends.",
   },
+  extraResources: [
+    { from: "public/icon.ico", to: "assets/icon.ico" },
+    { from: "public/fallback-icon.png", to: "assets/fallback-icon.png" },
+    { from: "public/fallback-skin.png", to: "assets/fallback-skin.png" },
+  ],
 }
