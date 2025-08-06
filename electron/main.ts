@@ -6,6 +6,8 @@ import { LcuWatcher, type LcuStatus, type LockCreds } from "./lcu.js";
 import { GameflowWatcher } from "./gameflow.js";
 import { ChampionSkinWatcher, type OwnedSkin } from "./championSkins.js";
 
+import { autoUpdater } from "electron-updater";
+
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -99,6 +101,31 @@ function createWindow() {
   lcu.start(); // déclenche toute la chaîne
 }
 
+/* ------------------------------------------------------------ */
+function initAutoUpdate() {
+  // Ne cherche des updates qu'en production
+  if (!app.isPackaged) return;
+
+  autoUpdater.on("checking-for-update", () =>
+    console.log("[Updater] checking…")
+  );
+  autoUpdater.on("update-available", (info) =>
+    console.log("[Updater] available", info.version)
+  );
+  autoUpdater.on("update-not-available", () => console.log("[Updater] none"));
+  autoUpdater.on("download-progress", (p) =>
+    console.log(`[Updater] ${Math.round(p.percent)} %`)
+  );
+  autoUpdater.on("update-downloaded", () => {
+    console.log("[Updater] downloaded – will install on quit");
+    // Installe silencieusement au prochain quit,
+    // ou autoUpdater.quitAndInstall() si tu veux le faire immédiatement.
+  });
+
+  // Lance la recherche (et download + install silencieuse)
+  autoUpdater.checkForUpdatesAndNotify();
+}
+
 /* ---------------- IPC synchrone ---------------- */
 ipcMain.handle("get-lcu-status", () => lcu.status);
 ipcMain.handle("get-gameflow-phase", () => gameflow.phase);
@@ -114,5 +141,9 @@ ipcMain.handle("toggle-auto-roll", () => skins.toggleAutoRoll());
 
 ipcMain.handle("get-summoner-icon", () => skins.getProfileIcon());
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  initAutoUpdate();
+});
+
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());

@@ -3,14 +3,17 @@
   "productName": "Skin Picker",
   "private": false,
   "author": "Valentin Dumas <valentin3135@gmail.com>",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/Nano315/lol-skin-picker.git" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nano315/lol-skin-picker.git"
+  },
   "description": "Petite application Electron qui choisit et applique aléatoirement un skin (et chroma) pendant la phase de sélection de champion sur League of Legends.",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
+    "build": "tsc && vite build && electron-builder --publish=always",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
@@ -34,6 +37,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "electron": "^30.0.1",
     "electron-builder": "^24.13.3",
+    "electron-updater": "^6.6.2",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
