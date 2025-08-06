@@ -1,7 +1,12 @@
 {
   "name": "lol-skin-picker",
-  "private": true,
-  "version": "0.0.0",
+  "productName": "Skin Picker",
+  "private": false,
+  "author": "Valentin Dumas <valentin3135@gmail.com>",
+  "version": "1.0.0",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/Nano315/lol-skin-picker.git" },
+  "description": "Petite application Electron qui choisit et applique aléatoirement un skin (et chroma) pendant la phase de sélection de champion sur League of Legends.",
   "type": "module",
   "scripts": {
     "dev": "vite",

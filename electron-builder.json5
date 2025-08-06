@@ -1,44 +1,93 @@
-// @see - https://www.electron.build/configuration/configuration
+// electron-builder.json5
+// → doc : https://www.electron.build/configuration/configuration
 {
-  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
-  "asar": true,
-  "productName": "YourAppName",
-  "directories": {
-    "output": "release/${version}"
+  /* ------------------------------------------------------------------ */
+  /*  GÉNÉRAL                                                          */
+  /* ------------------------------------------------------------------ */
+
+  // identifiant unique de l’application (reverse-DNS)
+  appId: "com.yourname.lolskinpicker",
+
+  // nom “marketing” affiché dans l’installeur, le menu, etc.
+  productName: "LoL Skin Picker",
+
+  // on empaquète tout dans un seul fichier .asar
+  asar: true,
+
+  /* ------------------------------------------------------------------ */
+  /*  SORTIE / FICHIERS À INCLURE                                       */
+  /* ------------------------------------------------------------------ */
+
+  // dossier où electron-builder placera les installeurs finaux
+  directories: {
+    output: "dist",
   },
-  "files": [
-    "dist",
-    "dist-electron"
+
+  // ce qui doit être inclus dans l’appli avant empaquetage
+  files: [
+    "dist/**", // bundle Vite (renderer)
+    "dist-electron/**", // bundle Electron (main + preload)
+    "node_modules/**", // dépendances runtime
+    "package.json", // meta + version
   ],
-  "mac": {
-    "target": [
-      "dmg"
-    ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
-  },
-  "win": {
-    "icon": "public/icon.ico",
-    "target": [
+
+  /* ------------------------------------------------------------------ */
+  /*  WINDOWS                                                          */
+  /* ------------------------------------------------------------------ */
+
+  win: {
+    // icône (256×256 px min.) – laisse .ico multi-résolution
+    icon: "public/icon.ico",
+
+    // type d’installeur : NSIS (EXE)
+    target: [
       {
-        "target": "nsis",
-        "arch": [
-          "x64"
-        ]
-      }
+        target: "nsis",
+        arch: ["x64"], // supprime ou ajoute "arm64" si besoin
+      },
     ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+
+    // nom final du fichier
+    artifactName: "${productName}-Setup-${version}.${ext}",
   },
-  "nsis": {
-    "oneClick": false,
-    "perMachine": false,
-    "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
+
+  /* Personnalisation NSIS */
+  nsis: {
+    oneClick: true, // installateur silencieux (un seul clic)
+    perMachine: false, // install pour l’utilisateur courant
+    deleteAppDataOnUninstall: false, // on conserve le cache lors d’une désinstallation
   },
+
+  /* ------------------------------------------------------------------ */
+  /*  macOS  (facultatif : commente si tu ne distribues pas sur mac)    */
+  /* ------------------------------------------------------------------ */
+
+  /*
+  "mac": {
+    "target": [ "dmg" ],
+    "icon": "public/icon.icns",
+    "artifactName": "${productName}-${version}.${ext}"
+  },
+  */
+
+  /* ------------------------------------------------------------------ */
+  /*  Linux  (facultatif)                                               */
+  /* ------------------------------------------------------------------ */
+
+  /*
   "linux": {
-    "target": [
-      "AppImage"
-    ],
-    "artifactName": "${productName}-Linux-${version}.${ext}"
-  }
+    "target": [ "AppImage" ],
+    "icon": "public",
+    "artifactName": "${productName}-${version}.${ext}"
+  },
+  */
+
+  /* ------------------------------------------------------------------ */
+  /*  METADONNÉES SUPPLÉMENTAIRES (pour le package.json embarqué)       */
+  /* ------------------------------------------------------------------ */
+
+  extraMetadata: {
+    version: "1.0.0",
+    description: "Applique automatiquement un skin/chroma aléatoire durant la phase de sélection de champion de League of Legends.",
+  },
 }

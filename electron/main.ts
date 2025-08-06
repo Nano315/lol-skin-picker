@@ -85,10 +85,12 @@ function createWindow() {
   tray.on("double-click", () => (win!.isVisible() ? win!.hide() : win!.show()));
 
   if (process.env.VITE_DEV_SERVER_URL) {
+    // mode dev
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
     //win.webContents.openDevTools();
   } else {
-    win.loadFile(join(__dirname, "../renderer/index.html"));
+    // *** production ***
+    win.loadFile(join(__dirname, "..", "dist", "index.html"));
   }
 
   lcu.start(); // déclenche toute la chaîne
