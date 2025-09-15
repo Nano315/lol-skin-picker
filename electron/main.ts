@@ -106,10 +106,14 @@ function setupTray(resolveAsset: (p: string) => string) {
   tray = new Tray(trayIcon);
   tray.setToolTip("LoL Skin Picker");
 
-  const showApp = () => {
+  const toggleWindow = () => {
     if (!win) return;
-    win.show();
-    win.focus();
+    if (win.isVisible()) {
+      win.hide();
+    } else {
+      win.show();
+      win.focus();
+    }
   };
 
   const manualCheckForUpdates = () => {
@@ -128,16 +132,30 @@ function setupTray(resolveAsset: (p: string) => string) {
     });
   };
 
-  const contextMenu = Menu.buildFromTemplate([
-    { label: "Show App", click: showApp },
-    { type: "separator" },
-    { label: "Check for Updates", click: manualCheckForUpdates },
-    { type: "separator" },
-    { label: "Quit", role: "quit" },
-  ]);
+  const refreshTrayMenu = () => {
+    const visible = !!win && win.isVisible();
+    const label = visible ? "Hide App" : "Show App";
+    const menu = Menu.buildFromTemplate([
+      { label, click: toggleWindow },
+      { type: "separator" },
+      { label: "Check for Updates", click: manualCheckForUpdates },
+      { type: "separator" },
+      { label: "Quit", role: "quit" },
+    ]);
+    tray!.setContextMenu(menu);
+  };
 
-  tray.setContextMenu(contextMenu);
-  tray.on("double-click", showApp);
+  // clic gauche = toggle (optionnel, pratique)
+  tray.on("click", toggleWindow);
+  // double-clic = toggle (comme avant)
+  tray.on("double-click", toggleWindow);
+
+  // première construction
+  refreshTrayMenu();
+
+  // expose un petit helper pour mettre à jour depuis l’extérieur
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (setupTray as any).refresh = refreshTrayMenu;
 }
 
 /* ---------------- fenêtre ---------------- */
@@ -179,6 +197,10 @@ async function createWindow() {
   Menu.setApplicationMenu(null);
 
   setupTray(resolveAsset);
+
+  // met à jour le libellé quand la fenêtre change d’état
+  win.on("show", () => (setupTray as any).refresh?.());
+  win.on("hide", () => (setupTray as any).refresh?.());
 
   if (process.env.VITE_DEV_SERVER_URL) {
     await win.loadURL(process.env.VITE_DEV_SERVER_URL);
