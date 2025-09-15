@@ -1,5 +1,5 @@
 import "electron";
 import "node:path";
 import "node:url";
-import "./main-Cx3Cwhon.js";
+import "./main-ByYXD_pI.js";
 import "node:fs";

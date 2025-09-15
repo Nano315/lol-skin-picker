@@ -6,6 +6,7 @@ import {
   Tray,
   nativeImage,
   screen,
+  dialog,
 } from "electron";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,6 +31,7 @@ const gameflow = new GameflowWatcher();
 const skins = new ChampionSkinWatcher();
 
 let tray: Tray | null = null;
+let manualUpdateRequested = false;
 
 // ---- settings (persist écran) ----
 type Settings = { displayId?: number };
@@ -99,6 +101,45 @@ skins.on("icon", (id: number) => {
   win?.webContents.send("summoner-icon", id);
 });
 
+function setupTray(resolveAsset: (p: string) => string) {
+  const trayIcon = nativeImage.createFromPath(resolveAsset("icon.ico"));
+  tray = new Tray(trayIcon);
+  tray.setToolTip("LoL Skin Picker");
+
+  const showApp = () => {
+    if (!win) return;
+    win.show();
+    win.focus();
+  };
+
+  const manualCheckForUpdates = () => {
+    if (!app.isPackaged) {
+      dialog.showMessageBox({
+        type: "info",
+        message: "Updates unavailable in dev",
+        detail: "Auto-update checks are disabled while running in development.",
+      });
+      return;
+    }
+    manualUpdateRequested = true;
+    autoUpdater.checkForUpdates().catch((err) => {
+      dialog.showErrorBox("Update error", err?.message ?? String(err));
+      manualUpdateRequested = false;
+    });
+  };
+
+  const contextMenu = Menu.buildFromTemplate([
+    { label: "Show App", click: showApp },
+    { type: "separator" },
+    { label: "Check for Updates", click: manualCheckForUpdates },
+    { type: "separator" },
+    { label: "Quit", role: "quit" },
+  ]);
+
+  tray.setContextMenu(contextMenu);
+  tray.on("double-click", showApp);
+}
+
 /* ---------------- fenêtre ---------------- */
 async function createWindow() {
   const resolveAsset = (relPath: string) =>
@@ -112,7 +153,7 @@ async function createWindow() {
   const width = 900;
   const height = 645;
 
-  let targetDisplay =
+  const targetDisplay =
     displays.find((d) => d.id === settings.displayId) ??
     screen.getDisplayNearestPoint(screen.getCursorScreenPoint()) ??
     screen.getPrimaryDisplay();
@@ -137,10 +178,7 @@ async function createWindow() {
 
   Menu.setApplicationMenu(null);
 
-  const trayIcon = nativeImage.createFromPath(resolveAsset("icon.ico"));
-  tray = new Tray(trayIcon);
-  tray.setToolTip("LoL Skin Picker");
-  tray.on("double-click", () => (win!.isVisible() ? win!.hide() : win!.show()));
+  setupTray(resolveAsset);
 
   if (process.env.VITE_DEV_SERVER_URL) {
     await win.loadURL(process.env.VITE_DEV_SERVER_URL);
@@ -169,26 +207,62 @@ async function createWindow() {
 
 /* ------------------------------------------------------------ */
 function initAutoUpdate() {
-  // Ne cherche des updates qu'en production
   if (!app.isPackaged) return;
 
-  autoUpdater.on("checking-for-update", () =>
-    console.log("[Updater] checking…")
-  );
-  autoUpdater.on("update-available", (info) =>
-    console.log("[Updater] available", info.version)
-  );
-  autoUpdater.on("update-not-available", () => console.log("[Updater] none"));
-  autoUpdater.on("download-progress", (p) =>
-    console.log(`[Updater] ${Math.round(p.percent)} %`)
-  );
-  autoUpdater.on("update-downloaded", () => {
-    console.log("[Updater] downloaded – will install on quit");
-    // Installe silencieusement au prochain quit,
-    // ou autoUpdater.quitAndInstall() si tu veux le faire immédiatement.
+  autoUpdater.on("checking-for-update", () => {
+    if (manualUpdateRequested) {
+      dialog.showMessageBox({ message: "Checking for updates…" });
+    }
   });
 
-  // Lance la recherche (et download + install silencieuse)
+  autoUpdater.on("update-available", (info) => {
+    if (manualUpdateRequested) {
+      dialog.showMessageBox({
+        type: "info",
+        message: "Update available",
+        detail: `Version ${info.version} is being downloaded in the background.`,
+      });
+    }
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    if (manualUpdateRequested) {
+      dialog.showMessageBox({
+        type: "info",
+        message: "You're up to date",
+        detail: `Current version: ${app.getVersion()}`,
+      });
+      manualUpdateRequested = false;
+    }
+  });
+
+  autoUpdater.on("download-progress", (p) => {
+    // Log silencieux; tu peux afficher un balloon sur Windows si tu veux
+    console.log(`[Updater] ${Math.round(p.percent)} %`);
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    if (manualUpdateRequested) {
+      manualUpdateRequested = false;
+      dialog
+        .showMessageBox({
+          type: "question",
+          buttons: ["Install and Restart", "Later"],
+          defaultId: 0,
+          cancelId: 1,
+          message: "Update ready",
+          detail: `Version ${info.version} has been downloaded.`,
+        })
+        .then(({ response }) => {
+          if (response === 0) autoUpdater.quitAndInstall();
+        });
+    } else {
+      // Chemin silencieux “install on quit”
+      console.log("[Updater] downloaded – will install on quit");
+    }
+  });
+
+  // Vérification au démarrage (avec notification OS si dispo)
   autoUpdater.checkForUpdatesAndNotify();
 }
 
