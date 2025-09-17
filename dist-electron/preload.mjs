@@ -22,5 +22,7 @@ electron.contextBridge.exposeInMainWorld("lcu", {
   rerollSkin: () => electron.ipcRenderer.invoke("reroll-skin"),
   rerollChroma: () => electron.ipcRenderer.invoke("reroll-chroma"),
   getSelection: () => electron.ipcRenderer.invoke("get-selection"),
-  onSelection: (cb) => electron.ipcRenderer.on("selection", (_e, sel) => cb(sel))
+  onSelection: (cb) => electron.ipcRenderer.on("selection", (_e, sel) => cb(sel)),
+  /* dm discord */
+  openExternal: (url) => electron.ipcRenderer.invoke("open-external", url)
 });

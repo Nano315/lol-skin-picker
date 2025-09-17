@@ -7,6 +7,7 @@ import {
   nativeImage,
   screen,
   dialog,
+  shell
 } from "electron";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -199,7 +200,9 @@ async function createWindow() {
   setupTray(resolveAsset);
 
   // met à jour le libellé quand la fenêtre change d’état
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   win.on("show", () => (setupTray as any).refresh?.());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   win.on("hide", () => (setupTray as any).refresh?.());
 
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -302,6 +305,8 @@ ipcMain.handle("get-auto-roll", () => skins.getAutoRoll());
 ipcMain.handle("toggle-auto-roll", () => skins.toggleAutoRoll());
 
 ipcMain.handle("get-summoner-icon", () => skins.getProfileIcon());
+
+ipcMain.handle("open-external", (_e, url: string) => shell.openExternal(url));
 
 app.whenReady().then(() => {
   createWindow();

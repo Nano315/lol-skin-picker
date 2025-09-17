@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { OwnedSkin } from "./championSkins.js"; // ← import uniquement type
+import type { OwnedSkin } from "./championSkins.js";
 
 contextBridge.exposeInMainWorld("lcu", {
   /* connexion */
@@ -35,4 +35,7 @@ contextBridge.exposeInMainWorld("lcu", {
   getSelection: () => ipcRenderer.invoke("get-selection"),
   onSelection: (cb: (s: unknown) => void) =>
     ipcRenderer.on("selection", (_e, sel) => cb(sel)),
+
+  /* dm discord */
+  openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
 });

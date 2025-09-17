@@ -84,6 +84,18 @@
   font-size: 0.8rem;
   cursor: pointer;
   user-select: none;
+
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.option:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+.option:active {
+  transform: translateY(0);
+  opacity: 1;
 }
 
 .option input {
@@ -118,6 +130,18 @@
   background: transparent;
   padding: 0;
   cursor: pointer;
+
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.reroll-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+.reroll-btn:active {
+  transform: translateY(0);
+  opacity: 1;
 }
 
 /* ---- conteneur gradient ---- */
@@ -133,4 +157,36 @@
 .reroll-text .text-content {
   font-size: 1.05rem; /* ← légèrement plus grand */
   font-weight: 600;
+}
+
+/* -------- bouton contact (bas-droite) -------- */
+.contact-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 5;
+
+  background: #3f445a;
+  color: #cdcecf;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: x-small;
+
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  user-select: none;
+
+  /* petit hover subtil */
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.contact-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+.contact-btn:active {
+  transform: translateY(0);
+  opacity: 1;
 }

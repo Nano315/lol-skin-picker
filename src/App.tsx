@@ -5,6 +5,9 @@ import { faPalette, faDice } from "@fortawesome/free-solid-svg-icons";
 import fallbackSkin from "/fallback-skin.png?url";
 import fallbackIcon from "/fallback-icon.png?url";
 
+// Renseigne ICI ton lien Discord OU ton email
+const DISCORD_URL = "https://discord.com/users/315900478065999873";
+const CONTACT_EMAIL = "valentin3135@gmail.com";
 
 /* ---------- types globaux ---------- */
 type Selection = {
@@ -43,6 +46,8 @@ declare global {
 
       getSummonerIcon: () => Promise<number>;
       onSummonerIcon: (cb: (id: number) => void) => void;
+
+      openExternal: (url: string) => Promise<void>;
     };
   }
 }
@@ -103,6 +108,15 @@ export default function App() {
         setAutoRoll(val);
         savePref("autoRoll", val);
       });
+  };
+
+  const handleContact = () => {
+    if (DISCORD_URL && DISCORD_URL.startsWith("http")) {
+      window.lcu.openExternal(DISCORD_URL);
+    } else if (CONTACT_EMAIL) {
+      // fallback mail
+      window.location.href = `mailto:${CONTACT_EMAIL}`;
+    }
   };
 
   /* ---------- effets init ---------- */
@@ -333,6 +347,9 @@ export default function App() {
           </label>
         </div>
       </main>
+      <button className="contact-btn" onClick={handleContact}>
+        CONTACT
+      </button>
     </div>
   );
 }
