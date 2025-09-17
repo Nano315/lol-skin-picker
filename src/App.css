@@ -190,3 +190,85 @@
   transform: translateY(0);
   opacity: 1;
 }
+
+/* --- couche globale --- */
+.mascots-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* wrapper animé (translateY) */
+.mascot {
+  position: absolute;
+  animation: floaty ease-in-out infinite;
+  opacity: 0.95;
+}
+
+/* variante de timing (garde ce que tu avais) */
+.mascot.m1 {
+  animation-duration: 7s;
+  animation-delay: 0s;
+}
+.mascot.m2 {
+  animation-duration: 6s;
+  animation-delay: 0.8s;
+}
+.mascot.m3 {
+  animation-duration: 8s;
+  animation-delay: 0.4s;
+}
+.mascot.m4 {
+  animation-duration: 7.5s;
+  animation-delay: 1s;
+}
+.mascot.m5 {
+  animation-duration: 6.5s;
+  animation-delay: 0.2s;
+}
+
+@keyframes floaty {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* image : miroir (si besoin) et au-dessus de l’aura */
+.mascot img {
+  display: block;
+  position: relative;
+  z-index: 2;
+  /* adapte la taille comme tu veux globalement */
+  /* width: 90px; height: auto; */
+}
+.mascot img.flip-x {
+  transform: scaleX(-1);
+}
+
+/* aura derrière (ne floute PAS l’image) */
+.mascot::after {
+  content: "";
+  position: absolute;
+  z-index: 1; /* derrière l’image (z=2) */
+  left: 50%;
+  top: 50%;
+  width: 90px;
+  height: 90px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  /* couleur depuis la variable CSS --aura */
+  background: radial-gradient(
+    circle,
+    var(--aura, rgba(98, 72, 255, 0.45)) 0%,
+    rgba(0, 0, 0, 0) 65%
+  );
+  filter: blur(16px); /* glow doux, l’image reste nette */
+  opacity: 1; /* ajuste l’intensité globale ici */
+}

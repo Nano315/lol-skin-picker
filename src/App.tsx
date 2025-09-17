@@ -4,6 +4,10 @@ import GradientText from "./components/GradientText/GradientText";
 import { faPalette, faDice } from "@fortawesome/free-solid-svg-icons";
 import fallbackSkin from "/fallback-skin.png?url";
 import fallbackIcon from "/fallback-icon.png?url";
+import Lulu from "/mascots/LuluHome.png?url";
+import Meep1 from "/mascots/Meep1.png?url";
+import Meep3 from "/mascots/Meep3.png?url";
+import Poro4 from "/mascots/Poro4.png?url";
 
 // Renseigne ICI ton lien Discord OU ton email
 const DISCORD_URL = "https://discord.com/users/315900478065999873";
@@ -264,7 +268,7 @@ export default function App() {
         </div>
 
         {/* -------- reroll (centre sous l'image) -------- */}
-        {phase === "ChampSelect" && selection.championId !== 0 && (
+        {phase !== "ChampSelect" && selection.championId == 0 && (
           <div className="reroll-wrapper">
             {/* ---- bouton skin ---- */}
             <button
@@ -294,7 +298,7 @@ export default function App() {
             </button>
 
             {/* ---- bouton chroma (affiché seulement si chromas) ---- */}
-            {skins.find((s) => s.id === selection.skinId)?.chromas.length ? (
+            {!skins.find((s) => s.id === selection.skinId)?.chromas.length ? (
               <button
                 className="reroll-btn"
                 onClick={() =>
@@ -345,6 +349,74 @@ export default function App() {
             <span className="dot" />
             <span className="txt">Auto roll on champion lock</span>
           </label>
+        </div>
+        {/* --- mascots layer (au-dessus de tout) --- */}
+        <div className="mascots-layer">
+          <div
+            className="mascot m1"
+            style={
+              {
+                top: "61%",
+                left: "54%",
+                "--aura": "#7c5cff88",
+              } as React.CSSProperties
+            }
+          >
+            <img src={Lulu} alt="" draggable="false" />
+          </div>
+
+          <div
+            className="mascot m2"
+            style={
+              {
+                bottom: "35%",
+                left: "90%",
+                "--aura": "#6dc26c",
+              } as React.CSSProperties
+            }
+          >
+            {/* miroir sur l'image, pas sur le wrapper */}
+            <img src={Meep1} alt="" draggable="false" className="flip-x" />
+          </div>
+
+          <div
+            className="mascot m3"
+            style={
+              {
+                top: "60%",
+                right: "81.5%",
+                "--aura": "#6dc26c",
+              } as React.CSSProperties
+            }
+          >
+            <img src={Meep3} alt="" draggable="false" />
+          </div>
+
+          <div
+            className="mascot m4"
+            style={
+              {
+                bottom: "85%",
+                right: "90%",
+                "--aura": "#fff",
+              } as React.CSSProperties
+            }
+          >
+            <img src={Poro4} alt="" draggable="false" />
+          </div>
+
+          <div
+            className="mascot m5"
+            style={
+              {
+                top: "0%",
+                left: "80%",
+                "--aura": "#fff",
+              } as React.CSSProperties
+            }
+          >
+            <img src={Poro4} alt="" draggable="false" className="flip-x" />
+          </div>
         </div>
       </main>
       <button className="contact-btn" onClick={handleContact}>
