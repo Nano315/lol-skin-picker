@@ -358,7 +358,7 @@ export default function App() {
               {
                 top: "61%",
                 left: "54%",
-                "--aura": "#7c5cff88",
+                "--aura": "#a394ddff",
               } as React.CSSProperties
             }
           >
@@ -398,7 +398,7 @@ export default function App() {
               {
                 bottom: "85%",
                 right: "90%",
-                "--aura": "#fff",
+                "--aura": "#ecececff",
               } as React.CSSProperties
             }
           >
@@ -411,7 +411,7 @@ export default function App() {
               {
                 top: "0%",
                 left: "80%",
-                "--aura": "#fff",
+                "--aura": "#ecececff",
               } as React.CSSProperties
             }
           >
