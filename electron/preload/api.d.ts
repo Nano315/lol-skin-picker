@@ -33,10 +33,18 @@ declare global {
         skinId: number;
         chromaId: number;
       }>;
+      onSelection: (
+        cb: (s: {
+          championId: number;
+          championAlias: string;
+          skinId: number;
+          chromaId: number;
+        }) => void
+      ) => Unsub;
 
       openExternal: (url: string) => Promise<void>;
     };
 
-    api: Window["lcu"]; // alias
+    api: Window["lcu"];
   }
 }

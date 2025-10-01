@@ -41,10 +41,22 @@ const api = {
   getAutoRoll: () => ipcRenderer.invoke("get-auto-roll"),
   toggleAutoRoll: () => ipcRenderer.invoke("toggle-auto-roll"),
 
-  /* Actions */
+  /* Actions & Selection */
   rerollSkin: () => ipcRenderer.invoke("reroll-skin"),
   rerollChroma: () => ipcRenderer.invoke("reroll-chroma"),
   getSelection: () => ipcRenderer.invoke("get-selection"),
+  onSelection: (
+    cb: (s: {
+      championId: number;
+      championAlias: string;
+      skinId: number;
+      chromaId: number;
+    }) => void
+  ) => {
+    const listener = (_e: any, sel: any) => cb(sel);
+    ipcRenderer.on("selection", listener);
+    return () => ipcRenderer.removeListener("selection", listener);
+  },
 
   /* Divers */
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),

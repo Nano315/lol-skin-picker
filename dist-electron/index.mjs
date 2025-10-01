@@ -34,10 +34,15 @@ const api = {
   toggleIncludeDefault: () => electron.ipcRenderer.invoke("toggle-include-default"),
   getAutoRoll: () => electron.ipcRenderer.invoke("get-auto-roll"),
   toggleAutoRoll: () => electron.ipcRenderer.invoke("toggle-auto-roll"),
-  /* Actions */
+  /* Actions & Selection */
   rerollSkin: () => electron.ipcRenderer.invoke("reroll-skin"),
   rerollChroma: () => electron.ipcRenderer.invoke("reroll-chroma"),
   getSelection: () => electron.ipcRenderer.invoke("get-selection"),
+  onSelection: (cb) => {
+    const listener = (_e, sel) => cb(sel);
+    electron.ipcRenderer.on("selection", listener);
+    return () => electron.ipcRenderer.removeListener("selection", listener);
+  },
   /* Divers */
   openExternal: (url) => electron.ipcRenderer.invoke("open-external", url)
 };
