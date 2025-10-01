@@ -2,15 +2,35 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Menu, Tray, nativeImage, app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
+import path from "node:path";
+import fs from "node:fs";
 
 let tray: Tray | null = null;
 let manualUpdateRequested = false;
 
+function getTrayIconPath() {
+  if (app.isPackaged) {
+    // correspond à extraResources → resources/assets/icon.ico
+    const p = path.join(process.resourcesPath, "assets", "icon.ico");
+    return fs.existsSync(p) ? p : "";
+  } else {
+    // dev → lit dans public/
+    const p = path.join(process.cwd(), "public", "icon.ico");
+    return fs.existsSync(p) ? p : "";
+  }
+}
+
 export function setupTray(
-  resolveAsset: (p: string) => string,
   getWin: () => Electron.BrowserWindow | null
 ) {
-  const trayIcon = nativeImage.createFromPath(resolveAsset("icon.ico"));
+  const iconPath = getTrayIconPath();
+
+  if (!iconPath) {
+    console.warn("[Tray] icon not found; check extraResources and paths");
+    return;
+  }
+
+  const trayIcon = nativeImage.createFromPath(iconPath);
   tray = new Tray(trayIcon);
   tray.setToolTip("LoL Skin Picker");
 
