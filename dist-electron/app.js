@@ -1,3 +1,3 @@
 import "electron";
-import "./app-BvmuaI2_.js";
+import "./app-CBGfkRGN.js";
 import "node:path";
