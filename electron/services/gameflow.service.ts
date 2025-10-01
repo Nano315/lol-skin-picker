@@ -1,18 +1,17 @@
 import fetch from "node-fetch";
 import { EventEmitter } from "node:events";
-import type { LockCreds } from "./lcu.js";
+import type { LockCreds } from "./lcuWatcher";
 
-/** Émet : 'phase' (string) – None, Lobby, ChampSelect, InProgress, … */
-export class GameflowWatcher extends EventEmitter {
+export class GameflowService extends EventEmitter {
   private creds: LockCreds | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   phase = "Unknown";
 
-  /* -------- API publique -------- */
   setCreds(creds: LockCreds) {
     this.creds = creds;
     if (!this.timer) this.start();
   }
+
   stop() {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
@@ -20,7 +19,6 @@ export class GameflowWatcher extends EventEmitter {
     this.emit("phase", this.phase);
   }
 
-  /* -------- internes -------- */
   private async poll() {
     if (!this.creds) return;
 
@@ -39,7 +37,6 @@ export class GameflowWatcher extends EventEmitter {
         this.emit("phase", txt);
       }
     } catch {
-      /* On garde le timer en vie – on réessaiera au tick suivant */
       if (this.phase !== "Unknown") {
         this.phase = "Unknown";
         this.emit("phase", "Unknown");
@@ -49,11 +46,10 @@ export class GameflowWatcher extends EventEmitter {
 
   private start(interval = 2000) {
     if (this.timer) return;
-    void this.poll(); // premier appel immédiat
+    void this.poll();
     this.timer = setInterval(() => this.poll(), interval);
   }
 
-  /* typing helpers */
   override on(event: "phase", listener: (p: string) => void): this {
     return super.on(event, listener);
   }

@@ -1,19 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import fetch from "node-fetch";
 import { EventEmitter } from "node:events";
-import type { LockCreds } from "./lcu.js";
-
-/* --- alias mapping CommunityDragon (id ⇒ alias) --- */
-const aliasMap = new Map<number, string>();
-async function ensureAliasMap() {
-  if (aliasMap.size) return;
-  const url =
-    "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-summary.json";
-  const data = (await fetch(url).then((r) => r.json())) as {
-    id: number;
-    alias: string;
-  }[];
-  data.forEach((ch) => aliasMap.set(ch.id, ch.alias));
-}
+import type { LockCreds } from "./lcuWatcher";
+import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
 
 /* ---- réponses API ---- */
 interface SummonerRes {
@@ -36,6 +25,9 @@ interface ChromaRes {
   isOwned?: boolean;
   owned?: boolean;
 }
+interface SelectionRes {
+  selectedSkinId?: number;
+}
 
 /* ---- type envoyé au renderer ---- */
 export interface OwnedSkin {
@@ -44,12 +36,7 @@ export interface OwnedSkin {
   chromas: { id: number; name: string }[];
 }
 
-interface SelectionRes {
-  selectedSkinId?: number;
-}
-
-/* ---- watcher + auto-apply ---- */
-export class ChampionSkinWatcher extends EventEmitter {
+export class SkinsService extends EventEmitter {
   private creds: LockCreds | null = null;
   private summonerId: number | null = null;
 
@@ -63,12 +50,10 @@ export class ChampionSkinWatcher extends EventEmitter {
   private selectedChromaId = 0;
 
   private profileIconId = 0;
-
   private autoRollEnabled = true;
 
   skins: OwnedSkin[] = [];
 
-  /* ---------- gestion des creds ---------- */
   setCreds(creds: LockCreds) {
     this.stop();
     this.creds = creds;
@@ -96,16 +81,15 @@ export class ChampionSkinWatcher extends EventEmitter {
   getIncludeDefault() {
     return this.includeDefaultSkin;
   }
-
   toggleIncludeDefault() {
     this.includeDefaultSkin = !this.includeDefaultSkin;
-    if (this.autoRollEnabled && this.currentChampion) this.rerollSkin();
+    if (this.autoRollEnabled && this.currentChampion) void this.rerollSkin();
   }
 
   getSelection() {
     return {
       championId: this.currentChampion,
-      championAlias: aliasMap.get(this.currentChampion) ?? "",
+      championAlias: getChampionAlias(this.currentChampion),
       skinId: this.selectedSkinId,
       chromaId: this.selectedChromaId,
     };
@@ -114,41 +98,32 @@ export class ChampionSkinWatcher extends EventEmitter {
   getAutoRoll() {
     return this.autoRollEnabled;
   }
-
   toggleAutoRoll() {
     this.autoRollEnabled = !this.autoRollEnabled;
-    if (this.autoRollEnabled && this.currentChampion) this.rerollSkin(); // relance seulement si on vient d’activer
+    if (this.autoRollEnabled && this.currentChampion) void this.rerollSkin();
   }
 
   getProfileIcon() {
     return this.profileIconId;
   }
 
-  /** Reroll manuel (skin + chroma éventuelle) */
   async rerollSkin() {
     if (!this.skins.length) return;
-
-    /* pool respectant le toggle */
     const pool = this.includeDefaultSkin
       ? this.skins
       : this.skins.filter((s) => s.id % 1000 !== 0) || this.skins;
-
     const pick = pool[Math.floor(Math.random() * pool.length)];
     const finalId = pick.chromas.length
       ? pick.chromas[Math.floor(Math.random() * pick.chromas.length)].id
       : pick.id;
 
     await this.applySkin(finalId);
-
     this.selectedSkinId = pick.id;
     this.selectedChromaId = finalId !== pick.id ? finalId : 0;
     this.emit("selection", this.getSelection());
-
-    /* on “fige” le champion courant pour éviter auto-reroll immédiat */
     this.lastAppliedChampion = this.currentChampion;
   }
 
-  /** Reroll uniquement le chroma pour le skin courant */
   async rerollChroma() {
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
     if (!skin || skin.chromas.length === 0) return;
@@ -159,7 +134,6 @@ export class ChampionSkinWatcher extends EventEmitter {
         chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
       }
     }
-
     await this.applySkin(chroma.id);
     this.selectedChromaId = chroma.id;
     this.emit("selection", this.getSelection());
@@ -177,7 +151,6 @@ export class ChampionSkinWatcher extends EventEmitter {
     await this.updateManualSelection();
   }
 
-  /* ---------- helpers ---------- */
   private async fetchSummonerId() {
     if (!this.creds) return;
     const { protocol, port, password } = this.creds;
@@ -217,6 +190,7 @@ export class ChampionSkinWatcher extends EventEmitter {
     if (!this.creds || this.summonerId === null || !this.currentChampion)
       return;
     await ensureAliasMap();
+
     const { protocol, port, password } = this.creds;
     const base = `${protocol}://127.0.0.1:${port}`;
     const headers = {
@@ -254,7 +228,6 @@ export class ChampionSkinWatcher extends EventEmitter {
     this.skins = owned;
     this.emit("skins", owned);
 
-    /* -- tirage aléatoire + application -- */
     if (
       this.autoRollEnabled &&
       this.currentChampion !== this.lastAppliedChampion &&
@@ -263,20 +236,15 @@ export class ChampionSkinWatcher extends EventEmitter {
       const pool = this.includeDefaultSkin
         ? owned
         : owned.filter((s) => s.id % 1000 !== 0) || owned;
-
-      const pickedSkin = pool[Math.floor(Math.random() * pool.length)];
-      const finalId = pickedSkin.chromas.length
-        ? pickedSkin.chromas[
-            Math.floor(Math.random() * pickedSkin.chromas.length)
-          ].id
-        : pickedSkin.id;
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      const finalId = picked.chromas.length
+        ? picked.chromas[Math.floor(Math.random() * picked.chromas.length)].id
+        : picked.id;
 
       await this.applySkin(finalId);
-
-      this.selectedSkinId = pickedSkin.id;
-      this.selectedChromaId = finalId !== pickedSkin.id ? finalId : 0;
+      this.selectedSkinId = picked.id;
+      this.selectedChromaId = finalId !== picked.id ? finalId : 0;
       this.emit("selection", this.getSelection());
-
       this.lastAppliedChampion = this.currentChampion;
     }
   }
@@ -300,7 +268,6 @@ export class ChampionSkinWatcher extends EventEmitter {
     }
   }
 
-  /** détecte la sélection faite directement dans le client */
   private async updateManualSelection() {
     if (!this.creds || !this.currentChampion) return;
 
@@ -312,9 +279,7 @@ export class ChampionSkinWatcher extends EventEmitter {
       const data = (await fetch(url, {
         headers: { Authorization: `Basic ${auth}` },
       }).then((r) => r.json())) as SelectionRes;
-
       const selId = data.selectedSkinId ?? 0;
-
       if (
         !selId ||
         selId === this.selectedChromaId ||
@@ -322,7 +287,6 @@ export class ChampionSkinWatcher extends EventEmitter {
       )
         return;
 
-      /* retrouve le skin / chroma correspondant dans la liste courante */
       let skinId = selId;
       let chromaId = 0;
 
@@ -344,33 +308,27 @@ export class ChampionSkinWatcher extends EventEmitter {
       this.selectedChromaId = chromaId;
       this.emit("selection", this.getSelection());
     } catch {
-      /* ignore erreurs réseau */
+      /* ignore */
     }
   }
 
-  /* ---- EventEmitter typings ---- */
-  /* surcharges (aucun corps) */
+  // typings EventEmitter
   on(event: "skins", fn: (l: OwnedSkin[]) => void): this;
   on(
     event: "selection",
     fn: (s: { skinId: number; chromaId: number }) => void
   ): this;
   on(event: "icon", fn: (id: number) => void): this;
-
-  /* implémentation générique — doit accepter TOUS les cas */
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   override on(event: string, listener: (...args: any[]) => void): this {
+    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.on(event, listener);
   }
 
-  /* surcharges emit */
   emit(event: "skins", l: OwnedSkin[]): boolean;
   emit(event: "selection", s: { skinId: number; chromaId: number }): boolean;
   emit(event: "icon", id: number): boolean;
-
-  /* implémentation générique */
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   override emit(event: string, ...args: any[]): boolean {
+    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.emit(event, ...args);
   }
 }

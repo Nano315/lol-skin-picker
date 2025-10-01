@@ -15,7 +15,7 @@ export class LcuWatcher extends EventEmitter {
   creds: LockCreds | null = null;
 
   private timer: ReturnType<typeof setInterval> | null = null;
-  private rawCache = ""; // garde le contenu brut pour détecter tout changement
+  private rawCache = "";
 
   /** chemins possibles du lockfile */
   private static readonly FILES = [
@@ -23,24 +23,20 @@ export class LcuWatcher extends EventEmitter {
     "C:\\Program Files\\Riot Games\\League of Legends\\lockfile",
   ];
 
-  /* ---------- API publique ---------- */
   start(interval = 2000) {
     if (this.timer) return;
-    this.tick(); // appel immédiat
+    this.tick();
     this.timer = setInterval(() => this.tick(), interval);
   }
 
-  /* ---------- cœur du watcher ---------- */
   private tick() {
     const raw = this.readLockfile();
 
-    /* lockfile absent ➜ déconnecté */
     if (!raw) {
       this.toDisconnected();
       return;
     }
 
-    /* le contenu a changé ? (port, mdp, etc.) */
     if (raw !== this.rawCache) {
       this.rawCache = raw;
       const parsed = this.parse(raw);
@@ -48,7 +44,7 @@ export class LcuWatcher extends EventEmitter {
         this.toDisconnected();
         return;
       }
-      this.toConnected(parsed); // ré-émet même si on était déjà connecté
+      this.toConnected(parsed);
     }
   }
 
@@ -67,12 +63,13 @@ export class LcuWatcher extends EventEmitter {
     }
   }
 
-  /* ---------- utilitaires ---------- */
   private readLockfile(): string | null {
     for (const p of LcuWatcher.FILES) {
       try {
         return fs.readFileSync(p, "utf8");
-      } catch { /* empty */ }
+      } catch {
+        /* empty */
+      }
     }
     return null;
   }
@@ -84,11 +81,10 @@ export class LcuWatcher extends EventEmitter {
     return {
       port: parts[2].trim(),
       password: parts[3].trim(),
-      protocol: parts[4].trim(), // « https »
+      protocol: parts[4].trim(),
     };
   }
 
-  /* -------- typings EventEmitter -------- */
   override on(
     event: "status",
     fn: (s: LcuStatus, c?: LockCreds) => void
