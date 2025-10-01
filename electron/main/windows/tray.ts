@@ -9,28 +9,52 @@ let tray: Tray | null = null;
 let manualUpdateRequested = false;
 
 function getTrayIconPath() {
-  if (app.isPackaged) {
-    const p = path.join(process.resourcesPath, "assets", "icon.ico");
-    if (fs.existsSync(p)) return p;
-    console.warn("[Tray] Not found:", p);
-    return "";
-  } else {
-    const p = path.join(process.cwd(), "public", "icon.ico");
-    if (fs.existsSync(p)) return p;
-    console.warn("[Tray] Not found (dev):", p);
+  const prod = app.isPackaged;
+  const p = prod
+    ? path.join(process.resourcesPath, "assets", "icon.ico") // extraResources
+    : path.join(process.cwd(), "public", "icon.ico"); // dev
+
+  if (!fs.existsSync(p)) {
+    console.warn("[Tray] icon not found at:", p);
+    // aide au debug
+    console.warn("[Tray] resourcesPath:", process.resourcesPath);
+    console.warn("[Tray] cwd:", process.cwd());
     return "";
   }
+  return p;
+}
+
+function loadTrayImage(iconPath: string) {
+  // 1) Chargement direct
+  let img = nativeImage.createFromPath(iconPath);
+  if (!img.isEmpty()) return img;
+
+  // 2) Fallback: lecture en buffer (certains .ico passent mieux ainsi)
+  try {
+    const buf = fs.readFileSync(iconPath);
+    img = nativeImage.createFromBuffer(buf);
+    if (!img.isEmpty()) return img;
+  } catch (e) {
+    console.warn("[Tray] readFileSync failed:", e);
+  }
+
+  console.warn("[Tray] nativeImage empty for:", iconPath);
+  return img;
 }
 
 export function setupTray(getWin: () => Electron.BrowserWindow | null) {
-  const iconPath = getTrayIconPath();
+  // Empêche la double création (tu appelais 2x setupTray)
+  if (tray) return;
 
-  if (!iconPath) {
-    console.warn("[Tray] icon not found; check extraResources and paths");
+  const iconPath = getTrayIconPath();
+  if (!iconPath) return; // ne crée pas de Tray sans icône valide
+
+  const trayIcon = loadTrayImage(iconPath);
+  if (trayIcon.isEmpty()) {
+    console.warn("[Tray] Aborting tray creation: empty image");
     return;
   }
 
-  const trayIcon = nativeImage.createFromPath(iconPath);
   tray = new Tray(trayIcon);
   tray.setToolTip("LoL Skin Picker");
 
