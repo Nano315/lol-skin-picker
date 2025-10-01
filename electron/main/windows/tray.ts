@@ -97,7 +97,7 @@ export function updaterHooks() {
     if (manualUpdateRequested) {
       // app never used
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { dialog, app } = require("electron");
+      const { dialog } = require("electron");
       dialog.showMessageBox({
         type: "info",
         message: "Update available",
