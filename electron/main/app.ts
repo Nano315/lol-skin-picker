@@ -12,6 +12,18 @@ import { createMainWindow, getMainWindow } from "./windows/mainWindow";
 import { registerAllIpc } from "./ipc";
 import { setupTray, updaterHooks } from "./windows/tray";
 import { loadSettings, saveSettings } from "./settings";
+import path from "node:path";
+
+// Dev only: isole le profil et le cache Chromium
+if (!app.isPackaged) {
+  const devUserData = path.join(app.getPath("appData"), "lol-skin-picker-dev");
+  app.setPath("userData", devUserData);
+  app.commandLine.appendSwitch(
+    "disk-cache-dir",
+    path.join(devUserData, "Cache")
+  );
+  app.commandLine.appendSwitch("disable-gpu-shader-disk-cache"); // évite le cache GPU
+}
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 

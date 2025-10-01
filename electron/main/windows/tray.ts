@@ -10,19 +10,19 @@ let manualUpdateRequested = false;
 
 function getTrayIconPath() {
   if (app.isPackaged) {
-    // correspond à extraResources → resources/assets/icon.ico
     const p = path.join(process.resourcesPath, "assets", "icon.ico");
-    return fs.existsSync(p) ? p : "";
+    if (fs.existsSync(p)) return p;
+    console.warn("[Tray] Not found:", p);
+    return "";
   } else {
-    // dev → lit dans public/
     const p = path.join(process.cwd(), "public", "icon.ico");
-    return fs.existsSync(p) ? p : "";
+    if (fs.existsSync(p)) return p;
+    console.warn("[Tray] Not found (dev):", p);
+    return "";
   }
 }
 
-export function setupTray(
-  getWin: () => Electron.BrowserWindow | null
-) {
+export function setupTray(getWin: () => Electron.BrowserWindow | null) {
   const iconPath = getTrayIconPath();
 
   if (!iconPath) {
