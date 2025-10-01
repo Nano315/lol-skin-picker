@@ -8,55 +8,83 @@ import fs from "node:fs";
 let tray: Tray | null = null;
 let manualUpdateRequested = false;
 
-function getTrayIconPath() {
-  const prod = app.isPackaged;
-  const p = prod
-    ? path.join(process.resourcesPath, "assets", "icon.ico") // extraResources
-    : path.join(process.cwd(), "public", "icon.ico"); // dev
-
-  if (!fs.existsSync(p)) {
-    console.warn("[Tray] icon not found at:", p);
-    // aide au debug
-    console.warn("[Tray] resourcesPath:", process.resourcesPath);
-    console.warn("[Tray] cwd:", process.cwd());
-    return "";
-  }
-  return p;
+function resPath(...p: string[]) {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, ...p)
+    : path.join(process.cwd(), ...p);
 }
 
-function loadTrayImage(iconPath: string) {
-  // 1) Chargement direct
-  let img = nativeImage.createFromPath(iconPath);
-  if (!img.isEmpty()) return img;
+function fileIfExists(...p: string[]) {
+  const full = resPath(...p);
+  if (fs.existsSync(full)) return full;
+  console.warn("[Tray] Not found:", full);
+  return "";
+}
 
-  // 2) Fallback: lecture en buffer (certains .ico passent mieux ainsi)
+function loadImageFromPath(p: string) {
+  let img = nativeImage.createFromPath(p);
+  if (!img.isEmpty()) return img;
+  // Fallback: lecture brute (certains .ico-avec-PNG foirent via createFromPath)
   try {
-    const buf = fs.readFileSync(iconPath);
+    const buf = fs.readFileSync(p);
     img = nativeImage.createFromBuffer(buf);
-    if (!img.isEmpty()) return img;
   } catch (e) {
     console.warn("[Tray] readFileSync failed:", e);
   }
-
-  console.warn("[Tray] nativeImage empty for:", iconPath);
   return img;
 }
 
+function pickTrayImage() {
+  // 1) Essayer l’ICO d’abord
+  const ico = fileIfExists("assets", "icon.ico");
+  if (ico) {
+    const img = loadImageFromPath(ico);
+    if (!img.isEmpty()) {
+      console.log("[Tray] Using ICO:", ico, "size:", img.getSize());
+      return img;
+    }
+    console.warn("[Tray] ICO empty, trying PNG fallback…");
+  }
+
+  // 2) Fallback PNG
+  const png = fileIfExists("assets", "icon-32.png");
+  if (png) {
+    const img = loadImageFromPath(png);
+    if (!img.isEmpty()) {
+      console.log("[Tray] Using PNG:", png, "size:", img.getSize());
+      return img;
+    }
+  }
+
+  return nativeImage.createEmpty();
+}
+
 export function setupTray(getWin: () => Electron.BrowserWindow | null) {
-  // Empêche la double création (tu appelais 2x setupTray)
-  if (tray) return;
+  if (tray) return; // singleton
 
-  const iconPath = getTrayIconPath();
-  if (!iconPath) return; // ne crée pas de Tray sans icône valide
+  console.log("[Tray] resourcesPath:", process.resourcesPath);
+  console.log("[Tray] cwd:", process.cwd());
 
-  const trayIcon = loadTrayImage(iconPath);
-  if (trayIcon.isEmpty()) {
-    console.warn("[Tray] Aborting tray creation: empty image");
+  const baseImg = pickTrayImage();
+  if (baseImg.isEmpty()) {
+    console.warn("[Tray] Aborting: no valid tray image");
     return;
   }
 
-  tray = new Tray(trayIcon);
+  // Windows aime bien ~16–20px en zone de notif (DPI dépendant).
+  const trayImg = baseImg.resize({ width: 16, height: 16 });
+  tray = new Tray(trayImg);
   tray.setToolTip("LoL Skin Picker");
+
+  // Workaround: certaines versions d’Electron/Win ne “peignent” pas l’icône tout de suite.
+  setTimeout(() => {
+    try {
+      tray?.setImage(trayImg);
+      console.log("[Tray] setImage refresh done");
+    } catch (e) {
+      console.warn("[Tray] setImage failed:", e);
+    }
+  }, 500);
 
   const toggleWindow = () => {
     const w = getWin();
@@ -102,7 +130,6 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
   tray.on("double-click", toggleWindow);
   refreshTrayMenu();
 
-  // petite API interne
   (setupTray as any).refresh = refreshTrayMenu;
 }
 
