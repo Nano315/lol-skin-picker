@@ -7,7 +7,6 @@ export default function RerollControls({
   phase,
   selection,
   skins,
-  onChanged,
 }: {
   phase: string;
   selection: { championId: number; skinId: number };
@@ -21,14 +20,7 @@ export default function RerollControls({
 
   return (
     <div className="reroll-wrapper">
-      <button
-        className="reroll-btn"
-        onClick={() =>
-          api
-            .rerollSkin()
-            .then(() => api.getSelection().then(() => onChanged()))
-        }
-      >
+      <button className="reroll-btn" onClick={() => api.rerollSkin()}>
         <GradientText
           className="reroll-text"
           animationSpeed={6}
@@ -42,14 +34,7 @@ export default function RerollControls({
       </button>
 
       {hasChromas && (
-        <button
-          className="reroll-btn"
-          onClick={() =>
-            api
-              .rerollChroma()
-              .then(() => api.getSelection().then(() => onChanged()))
-          }
-        >
+        <button className="reroll-btn" onClick={() => api.rerollChroma()}>
           <GradientText
             className="reroll-text"
             animationSpeed={6}

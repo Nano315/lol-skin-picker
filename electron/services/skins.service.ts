@@ -41,6 +41,8 @@ export class SkinsService extends EventEmitter {
   private summonerId: number | null = null;
 
   private poller: ReturnType<typeof setInterval> | null = null;
+  private manualPoller: ReturnType<typeof setInterval> | null = null;
+
   private currentChampion = 0;
   private lastAppliedChampion = 0;
 
@@ -64,18 +66,30 @@ export class SkinsService extends EventEmitter {
   start() {
     if (!this.creds || this.poller) return;
     void this.tick();
-    this.poller = setInterval(() => this.tick(), 2000);
+    this.poller = setInterval(() => this.tick(), 1500);
   }
 
   stop() {
     if (this.poller) clearInterval(this.poller);
+    if (this.manualPoller) clearInterval(this.manualPoller);
     this.poller = null;
+    this.manualPoller = null;
     this.currentChampion = 0;
     this.lastAppliedChampion = 0;
     if (this.skins.length) {
       this.skins = [];
       this.emit("skins", []);
     }
+  }
+
+  // Quand on entre en ChampSelect, active un poll rapide sur la sélection
+  private enableManualFastPoll() {
+    if (this.manualPoller) return;
+    this.manualPoller = setInterval(() => this.updateManualSelection(), 500);
+  }
+  private disableManualFastPoll() {
+    if (this.manualPoller) clearInterval(this.manualPoller);
+    this.manualPoller = null;
   }
 
   getIncludeDefault() {
@@ -143,11 +157,18 @@ export class SkinsService extends EventEmitter {
   private async tick() {
     if (!this.creds) return;
     if (this.summonerId === null) await this.fetchSummonerId();
+
     const champ = await this.fetchCurrentChampion();
+
+    // witch fast-poll selon champ présent (Champ Select) ou non
+    if (champ) this.enableManualFastPoll();
+    else this.disableManualFastPoll();
+
     if (champ && champ !== this.currentChampion) {
       this.currentChampion = champ;
       await this.refreshSkinsAndMaybeApply();
     }
+
     await this.updateManualSelection();
   }
 
@@ -184,6 +205,21 @@ export class SkinsService extends EventEmitter {
     } catch {
       return 0;
     }
+  }
+
+  private emitSkinsIfChanged(next: OwnedSkin[]) {
+    if (
+      next.length === this.skins.length &&
+      next.every(
+        (s, i) =>
+          s.id === this.skins[i]?.id &&
+          s.chromas.length === this.skins[i]?.chromas.length
+      )
+    ) {
+      return;
+    }
+    this.skins = next;
+    this.emit("skins", next);
   }
 
   private async refreshSkinsAndMaybeApply() {
@@ -226,7 +262,7 @@ export class SkinsService extends EventEmitter {
     }
 
     this.skins = owned;
-    this.emit("skins", owned);
+    this.emitSkinsIfChanged(owned);
 
     if (
       this.autoRollEnabled &&
@@ -263,6 +299,7 @@ export class SkinsService extends EventEmitter {
         },
         body: JSON.stringify({ selectedSkinId: skinId }),
       });
+      void this.updateManualSelection();
     } catch {
       /* ignore */
     }
