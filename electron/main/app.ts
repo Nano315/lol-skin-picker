@@ -1,5 +1,4 @@
 import { app, Menu, screen } from "electron";
-import path from "node:path";
 
 import {
   LcuWatcher,
@@ -19,12 +18,6 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const lcu = new LcuWatcher();
 const gameflow = new GameflowService();
 const skins = new SkinsService();
-
-function resolveAsset(rel: string) {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, rel)
-    : path.join(process.cwd(), "public", rel);
-}
 
 function centerInDisplay(d: Electron.Display, width: number, height: number) {
   const wa = d.workArea;
@@ -50,7 +43,7 @@ async function createWindowWithPrefs() {
   w.setBounds({ x, y, width, height });
 
   Menu.setApplicationMenu(null);
-  setupTray(resolveAsset, getMainWindow);
+  setupTray(getMainWindow);
 
   // persist écran courant (debounce léger)
   let moveTimer: NodeJS.Timeout | null = null;
@@ -87,6 +80,7 @@ function wireDomainEvents() {
 
 app.whenReady().then(async () => {
   await createWindowWithPrefs();
+  setupTray(getMainWindow);
   registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
   wireDomainEvents();
   updaterHooks();
