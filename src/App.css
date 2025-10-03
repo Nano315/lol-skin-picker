@@ -39,6 +39,36 @@
   object-fit: cover;
 }
 
+/* --- nav dans le header --- */
+.nav {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.nav-link {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 0.9rem;
+  text-decoration: none;
+  color: #d4d4d4;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.nav-link:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+.nav-link:active {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.nav-link.active {
+  color: #fff;
+}
+
 /* -------- main -------- */
 .main {
   position: relative; /* ► pour l’options-wrapper absolue */

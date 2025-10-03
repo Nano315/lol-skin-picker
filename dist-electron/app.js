@@ -1,3 +1,3 @@
 import "electron";
-import "./app-DFYS2DH1.js";
+import "./app-BzIwMOmp.js";
 import "node:path";

@@ -1,3 +1,4 @@
+import { NavLink } from "react-router-dom";
 import fallbackIcon from "/fallback-icon.png?url";
 
 export default function Header({
@@ -23,6 +24,26 @@ export default function Header({
   return (
     <header className="header">
       <div className="logo">Skin Picker</div>
+
+      <nav className="nav">
+        <NavLink
+          to="/"
+          className={({ isActive }) =>
+            isActive ? "nav-link active" : "nav-link"
+          }
+        >
+          Home
+        </NavLink>
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            isActive ? "nav-link active" : "nav-link"
+          }
+        >
+          Settings
+        </NavLink>
+      </nav>
+
       <div className="connection">
         <div className="state">{connectionLabel()}</div>
         {iconUrl && <img src={iconUrl} alt="summoner" className="avatar" />}
