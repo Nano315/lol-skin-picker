@@ -92,7 +92,6 @@ function wireDomainEvents() {
 
 app.whenReady().then(async () => {
   await createWindowWithPrefs();
-  setupTray(getMainWindow);
   registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
   wireDomainEvents();
   updaterHooks();
