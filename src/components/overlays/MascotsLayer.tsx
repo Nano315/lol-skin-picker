@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Lulu from "/mascots/LuluHome.png?url";
-import Meep1 from "/mascots/Meep1.png?url";
+//import Meep1 from "/mascots/Meep1.png?url";
 import Meep3 from "/mascots/Meep3.png?url";
 import Poro4 from "/mascots/Poro4.png?url";
 import React from "react";
@@ -12,7 +12,7 @@ export default function MascotsLayer() {
         className="mascot m1"
         style={
           {
-            top: "61%",
+            top: "72%",
             left: "54%",
             ["--aura" as any]: "#a394ddff",
           } as React.CSSProperties
@@ -20,7 +20,7 @@ export default function MascotsLayer() {
       >
         <img src={Lulu} alt="" draggable="false" />
       </div>
-      <div
+      {/* <div
         className="mascot m2"
         style={
           {
@@ -31,13 +31,13 @@ export default function MascotsLayer() {
         }
       >
         <img src={Meep1} alt="" draggable="false" className="flip-x" />
-      </div>
+      </div> */}
       <div
         className="mascot m3"
         style={
           {
-            top: "60%",
-            right: "81.5%",
+            top: "77%",
+            right: "88%",
             ["--aura" as any]: "#6dc26c",
           } as React.CSSProperties
         }
@@ -48,8 +48,8 @@ export default function MascotsLayer() {
         className="mascot m4"
         style={
           {
-            bottom: "85%",
-            right: "90%",
+            bottom: "88%",
+            right: "88%",
             ["--aura" as any]: "#ecececff",
           } as React.CSSProperties
         }
@@ -61,7 +61,7 @@ export default function MascotsLayer() {
         style={
           {
             top: "0%",
-            left: "80%",
+            left: "85%",
             ["--aura" as any]: "#ecececff",
           } as React.CSSProperties
         }
