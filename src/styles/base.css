@@ -1,0 +1,17 @@
+/* Corps de l’appli (fond, typo) */
+body {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  color: var(--text-color);
+  background: var(--bg-color) url("/bg-cover.png") center / cover no-repeat
+    fixed;
+}
+
+/* Overlay sombre optionnel (contraste) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: var(--bg-color);
+  opacity: 0; /* ajuste l’intensité si besoin */
+  pointer-events: none;
+}

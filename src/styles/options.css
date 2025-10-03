@@ -1,0 +1,50 @@
+/* -------- options (bas-gauche) -------- */
+.options-wrapper {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  background: #13171d;
+  font-size: 0.8rem;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.option:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+.option:active {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.option input {
+  position: absolute; /* masqué mais accessible */
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e23670; /* = false */
+}
+
+.option input:checked + .dot {
+  background: #4ac97e; /* = true */
+}

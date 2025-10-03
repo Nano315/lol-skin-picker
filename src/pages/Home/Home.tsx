@@ -1,4 +1,3 @@
-import "@/App.css"; // on réutilise tes styles globaux existants
 import Header from "@/components/layout/Header";
 import SkinPreview from "@/components/skin/SkinPreview";
 import RerollControls from "@/components/controls/RerollControls";

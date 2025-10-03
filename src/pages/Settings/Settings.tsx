@@ -1,4 +1,3 @@
-import "@/App.css";
 import Header from "@/components/layout/Header";
 import OptionsPanel from "@/components/controls/OptionsPanel";
 import ContactButton from "@/components/ContactButton";

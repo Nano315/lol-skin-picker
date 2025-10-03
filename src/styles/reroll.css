@@ -1,0 +1,38 @@
+/* -------- reroll wrapper (sous l’image) -------- */
+.reroll-wrapper {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- style commun aux 2 boutons ---- */
+.reroll-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.reroll-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+.reroll-btn:active {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* ---- conteneur gradient ---- */
+.reroll-text {
+  padding: 12px 22px;
+  border-radius: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  background: #13171d;
+}
+
+/* texte plus visible */
+.reroll-text .text-content {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
