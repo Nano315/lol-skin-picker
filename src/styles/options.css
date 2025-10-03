@@ -1,11 +1,10 @@
 /* -------- options (bas-gauche) -------- */
 .options-wrapper {
-  position: absolute;
-  bottom: 18px;
-  left: 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* centrage visuel dans Settings */
+  min-width: 320px;
 }
 
 .option {

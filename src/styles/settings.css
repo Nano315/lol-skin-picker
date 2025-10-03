@@ -1,0 +1,6 @@
+/* Spécifique à la page Settings */
+.settings-main {
+  align-items: center; /* centre horizontalement le contenu */
+  padding: 24px; /* remplace l'ancien style inline */
+  gap: 18px; /* respiration verticale */
+}

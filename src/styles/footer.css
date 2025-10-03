@@ -1,0 +1,8 @@
+/* Footer générique (mention légale) */
+.disclaimer {
+  text-align: center;
+  opacity: 0.8;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  padding: 16px 24px;
+}
