@@ -31,3 +31,17 @@
   border-radius: 50%;
   object-fit: cover;
 }
+
+/* Regroupe logo + nav, très proches */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 30px; /* <-- rapprochement net */
+}
+
+/* La nav elle-même peut être un peu plus serrée */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* (était 14px) */
+}

@@ -23,27 +23,31 @@ export default function Header({
 
   return (
     <header className="header">
-      <div className="logo">Skin Picker</div>
+      {/* Bloc gauche : logo + nav rapprochés */}
+      <div className="brand">
+        <div className="logo">Skin Picker</div>
 
-      <nav className="nav">
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            isActive ? "nav-link active" : "nav-link"
-          }
-        >
-          Home
-        </NavLink>
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            isActive ? "nav-link active" : "nav-link"
-          }
-        >
-          Settings
-        </NavLink>
-      </nav>
+        <nav className="nav">
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
+          >
+            Home
+          </NavLink>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
+          >
+            Settings
+          </NavLink>
+        </nav>
+      </div>
 
+      {/* Bloc droit : état + avatar */}
       <div className="connection">
         <div className="state">{connectionLabel()}</div>
         {iconUrl && <img src={iconUrl} alt="summoner" className="avatar" />}
