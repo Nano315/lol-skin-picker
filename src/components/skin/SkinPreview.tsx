@@ -33,8 +33,6 @@ export default function SkinPreview({
         src={displayedSkin}
         alt="current skin"
         className="skin-img"
-        width="660"
-        height="371"
       />
     </div>
   );
