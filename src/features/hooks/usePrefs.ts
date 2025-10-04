@@ -1,8 +1,10 @@
 export function usePrefs() {
-  const save = (k: "includeDefault" | "autoRoll", v: boolean) =>
+  type Key = "includeDefault" | "autoRoll" | "autoWard";
+
+  const save = (k: Key, v: boolean) =>
     localStorage.setItem(`pref-${k}`, String(v));
 
-  const read = (k: "includeDefault" | "autoRoll") => {
+  const read = (k: Key) => {
     const raw = localStorage.getItem(`pref-${k}`);
     return raw !== null ? raw === "true" : null;
   };

@@ -41,4 +41,8 @@ export const api = {
 
   // misc
   openExternal: (url: string) => lcu.openExternal(url),
+
+  // wards
+  getAutoWard: () => window.lcu.getAutoWard(),
+  toggleAutoWard: () => window.lcu.toggleAutoWard(),
 };

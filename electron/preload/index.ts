@@ -60,6 +60,10 @@ const api = {
 
   /* Divers */
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
+
+  /* Option Auto Ward */
+  getAutoWard: () => ipcRenderer.invoke("get-auto-ward"),
+  toggleAutoWard: () => ipcRenderer.invoke("toggle-auto-ward"),
 };
 
 contextBridge.exposeInMainWorld("lcu", api);

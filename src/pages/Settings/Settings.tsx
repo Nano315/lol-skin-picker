@@ -15,29 +15,36 @@ export default function Settings() {
   const { save, read } = usePrefs();
   const [includeDefault, setIncludeDefault] = useState(true);
   const [autoRoll, setAutoRoll] = useState(true);
+  const [autoWard, setAutoWard] = useState(false);
 
   useEffect(() => {
-    Promise.all([api.getIncludeDefault(), api.getAutoRoll()]).then(
-      ([incSrv, autoSrv]) => {
-        const incPref = read("includeDefault");
-        const autoPref = read("autoRoll");
+    Promise.all([
+      api.getIncludeDefault(),
+      api.getAutoRoll(),
+      api.getAutoWard(),
+    ]).then(([incSrv, autoSrv, wardSrv]) => {
+      const incPref = read("includeDefault");
+      const autoPref = read("autoRoll");
+      const wardPref = read("autoWard");
 
-        if (incPref !== null && incPref !== incSrv) {
-          api.toggleIncludeDefault().then(() => setIncludeDefault(incPref));
-        } else setIncludeDefault(incSrv);
+      if (incPref !== null && incPref !== incSrv) {
+        api.toggleIncludeDefault().then(() => setIncludeDefault(incPref));
+      } else setIncludeDefault(incSrv);
 
-        if (autoPref !== null && autoPref !== autoSrv) {
-          api.toggleAutoRoll().then(() => setAutoRoll(autoPref));
-        } else setAutoRoll(autoSrv);
-      }
-    );
+      if (autoPref !== null && autoPref !== autoSrv) {
+        api.toggleAutoRoll().then(() => setAutoRoll(autoPref));
+      } else setAutoRoll(autoSrv);
+
+      if (wardPref !== null && wardPref !== wardSrv) {
+        api.toggleAutoWard().then(() => setAutoWard(wardPref));
+      } else setAutoWard(wardSrv);
+    });
   }, [read]);
 
   return (
     <div className="app">
       <Header status={status} phase={phase} iconId={iconId} />
 
-      {/* options centrées */}
       <main className="main settings-main">
         <OptionsPanel
           includeDefault={includeDefault}
@@ -50,11 +57,15 @@ export default function Settings() {
             setAutoRoll(v);
             save("autoRoll", v);
           }}
+          autoWard={autoWard}
+          setAutoWard={(v) => {
+            setAutoWard(v);
+            save("autoWard", v);
+          }}
           savePref={save}
         />
       </main>
 
-      {/* mention légale en bas, centrée */}
       <footer className="disclaimer">
         <em>Not affiliated with Riot Games or DPM.lol.</em>
         <ContactButton />

@@ -1,3 +1,3 @@
 import "electron";
-import "./app-CFW_CWhq.js";
+import "./app-D_cPnWxC.js";
 import "node:path";

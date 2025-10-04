@@ -7,6 +7,7 @@ import {
 } from "../services/lcuWatcher";
 import { GameflowService } from "../services/gameflow.service";
 import { SkinsService } from "../services/skins.service";
+import { WardService } from "../services/wards.service";
 
 import { createMainWindow, getMainWindow } from "./windows/mainWindow";
 import { registerAllIpc } from "./ipc";
@@ -30,6 +31,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const lcu = new LcuWatcher();
 const gameflow = new GameflowService();
 const skins = new SkinsService();
+const wards = new WardService();
 
 function centerInDisplay(d: Electron.Display, width: number, height: number) {
   const wa = d.workArea;
@@ -82,6 +84,14 @@ function wireDomainEvents() {
       gameflow.setCreds(creds);
       skins.setCreds(creds);
       skins.start();
+
+      wards.setCreds(creds);
+      void wards.warmup(); // charge les wards possédées, ward courante
+
+      // Quand SkinsService émet une sélection (lock/apply), trigger auto-ward éventuel
+      skins.on("selection", () => {
+        void wards.maybeAutoApplyOnChampionLocked();
+      });
     } else {
       gameflow.stop();
       skins.stop();
@@ -92,7 +102,12 @@ function wireDomainEvents() {
 
 app.whenReady().then(async () => {
   await createWindowWithPrefs();
-  registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
+
+  // Charger l’option autoWard depuis settings au démarrage
+  const s = await loadSettings();
+  wards.setEnabled(!!s.autoWard);
+
+  registerAllIpc({ lcu, gameflow, skins, wards, getWin: getMainWindow });
   wireDomainEvents();
   updaterHooks();
 

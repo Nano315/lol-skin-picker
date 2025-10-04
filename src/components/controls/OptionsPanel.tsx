@@ -5,13 +5,17 @@ export default function OptionsPanel({
   setIncludeDefault,
   autoRoll,
   setAutoRoll,
+  autoWard,
+  setAutoWard,
   savePref,
 }: {
   includeDefault: boolean;
   setIncludeDefault: (v: boolean) => void;
   autoRoll: boolean;
   setAutoRoll: (v: boolean) => void;
-  savePref: (k: "includeDefault" | "autoRoll", v: boolean) => void;
+  autoWard: boolean;
+  setAutoWard: (v: boolean) => void;
+  savePref: (k: "includeDefault" | "autoRoll" | "autoWard", v: boolean) => void;
 }) {
   const toggleInclude = () => {
     api
@@ -33,6 +37,16 @@ export default function OptionsPanel({
       });
   };
 
+  const toggleAutoWard = () => {
+    api
+      .toggleAutoWard()
+      .then(() => api.getAutoWard())
+      .then((val) => {
+        setAutoWard(val);
+        savePref("autoWard", val);
+      });
+  };
+
   return (
     <div className="options-wrapper">
       <label className="option">
@@ -49,6 +63,12 @@ export default function OptionsPanel({
         <input type="checkbox" checked={autoRoll} onChange={toggleAuto} />
         <span className="dot" />
         <span className="txt">Auto roll on champion lock</span>
+      </label>
+
+      <label className="option">
+        <input type="checkbox" checked={autoWard} onChange={toggleAutoWard} />
+        <span className="dot" />
+        <span className="txt">Auto random ward on lock</span>
       </label>
     </div>
   );

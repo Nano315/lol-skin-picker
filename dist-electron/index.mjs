@@ -44,7 +44,10 @@ const api = {
     return () => electron.ipcRenderer.removeListener("selection", listener);
   },
   /* Divers */
-  openExternal: (url) => electron.ipcRenderer.invoke("open-external", url)
+  openExternal: (url) => electron.ipcRenderer.invoke("open-external", url),
+  /* Option Auto Ward */
+  getAutoWard: () => electron.ipcRenderer.invoke("get-auto-ward"),
+  toggleAutoWard: () => electron.ipcRenderer.invoke("toggle-auto-ward")
 };
 electron.contextBridge.exposeInMainWorld("lcu", api);
 electron.contextBridge.exposeInMainWorld("api", api);

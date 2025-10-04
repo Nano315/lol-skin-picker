@@ -43,6 +43,10 @@ declare global {
       ) => Unsub;
 
       openExternal: (url: string) => Promise<void>;
+
+      /** Ward option */
+      getAutoWard: () => Promise<boolean>;
+      toggleAutoWard: () => Promise<void>;
     };
 
     api: Window["lcu"];
