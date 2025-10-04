@@ -3,6 +3,7 @@ import fetch from "node-fetch";
 import { EventEmitter } from "node:events";
 import type { LockCreds } from "./lcuWatcher";
 import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
+import { randomInt } from "node:crypto";
 
 /* ---- réponses API ---- */
 interface SummonerRes {
@@ -36,6 +37,35 @@ export interface OwnedSkin {
   chromas: { id: number; name: string }[];
 }
 
+// paramètres "mémoire"
+const SKIN_HISTORY = 3; // N derniers skins à éviter (par champion)
+const CHROMA_HISTORY = 2; // N derniers chromas à éviter (par champion+skin)
+
+// helpers RNG
+function pickIndex(max: number) {
+  return randomInt(0, max); // 0..max-1
+}
+function weightedPick<T>(items: T[], weightFn: (x: T) => number): T {
+  const weights = items.map(weightFn);
+  const sum = weights.reduce((a, b) => a + b, 0);
+  if (sum <= 0) {
+    // fallback uniform
+    return items[pickIndex(items.length)];
+  }
+  const r = randomInt(1_000_000) / 1_000_000;
+  let acc = 0;
+  for (let i = 0; i < items.length; i++) {
+    acc += weights[i] / sum;
+    if (r <= acc) return items[i];
+  }
+  return items[items.length - 1];
+}
+
+// clés helpers
+function chromaKey(championId: number, skinId: number) {
+  return `${championId}:${skinId}`;
+}
+
 export class SkinsService extends EventEmitter {
   private creds: LockCreds | null = null;
   private summonerId: number | null = null;
@@ -55,6 +85,14 @@ export class SkinsService extends EventEmitter {
   private autoRollEnabled = true;
 
   skins: OwnedSkin[] = [];
+
+  // historiques récents
+  private skinHistory = new Map<number, number[]>(); // championId -> [skinId,...]
+  private chromaHistory = new Map<string, number[]>(); // "champ:skin" -> [chromaId,...]
+
+  // compteurs "vus" (exploration équitable)
+  private skinSeenCounts = new Map<number, Map<number, number>>(); // championId -> Map(skinId, count)
+  private chromaSeenCounts = new Map<string, Map<number, number>>(); // "champ:skin" -> Map(chromaId, count)
 
   setCreds(creds: LockCreds) {
     this.stop();
@@ -121,36 +159,73 @@ export class SkinsService extends EventEmitter {
     return this.profileIconId;
   }
 
+  // rerollSkin avec anti-repeat + mémoire + poids
   async rerollSkin() {
     if (!this.skins.length) return;
+
     const pool = this.includeDefaultSkin
       ? this.skins
       : this.skins.filter((s) => s.id % 1000 !== 0) || this.skins;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    const finalId = pick.chromas.length
-      ? pick.chromas[Math.floor(Math.random() * pick.chromas.length)].id
-      : pick.id;
+
+    const picked = this.pickNextSkin(
+      this.currentChampion,
+      pool,
+      this.selectedSkinId
+    );
+
+    // Si impossible (edge) => fallback 100% libre
+    const finalSkinId = picked?.id ?? pool[pickIndex(pool.length)].id;
+
+    // Choix chroma au passage (si dispo), en respectant les règles
+    let finalId = finalSkinId;
+    const skin = this.skins.find((s) => s.id === finalSkinId);
+    if (skin && skin.chromas.length) {
+      const chroma = this.pickNextChroma(
+        this.currentChampion,
+        skin,
+        this.selectedChromaId
+      );
+      if (chroma) finalId = chroma.id;
+    }
 
     await this.applySkin(finalId);
-    this.selectedSkinId = pick.id;
-    this.selectedChromaId = finalId !== pick.id ? finalId : 0;
+
+    // update sélection
+    this.selectedSkinId = finalSkinId;
+    this.selectedChromaId = finalId !== finalSkinId ? finalId : 0;
     this.emit("selection", this.getSelection());
+
+    // mémorisation / compteurs
+    this.rememberSkin(this.currentChampion, finalSkinId);
+    if (this.selectedChromaId)
+      this.rememberChroma(
+        this.currentChampion,
+        finalSkinId,
+        this.selectedChromaId
+      );
+
     this.lastAppliedChampion = this.currentChampion;
   }
 
+  // rerollChroma avec anti-repeat + mémoire + poids
   async rerollChroma() {
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
     if (!skin || skin.chromas.length === 0) return;
 
-    let chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
-    if (skin.chromas.length > 1) {
-      while (chroma.id === this.selectedChromaId) {
-        chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
-      }
-    }
-    await this.applySkin(chroma.id);
-    this.selectedChromaId = chroma.id;
+    const chroma = this.pickNextChroma(
+      this.currentChampion,
+      skin,
+      this.selectedChromaId
+    );
+    const finalChromaId =
+      chroma?.id ?? skin.chromas[pickIndex(skin.chromas.length)].id;
+
+    await this.applySkin(finalChromaId);
+    this.selectedChromaId = finalChromaId;
     this.emit("selection", this.getSelection());
+
+    // mémorisation
+    this.rememberChroma(this.currentChampion, skin.id, finalChromaId);
   }
 
   /* ---------- boucle principale ---------- */
@@ -222,6 +297,7 @@ export class SkinsService extends EventEmitter {
     this.emit("skins", next);
   }
 
+  // refreshSkinsAndMaybeApply utilise la même stratégie “intelligente”
   private async refreshSkinsAndMaybeApply() {
     if (!this.creds || this.summonerId === null || !this.currentChampion)
       return;
@@ -272,17 +348,146 @@ export class SkinsService extends EventEmitter {
       const pool = this.includeDefaultSkin
         ? owned
         : owned.filter((s) => s.id % 1000 !== 0) || owned;
-      const picked = pool[Math.floor(Math.random() * pool.length)];
-      const finalId = picked.chromas.length
-        ? picked.chromas[Math.floor(Math.random() * picked.chromas.length)].id
-        : picked.id;
+
+      const pickedSkin =
+        this.pickNextSkin(this.currentChampion, pool, this.selectedSkinId) ??
+        pool[pickIndex(pool.length)];
+      let finalId = pickedSkin.id;
+
+      if (pickedSkin.chromas.length) {
+        const c = this.pickNextChroma(
+          this.currentChampion,
+          pickedSkin,
+          this.selectedChromaId
+        );
+        if (c) finalId = c.id;
+      }
 
       await this.applySkin(finalId);
-      this.selectedSkinId = picked.id;
-      this.selectedChromaId = finalId !== picked.id ? finalId : 0;
+
+      this.selectedSkinId = pickedSkin.id;
+      this.selectedChromaId = finalId !== pickedSkin.id ? finalId : 0;
       this.emit("selection", this.getSelection());
+
+      // mémorisation
+      this.rememberSkin(this.currentChampion, pickedSkin.id);
+      if (this.selectedChromaId)
+        this.rememberChroma(
+          this.currentChampion,
+          pickedSkin.id,
+          this.selectedChromaId
+        );
+
       this.lastAppliedChampion = this.currentChampion;
     }
+  }
+
+  // pick “intelligent” pour le SKIN
+  private pickNextSkin(
+    championId: number,
+    pool: OwnedSkin[],
+    prevSkinId: number
+  ): OwnedSkin | null {
+    if (!pool.length) return null;
+
+    const hist = this.skinHistory.get(championId) ?? [];
+    const recentSet = new Set(hist.slice(-SKIN_HISTORY));
+    const seenCounts =
+      this.skinSeenCounts.get(championId) ?? new Map<number, number>();
+
+    // 1) exclure le skin précédent (jamais le même d’affilée)
+    let candidates = pool.filter((s) => s.id !== prevSkinId);
+
+    // 2) anti-boucle courte : exclure les N derniers si possible
+    const filtered = candidates.filter((s) => !recentSet.has(s.id));
+    if (filtered.length) candidates = filtered; // sinon on garde la liste précédente
+
+    if (!candidates.length) {
+      // Si vraiment rien (ex: 1 seul skin dispo), on retombe proprement
+      candidates =
+        pool.length > 1 ? pool.filter((s) => s.id !== prevSkinId) : pool;
+    }
+
+    // 3) priorité “non-vus”
+    const unseen = candidates.filter((s) => !seenCounts.has(s.id));
+    if (unseen.length) {
+      return unseen[pickIndex(unseen.length)];
+    }
+
+    // 4) pondération LRU: poids = 1 / (1 + seenCount)
+    return weightedPick(
+      candidates,
+      (s) => 1 / (1 + (seenCounts.get(s.id) ?? 0))
+    );
+  }
+
+  // pick “intelligent” pour le CHROMA
+  private pickNextChroma(
+    championId: number,
+    skin: OwnedSkin,
+    prevChromaId: number
+  ) {
+    const key = chromaKey(championId, skin.id);
+    const hist = this.chromaHistory.get(key) ?? [];
+    const recentSet = new Set(hist.slice(-CHROMA_HISTORY));
+    const seenCounts =
+      this.chromaSeenCounts.get(key) ?? new Map<number, number>();
+
+    // toutes les chromas
+    const chromas = skin.chromas;
+    if (!chromas.length) return null;
+
+    // 1) exclure chroma précédente
+    let candidates = chromas.filter((c) => c.id !== prevChromaId);
+
+    // 2) anti-boucle courte
+    const filtered = candidates.filter((c) => !recentSet.has(c.id));
+    if (filtered.length) candidates = filtered;
+
+    if (!candidates.length) {
+      candidates =
+        chromas.length > 1
+          ? chromas.filter((c) => c.id !== prevChromaId)
+          : chromas;
+    }
+
+    // 3) priorité “non-vus”
+    const unseen = candidates.filter((c) => !seenCounts.has(c.id));
+    if (unseen.length) {
+      return unseen[pickIndex(unseen.length)];
+    }
+
+    // 4) pondération LRU
+    return weightedPick(
+      candidates,
+      (c) => 1 / (1 + (seenCounts.get(c.id) ?? 0))
+    );
+  }
+
+  // mémorisation / compteurs
+  private rememberSkin(championId: number, skinId: number) {
+    const h = this.skinHistory.get(championId) ?? [];
+    h.push(skinId);
+    if (h.length > SKIN_HISTORY * 3) h.shift(); // garde une taille raisonnable
+    this.skinHistory.set(championId, h);
+
+    const counts =
+      this.skinSeenCounts.get(championId) ?? new Map<number, number>();
+    counts.set(skinId, (counts.get(skinId) ?? 0) + 1);
+    this.skinSeenCounts.set(championId, counts);
+  }
+
+  private rememberChroma(championId: number, skinId: number, chromaId: number) {
+    const key = chromaKey(championId, skinId);
+
+    const h = this.chromaHistory.get(key) ?? [];
+    h.push(chromaId);
+    if (h.length > CHROMA_HISTORY * 3) h.shift();
+    this.chromaHistory.set(key, h);
+
+    const counts = this.chromaSeenCounts.get(key) ?? new Map<number, number>();
+    counts.set(chromaId, (counts.get(chromaId) ?? 0) + 1);
+    this.chromaSeenCounts.set(key, counts);
   }
 
   private async applySkin(skinId: number) {
