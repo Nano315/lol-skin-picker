@@ -13,25 +13,48 @@ export default function Settings() {
   const phase = useGameflow();
 
   const { save, read } = usePrefs();
+  const [includeDefaultChromaSupported] = useState(
+    api.hasDefaultChromaOption
+  );
   const [includeDefault, setIncludeDefault] = useState(true);
+  const [includeDefaultChroma, setIncludeDefaultChroma] = useState(false);
   const [autoRoll, setAutoRoll] = useState(true);
 
   useEffect(() => {
-    Promise.all([api.getIncludeDefault(), api.getAutoRoll()]).then(
-      ([incSrv, autoSrv]) => {
-        const incPref = read("includeDefault");
-        const autoPref = read("autoRoll");
+    const sync = async () => {
+      const [incSrv, autoSrv] = await Promise.all([
+        api.getIncludeDefault(),
+        api.getAutoRoll(),
+      ]);
 
-        if (incPref !== null && incPref !== incSrv) {
-          api.toggleIncludeDefault().then(() => setIncludeDefault(incPref));
-        } else setIncludeDefault(incSrv);
+      const incPref = read("includeDefault");
+      const autoPref = read("autoRoll");
 
-        if (autoPref !== null && autoPref !== autoSrv) {
-          api.toggleAutoRoll().then(() => setAutoRoll(autoPref));
-        } else setAutoRoll(autoSrv);
+      if (incPref !== null && incPref !== incSrv) {
+        api.toggleIncludeDefault().then(() => setIncludeDefault(incPref));
+      } else setIncludeDefault(incSrv);
+
+      if (autoPref !== null && autoPref !== autoSrv) {
+        api.toggleAutoRoll().then(() => setAutoRoll(autoPref));
+      } else setAutoRoll(autoSrv);
+
+      if (includeDefaultChromaSupported) {
+        const incChromaSrv = await api.getIncludeDefaultChroma();
+        const incChromaPref = read("includeDefaultChroma");
+
+        if (incChromaPref !== null && incChromaPref !== incChromaSrv) {
+          api
+            .toggleIncludeDefaultChroma()
+            .then(() => setIncludeDefaultChroma(incChromaPref));
+        } else setIncludeDefaultChroma(incChromaSrv);
+      } else {
+        const incChromaPref = read("includeDefaultChroma");
+        setIncludeDefaultChroma(incChromaPref ?? false);
       }
-    );
-  }, [read]);
+    };
+
+    void sync();
+  }, [includeDefaultChromaSupported, read]);
 
   return (
     <div className="app">
@@ -45,6 +68,12 @@ export default function Settings() {
             setIncludeDefault(v);
             save("includeDefault", v);
           }}
+          includeDefaultChroma={includeDefaultChroma}
+          setIncludeDefaultChroma={(v) => {
+            setIncludeDefaultChroma(v);
+            save("includeDefaultChroma", v);
+          }}
+          includeDefaultChromaSupported={includeDefaultChromaSupported}
           autoRoll={autoRoll}
           setAutoRoll={(v) => {
             setAutoRoll(v);

@@ -6,6 +6,10 @@ const lcu = window.lcu;
 const asUnsub = (ret: unknown): Unsub =>
   typeof ret === "function" ? (ret as () => void) : () => {};
 
+const hasDefaultChromaOption =
+  typeof lcu.getIncludeDefaultChroma === "function" &&
+  typeof lcu.toggleIncludeDefaultChroma === "function";
+
 export const api = {
   // connection
   getStatus: () => lcu.getStatus(),
@@ -22,6 +26,13 @@ export const api = {
   // options
   getIncludeDefault: () => lcu.getIncludeDefault(),
   toggleIncludeDefault: () => lcu.toggleIncludeDefault(),
+  hasDefaultChromaOption,
+  getIncludeDefaultChroma: () =>
+    hasDefaultChromaOption ? lcu.getIncludeDefaultChroma() : Promise.resolve(false),
+  toggleIncludeDefaultChroma: () =>
+    hasDefaultChromaOption
+      ? lcu.toggleIncludeDefaultChroma()
+      : Promise.resolve(),
   getAutoRoll: () => lcu.getAutoRoll(),
   toggleAutoRoll: () => lcu.toggleAutoRoll(),
 
