@@ -47,6 +47,7 @@ export class SkinsService extends EventEmitter {
   private lastAppliedChampion = 0;
 
   private includeDefaultSkin = true;
+  private includeDefaultChroma = false;
 
   private selectedSkinId = 0;
   private selectedChromaId = 0;
@@ -100,6 +101,15 @@ export class SkinsService extends EventEmitter {
     if (this.autoRollEnabled && this.currentChampion) void this.rerollSkin();
   }
 
+  getIncludeDefaultChroma() {
+    return this.includeDefaultChroma;
+  }
+  toggleIncludeDefaultChroma() {
+    this.includeDefaultChroma = !this.includeDefaultChroma;
+    const skin = this.skins.find((s) => s.id === this.selectedSkinId);
+    if (skin?.chromas.length) void this.rerollChroma();
+  }
+
   getSelection() {
     return {
       championId: this.currentChampion,
@@ -142,14 +152,20 @@ export class SkinsService extends EventEmitter {
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
     if (!skin || skin.chromas.length === 0) return;
 
-    let chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
-    if (skin.chromas.length > 1) {
-      while (chroma.id === this.selectedChromaId) {
-        chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
+    const pool = skin.chromas.map((c) => c.id);
+    if (this.includeDefaultChroma) pool.push(skin.id);
+    if (!pool.length) return;
+
+    const currentId = this.selectedChromaId || skin.id;
+    let picked = pool[Math.floor(Math.random() * pool.length)];
+    if (pool.length > 1) {
+      while (picked === currentId) {
+        picked = pool[Math.floor(Math.random() * pool.length)];
       }
     }
-    await this.applySkin(chroma.id);
-    this.selectedChromaId = chroma.id;
+
+    await this.applySkin(picked);
+    this.selectedChromaId = picked === skin.id ? 0 : picked;
     this.emit("selection", this.getSelection());
   }
 
@@ -357,7 +373,6 @@ export class SkinsService extends EventEmitter {
   ): this;
   on(event: "icon", fn: (id: number) => void): this;
   override on(event: string, listener: (...args: any[]) => void): this {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.on(event, listener);
   }
 
@@ -365,7 +380,6 @@ export class SkinsService extends EventEmitter {
   emit(event: "selection", s: { skinId: number; chromaId: number }): boolean;
   emit(event: "icon", id: number): boolean;
   override emit(event: string, ...args: any[]): boolean {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.emit(event, ...args);
   }
 }
