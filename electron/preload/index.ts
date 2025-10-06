@@ -38,6 +38,10 @@ const api = {
   /* Options */
   getIncludeDefault: () => ipcRenderer.invoke("get-include-default"),
   toggleIncludeDefault: () => ipcRenderer.invoke("toggle-include-default"),
+  getIncludeDefaultChroma: () =>
+    ipcRenderer.invoke("get-include-default-chroma"),
+  toggleIncludeDefaultChroma: () =>
+    ipcRenderer.invoke("toggle-include-default-chroma"),
   getAutoRoll: () => ipcRenderer.invoke("get-auto-roll"),
   toggleAutoRoll: () => ipcRenderer.invoke("toggle-auto-roll"),
 

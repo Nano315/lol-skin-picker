@@ -9,6 +9,12 @@ export function registerSkinsIpc(
 
   ipcMain.handle("get-include-default", () => svc.getIncludeDefault());
   ipcMain.handle("toggle-include-default", () => svc.toggleIncludeDefault());
+  ipcMain.handle("get-include-default-chroma", () =>
+    svc.getIncludeDefaultChroma()
+  );
+  ipcMain.handle("toggle-include-default-chroma", () =>
+    svc.toggleIncludeDefaultChroma()
+  );
 
   ipcMain.handle("get-auto-roll", () => svc.getAutoRoll());
   ipcMain.handle("toggle-auto-roll", () => svc.toggleAutoRoll());

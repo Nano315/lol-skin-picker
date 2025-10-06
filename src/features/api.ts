@@ -22,6 +22,14 @@ export const api = {
   // options
   getIncludeDefault: () => lcu.getIncludeDefault(),
   toggleIncludeDefault: () => lcu.toggleIncludeDefault(),
+  getIncludeDefaultChroma: () =>
+    typeof lcu.getIncludeDefaultChroma === "function"
+      ? lcu.getIncludeDefaultChroma()
+      : Promise.resolve(false),
+  toggleIncludeDefaultChroma: () =>
+    typeof lcu.toggleIncludeDefaultChroma === "function"
+      ? lcu.toggleIncludeDefaultChroma()
+      : Promise.resolve(),
   getAutoRoll: () => lcu.getAutoRoll(),
   toggleAutoRoll: () => lcu.toggleAutoRoll(),
 

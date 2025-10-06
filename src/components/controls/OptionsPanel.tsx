@@ -3,15 +3,22 @@ import { api } from "@/features/api";
 export default function OptionsPanel({
   includeDefault,
   setIncludeDefault,
+  includeDefaultChroma,
+  setIncludeDefaultChroma,
   autoRoll,
   setAutoRoll,
   savePref,
 }: {
   includeDefault: boolean;
   setIncludeDefault: (v: boolean) => void;
+  includeDefaultChroma: boolean;
+  setIncludeDefaultChroma: (v: boolean) => void;
   autoRoll: boolean;
   setAutoRoll: (v: boolean) => void;
-  savePref: (k: "includeDefault" | "autoRoll", v: boolean) => void;
+  savePref: (
+    k: "includeDefault" | "includeDefaultChroma" | "autoRoll",
+    v: boolean
+  ) => void;
 }) {
   const toggleInclude = () => {
     api
@@ -20,6 +27,16 @@ export default function OptionsPanel({
       .then((val) => {
         setIncludeDefault(val);
         savePref("includeDefault", val);
+      });
+  };
+
+  const toggleIncludeChroma = () => {
+    api
+      .toggleIncludeDefaultChroma()
+      .then(() => api.getIncludeDefaultChroma())
+      .then((val) => {
+        setIncludeDefaultChroma(val);
+        savePref("includeDefaultChroma", val);
       });
   };
 
@@ -43,6 +60,16 @@ export default function OptionsPanel({
         />
         <span className="dot" />
         <span className="txt">Include default skin</span>
+      </label>
+
+      <label className="option">
+        <input
+          type="checkbox"
+          checked={includeDefaultChroma}
+          onChange={toggleIncludeChroma}
+        />
+        <span className="dot" />
+        <span className="txt">Include default chroma</span>
       </label>
 
       <label className="option">
