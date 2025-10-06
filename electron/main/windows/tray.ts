@@ -96,7 +96,6 @@ export function updaterHooks() {
   autoUpdater.on("update-available", (info: any) => {
     if (manualUpdateRequested) {
       // app never used
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { dialog } = require("electron");
       dialog.showMessageBox({
         type: "info",

@@ -21,6 +21,8 @@ declare global {
 
       getIncludeDefault: () => Promise<boolean>;
       toggleIncludeDefault: () => Promise<void>;
+      getIncludeDefaultChroma: () => Promise<boolean>;
+      toggleIncludeDefaultChroma: () => Promise<void>;
       getAutoRoll: () => Promise<boolean>;
       toggleAutoRoll: () => Promise<void>;
 

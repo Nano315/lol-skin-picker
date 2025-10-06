@@ -14,23 +14,33 @@ export default function Settings() {
 
   const { save, read } = usePrefs();
   const [includeDefault, setIncludeDefault] = useState(true);
+  const [includeDefaultChroma, setIncludeDefaultChroma] = useState(false);
   const [autoRoll, setAutoRoll] = useState(true);
 
   useEffect(() => {
-    Promise.all([api.getIncludeDefault(), api.getAutoRoll()]).then(
-      ([incSrv, autoSrv]) => {
-        const incPref = read("includeDefault");
-        const autoPref = read("autoRoll");
+    Promise.all([
+      api.getIncludeDefault(),
+      api.getIncludeDefaultChroma(),
+      api.getAutoRoll(),
+    ]).then(([incSrv, incChromaSrv, autoSrv]) => {
+      const incPref = read("includeDefault");
+      const incChromaPref = read("includeDefaultChroma");
+      const autoPref = read("autoRoll");
 
-        if (incPref !== null && incPref !== incSrv) {
-          api.toggleIncludeDefault().then(() => setIncludeDefault(incPref));
-        } else setIncludeDefault(incSrv);
+      if (incPref !== null && incPref !== incSrv) {
+        api.toggleIncludeDefault().then(() => setIncludeDefault(incPref));
+      } else setIncludeDefault(incSrv);
 
-        if (autoPref !== null && autoPref !== autoSrv) {
-          api.toggleAutoRoll().then(() => setAutoRoll(autoPref));
-        } else setAutoRoll(autoSrv);
-      }
-    );
+      if (incChromaPref !== null && incChromaPref !== incChromaSrv) {
+        api
+          .toggleIncludeDefaultChroma()
+          .then(() => setIncludeDefaultChroma(incChromaPref));
+      } else setIncludeDefaultChroma(incChromaSrv);
+
+      if (autoPref !== null && autoPref !== autoSrv) {
+        api.toggleAutoRoll().then(() => setAutoRoll(autoPref));
+      } else setAutoRoll(autoSrv);
+    });
   }, [read]);
 
   return (
@@ -44,6 +54,11 @@ export default function Settings() {
           setIncludeDefault={(v) => {
             setIncludeDefault(v);
             save("includeDefault", v);
+          }}
+          includeDefaultChroma={includeDefaultChroma}
+          setIncludeDefaultChroma={(v) => {
+            setIncludeDefaultChroma(v);
+            save("includeDefaultChroma", v);
           }}
           autoRoll={autoRoll}
           setAutoRoll={(v) => {
