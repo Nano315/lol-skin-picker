@@ -131,7 +131,9 @@ export class SkinsService extends EventEmitter {
       ? pick.chromas[Math.floor(Math.random() * pick.chromas.length)].id
       : pick.id;
 
-    const applied = await this.applySkin(finalId);
+    const applied = await this.applySkin(finalId, {
+      chromaId: finalId !== pick.id ? finalId : null,
+    });
     if (!applied) return; // Only update selection when the server accepts the change.
     this.selectedSkinId = pick.id;
     this.selectedChromaId = finalId !== pick.id ? finalId : 0;
@@ -164,7 +166,9 @@ export class SkinsService extends EventEmitter {
       }
     }
 
-    const applied = await this.applySkin(pick.applyId);
+    const applied = await this.applySkin(pick.applyId, {
+      chromaId: pick.chromaId || null,
+    });
     if (!applied) return; // Avoid lying about the active chroma when the LCU rejects it.
 
     this.selectedChromaId = pick.chromaId;
@@ -299,7 +303,9 @@ export class SkinsService extends EventEmitter {
         ? picked.chromas[Math.floor(Math.random() * picked.chromas.length)].id
         : picked.id;
 
-      const applied = await this.applySkin(finalId);
+      const applied = await this.applySkin(finalId, {
+        chromaId: finalId !== picked.id ? finalId : null,
+      });
       if (!applied) return; // Skip optimistic updates when the LCU rejects the skin.
       this.selectedSkinId = picked.id;
       this.selectedChromaId = finalId !== picked.id ? finalId : 0;
@@ -308,11 +314,30 @@ export class SkinsService extends EventEmitter {
     }
   }
 
-  private async applySkin(skinId: number): Promise<boolean> {
+  private async applySkin(
+    skinId: number,
+    options?: { chromaId?: number | null }
+  ): Promise<boolean> {
     if (!this.creds) return false;
     const { protocol, port, password } = this.creds;
     const url = `${protocol}://127.0.0.1:${port}/lol-champ-select/v1/session/my-selection`;
     const auth = Buffer.from(`riot:${password}`).toString("base64");
+    const hasChroma = Object.prototype.hasOwnProperty.call(
+      options ?? {},
+      "chromaId"
+    );
+    const chromaId = hasChroma
+      ? options?.chromaId ?? null
+      : null;
+
+    const body: Record<string, number | null> = {
+      selectedSkinId: skinId,
+    };
+
+    if (hasChroma || chromaId !== null) {
+      body.selectedSkinChromaId = chromaId;
+    }
+
     try {
       const res = await fetch(url, {
         method: "PATCH",
@@ -320,7 +345,7 @@ export class SkinsService extends EventEmitter {
           "Content-Type": "application/json",
           Authorization: `Basic ${auth}`,
         },
-        body: JSON.stringify({ selectedSkinId: skinId }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) return false; // Bubble failure so callers avoid desynchronizing UI state.
       void this.updateManualSelection();
