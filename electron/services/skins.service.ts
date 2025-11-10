@@ -131,7 +131,8 @@ export class SkinsService extends EventEmitter {
       ? pick.chromas[Math.floor(Math.random() * pick.chromas.length)].id
       : pick.id;
 
-    await this.applySkin(finalId);
+    const applied = await this.applySkin(finalId);
+    if (!applied) return; // Only update selection when the server accepts the change.
     this.selectedSkinId = pick.id;
     this.selectedChromaId = finalId !== pick.id ? finalId : 0;
     this.emit("selection", this.getSelection());
@@ -148,7 +149,8 @@ export class SkinsService extends EventEmitter {
         chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
       }
     }
-    await this.applySkin(chroma.id);
+    const applied = await this.applySkin(chroma.id);
+    if (!applied) return; // Avoid lying about the active chroma when the LCU rejects it.
     this.selectedChromaId = chroma.id;
     this.emit("selection", this.getSelection());
   }
@@ -261,7 +263,7 @@ export class SkinsService extends EventEmitter {
       owned.push({ id: s.id, name: s.name, chromas: chromaList });
     }
 
-    this.skins = owned;
+    // Emit using the previous cache so the change detector can compare arrays.
     this.emitSkinsIfChanged(owned);
 
     if (
@@ -277,7 +279,8 @@ export class SkinsService extends EventEmitter {
         ? picked.chromas[Math.floor(Math.random() * picked.chromas.length)].id
         : picked.id;
 
-      await this.applySkin(finalId);
+      const applied = await this.applySkin(finalId);
+      if (!applied) return; // Skip optimistic updates when the LCU rejects the skin.
       this.selectedSkinId = picked.id;
       this.selectedChromaId = finalId !== picked.id ? finalId : 0;
       this.emit("selection", this.getSelection());
@@ -285,13 +288,13 @@ export class SkinsService extends EventEmitter {
     }
   }
 
-  private async applySkin(skinId: number) {
-    if (!this.creds) return;
+  private async applySkin(skinId: number): Promise<boolean> {
+    if (!this.creds) return false;
     const { protocol, port, password } = this.creds;
     const url = `${protocol}://127.0.0.1:${port}/lol-champ-select/v1/session/my-selection`;
     const auth = Buffer.from(`riot:${password}`).toString("base64");
     try {
-      await fetch(url, {
+      const res = await fetch(url, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -299,10 +302,13 @@ export class SkinsService extends EventEmitter {
         },
         body: JSON.stringify({ selectedSkinId: skinId }),
       });
+      if (!res.ok) return false; // Bubble failure so callers avoid desynchronizing UI state.
       void this.updateManualSelection();
+      return true;
     } catch {
-      /* ignore */
+      return false; // Propagate network errors to callers.
     }
+    return false; // Default to failure if we somehow drop through the try/catch.
   }
 
   private async updateManualSelection() {
