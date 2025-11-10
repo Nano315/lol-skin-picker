@@ -15,8 +15,10 @@ export default function RerollControls({
 }) {
   if (phase !== "ChampSelect" || selection.championId === 0) return null;
 
-  const hasChromas = !!skins.find((s) => s.id === selection.skinId)?.chromas
-    ?.length; // Optional chaining avoids crashing when chromas is undefined.
+  const selectedSkin = skins.find((s) => s.id === selection.skinId);
+  const hasChromas =
+    !!selectedSkin &&
+    selectedSkin.chromas.some((chroma) => chroma.id !== selectedSkin.id);
 
   return (
     <div className="reroll-wrapper">

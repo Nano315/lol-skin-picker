@@ -141,17 +141,20 @@ export class SkinsService extends EventEmitter {
 
   async rerollChroma() {
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
-    if (!skin || skin.chromas.length === 0) return;
+    if (!skin || skin.chromas.length <= 1) return;
+
+    const normalizeId = (id: number) => (id === skin.id ? 0 : id);
+    const currentId = this.selectedChromaId ?? 0;
 
     let chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
     if (skin.chromas.length > 1) {
-      while (chroma.id === this.selectedChromaId) {
+      while (normalizeId(chroma.id) === currentId) {
         chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
       }
     }
     const applied = await this.applySkin(chroma.id);
     if (!applied) return; // Avoid lying about the active chroma when the LCU rejects it.
-    this.selectedChromaId = chroma.id;
+    this.selectedChromaId = chroma.id === skin.id ? 0 : chroma.id;
     this.emit("selection", this.getSelection());
   }
 
@@ -253,9 +256,13 @@ export class SkinsService extends EventEmitter {
           { headers }
         ).then((r) => (r.status === 404 ? [] : r.json()))) as ChromaRes[];
 
-        chromaList = chromas
+        const ownedChromas = chromas
           .filter((c) => c.ownership?.owned || c.isOwned || c.owned)
           .map((c) => ({ id: c.id, name: c.name || `Chroma ${c.id}` }));
+
+        chromaList = ownedChromas.length
+          ? [{ id: s.id, name: s.name }, ...ownedChromas]
+          : [];
       } catch {
         /* ignore */
       }
@@ -363,7 +370,6 @@ export class SkinsService extends EventEmitter {
   ): this;
   on(event: "icon", fn: (id: number) => void): this;
   override on(event: string, listener: (...args: any[]) => void): this {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.on(event, listener);
   }
 
@@ -371,7 +377,6 @@ export class SkinsService extends EventEmitter {
   emit(event: "selection", s: { skinId: number; chromaId: number }): boolean;
   emit(event: "icon", id: number): boolean;
   override emit(event: string, ...args: any[]): boolean {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.emit(event, ...args);
   }
 }
