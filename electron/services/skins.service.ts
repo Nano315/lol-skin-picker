@@ -141,20 +141,33 @@ export class SkinsService extends EventEmitter {
 
   async rerollChroma() {
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
-    if (!skin || skin.chromas.length <= 1) return;
+    if (!skin) return;
 
-    const normalizeId = (id: number) => (id === skin.id ? 0 : id);
-    const currentId = this.selectedChromaId ?? 0;
+    const chromas = skin.chromas.filter((c) => c.id !== skin.id);
+    const pool = [
+      { applyId: skin.id, chromaId: 0 },
+      ...chromas.map((c) => ({ applyId: c.id, chromaId: c.id })),
+    ];
 
-    let chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
-    if (skin.chromas.length > 1) {
-      while (normalizeId(chroma.id) === currentId) {
-        chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
+    if (pool.length <= 1) return;
+
+    const hasCurrent = pool.some((c) => c.chromaId === this.selectedChromaId);
+    const currentId = hasCurrent ? this.selectedChromaId : 0;
+    if (!hasCurrent && this.selectedChromaId !== 0) {
+      this.selectedChromaId = 0;
+    }
+
+    let pick = pool[Math.floor(Math.random() * pool.length)];
+    if (pool.length > 1) {
+      while (pick.chromaId === currentId) {
+        pick = pool[Math.floor(Math.random() * pool.length)];
       }
     }
-    const applied = await this.applySkin(chroma.id);
+
+    const applied = await this.applySkin(pick.applyId);
     if (!applied) return; // Avoid lying about the active chroma when the LCU rejects it.
-    this.selectedChromaId = chroma.id === skin.id ? 0 : chroma.id;
+
+    this.selectedChromaId = pick.chromaId;
     this.emit("selection", this.getSelection());
   }
 
