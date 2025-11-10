@@ -143,15 +143,21 @@ export class SkinsService extends EventEmitter {
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
     if (!skin || skin.chromas.length === 0) return;
 
-    let chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
-    if (skin.chromas.length > 1) {
-      while (chroma.id === this.selectedChromaId) {
-        chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
+    const pool = [
+      { applyId: skin.id, chromaId: 0 },
+      ...skin.chromas.map((chroma) => ({ applyId: chroma.id, chromaId: chroma.id })),
+    ];
+
+    let pick = pool[Math.floor(Math.random() * pool.length)];
+    if (pool.length > 1) {
+      while (pick.chromaId === this.selectedChromaId) {
+        pick = pool[Math.floor(Math.random() * pool.length)];
       }
     }
-    const applied = await this.applySkin(chroma.id);
+
+    const applied = await this.applySkin(pick.applyId);
     if (!applied) return; // Avoid lying about the active chroma when the LCU rejects it.
-    this.selectedChromaId = chroma.id;
+    this.selectedChromaId = pick.chromaId;
     this.emit("selection", this.getSelection());
   }
 
