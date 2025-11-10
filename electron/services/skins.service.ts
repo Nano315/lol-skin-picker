@@ -143,15 +143,18 @@ export class SkinsService extends EventEmitter {
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
     if (!skin || skin.chromas.length === 0) return;
 
-    let chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
-    if (skin.chromas.length > 1) {
-      while (chroma.id === this.selectedChromaId) {
-        chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
+    const chromaPool = [0, ...skin.chromas.map((c) => c.id)];
+    let chromaId = chromaPool[Math.floor(Math.random() * chromaPool.length)];
+    if (chromaPool.length > 1) {
+      while (chromaId === this.selectedChromaId) {
+        chromaId = chromaPool[Math.floor(Math.random() * chromaPool.length)];
       }
     }
-    const applied = await this.applySkin(chroma.id);
+
+    const targetId = chromaId === 0 ? skin.id : chromaId;
+    const applied = await this.applySkin(targetId);
     if (!applied) return; // Avoid lying about the active chroma when the LCU rejects it.
-    this.selectedChromaId = chroma.id;
+    this.selectedChromaId = chromaId === 0 ? 0 : chromaId;
     this.emit("selection", this.getSelection());
   }
 
@@ -363,7 +366,6 @@ export class SkinsService extends EventEmitter {
   ): this;
   on(event: "icon", fn: (id: number) => void): this;
   override on(event: string, listener: (...args: any[]) => void): this {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.on(event, listener);
   }
 
@@ -371,7 +373,6 @@ export class SkinsService extends EventEmitter {
   emit(event: "selection", s: { skinId: number; chromaId: number }): boolean;
   emit(event: "icon", id: number): boolean;
   override emit(event: string, ...args: any[]): boolean {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.emit(event, ...args);
   }
 }
