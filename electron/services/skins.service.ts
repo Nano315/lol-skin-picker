@@ -127,31 +127,40 @@ export class SkinsService extends EventEmitter {
       ? this.skins
       : this.skins.filter((s) => s.id % 1000 !== 0) || this.skins;
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    const finalId = pick.chromas.length
-      ? pick.chromas[Math.floor(Math.random() * pick.chromas.length)].id
-      : pick.id;
+    const variants = [
+      { chromaId: 0, applyId: pick.id },
+      ...pick.chromas.map((c) => ({ chromaId: c.id, applyId: c.id })),
+    ];
+    const variant = variants[Math.floor(Math.random() * variants.length)];
+    const finalId = variant.applyId;
 
     const applied = await this.applySkin(finalId);
     if (!applied) return; // Only update selection when the server accepts the change.
     this.selectedSkinId = pick.id;
-    this.selectedChromaId = finalId !== pick.id ? finalId : 0;
+    this.selectedChromaId = variant.chromaId;
     this.emit("selection", this.getSelection());
     this.lastAppliedChampion = this.currentChampion;
   }
 
   async rerollChroma() {
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
-    if (!skin || skin.chromas.length === 0) return;
+    if (!skin) return;
 
-    let chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
-    if (skin.chromas.length > 1) {
-      while (chroma.id === this.selectedChromaId) {
-        chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
+    const variants = [
+      { chromaId: 0, applyId: skin.id },
+      ...skin.chromas.map((c) => ({ chromaId: c.id, applyId: c.id })),
+    ];
+
+    let variant = variants[Math.floor(Math.random() * variants.length)];
+    if (variants.length > 1) {
+      while (variant.chromaId === this.selectedChromaId) {
+        variant = variants[Math.floor(Math.random() * variants.length)];
       }
     }
-    const applied = await this.applySkin(chroma.id);
+
+    const applied = await this.applySkin(variant.applyId);
     if (!applied) return; // Avoid lying about the active chroma when the LCU rejects it.
-    this.selectedChromaId = chroma.id;
+    this.selectedChromaId = variant.chromaId;
     this.emit("selection", this.getSelection());
   }
 
@@ -275,14 +284,17 @@ export class SkinsService extends EventEmitter {
         ? owned
         : owned.filter((s) => s.id % 1000 !== 0) || owned;
       const picked = pool[Math.floor(Math.random() * pool.length)];
-      const finalId = picked.chromas.length
-        ? picked.chromas[Math.floor(Math.random() * picked.chromas.length)].id
-        : picked.id;
+      const variants = [
+        { chromaId: 0, applyId: picked.id },
+        ...picked.chromas.map((c) => ({ chromaId: c.id, applyId: c.id })),
+      ];
+      const variant = variants[Math.floor(Math.random() * variants.length)];
+      const finalId = variant.applyId;
 
       const applied = await this.applySkin(finalId);
       if (!applied) return; // Skip optimistic updates when the LCU rejects the skin.
       this.selectedSkinId = picked.id;
-      this.selectedChromaId = finalId !== picked.id ? finalId : 0;
+      this.selectedChromaId = variant.chromaId;
       this.emit("selection", this.getSelection());
       this.lastAppliedChampion = this.currentChampion;
     }
@@ -363,7 +375,6 @@ export class SkinsService extends EventEmitter {
   ): this;
   on(event: "icon", fn: (id: number) => void): this;
   override on(event: string, listener: (...args: any[]) => void): this {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.on(event, listener);
   }
 
@@ -371,7 +382,6 @@ export class SkinsService extends EventEmitter {
   emit(event: "selection", s: { skinId: number; chromaId: number }): boolean;
   emit(event: "icon", id: number): boolean;
   override emit(event: string, ...args: any[]): boolean {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.emit(event, ...args);
   }
 }
