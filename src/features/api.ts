@@ -22,8 +22,10 @@ export const api = {
   // options
   getIncludeDefault: () => lcu.getIncludeDefault(),
   toggleIncludeDefault: () => lcu.toggleIncludeDefault(),
+  setIncludeDefault: (v: boolean) => lcu.setIncludeDefault(v),
   getAutoRoll: () => lcu.getAutoRoll(),
   toggleAutoRoll: () => lcu.toggleAutoRoll(),
+  setAutoRoll: (v: boolean) => lcu.setAutoRoll(v),
 
   // actions
   rerollSkin: () => lcu.rerollSkin(),

@@ -38,8 +38,11 @@ const api = {
   /* Options */
   getIncludeDefault: () => ipcRenderer.invoke("get-include-default"),
   toggleIncludeDefault: () => ipcRenderer.invoke("toggle-include-default"),
+  setIncludeDefault: (v: boolean) => ipcRenderer.invoke("set-include-default", v),
+
   getAutoRoll: () => ipcRenderer.invoke("get-auto-roll"),
   toggleAutoRoll: () => ipcRenderer.invoke("toggle-auto-roll"),
+  setAutoRoll: (v: boolean) => ipcRenderer.invoke("set-auto-roll", v),
 
   /* Actions & Selection */
   rerollSkin: () => ipcRenderer.invoke("reroll-skin"),

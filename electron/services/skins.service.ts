@@ -95,9 +95,21 @@ export class SkinsService extends EventEmitter {
   getIncludeDefault() {
     return this.includeDefaultSkin;
   }
+  setIncludeDefault(v: boolean) {
+    this.includeDefaultSkin = !!v;
+  }
   toggleIncludeDefault() {
-    this.includeDefaultSkin = !this.includeDefaultSkin;
-    if (this.autoRollEnabled && this.currentChampion) void this.rerollSkin();
+    this.setIncludeDefault(!this.includeDefaultSkin);
+  }
+
+  getAutoRoll() {
+    return this.autoRollEnabled;
+  }
+  setAutoRoll(v: boolean) {
+    this.autoRollEnabled = !!v;
+  }
+  toggleAutoRoll() {
+    this.setAutoRoll(!this.autoRollEnabled);
   }
 
   getSelection() {
@@ -107,14 +119,6 @@ export class SkinsService extends EventEmitter {
       skinId: this.selectedSkinId,
       chromaId: this.selectedChromaId,
     };
-  }
-
-  getAutoRoll() {
-    return this.autoRollEnabled;
-  }
-  toggleAutoRoll() {
-    this.autoRollEnabled = !this.autoRollEnabled;
-    if (this.autoRollEnabled && this.currentChampion) void this.rerollSkin();
   }
 
   getProfileIcon() {

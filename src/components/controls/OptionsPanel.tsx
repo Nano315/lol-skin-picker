@@ -13,24 +13,21 @@ export default function OptionsPanel({
   setAutoRoll: (v: boolean) => void;
   savePref: (k: "includeDefault" | "autoRoll", v: boolean) => void;
 }) {
-  const toggleInclude = () => {
-    api
-      .toggleIncludeDefault()
-      .then(() => api.getIncludeDefault())
-      .then((val) => {
-        setIncludeDefault(val);
-        savePref("includeDefault", val);
-      });
+  const onIncludeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.checked;
+    // 1) UI + stockage local immédiats
+    setIncludeDefault(v);
+    savePref("includeDefault", v);
+    // 2) IPC en arrière-plan
+    void api.setIncludeDefault(v).catch(() => {
+    });
   };
 
-  const toggleAuto = () => {
-    api
-      .toggleAutoRoll()
-      .then(() => api.getAutoRoll())
-      .then((val) => {
-        setAutoRoll(val);
-        savePref("autoRoll", val);
-      });
+  const onAutoRollChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.checked;
+    setAutoRoll(v);
+    savePref("autoRoll", v);
+    void api.setAutoRoll(v).catch(() => {});
   };
 
   return (
@@ -39,14 +36,14 @@ export default function OptionsPanel({
         <input
           type="checkbox"
           checked={includeDefault}
-          onChange={toggleInclude}
+          onChange={onIncludeChange}
         />
         <span className="dot" />
         <span className="txt">Include default skin</span>
       </label>
 
       <label className="option">
-        <input type="checkbox" checked={autoRoll} onChange={toggleAuto} />
+        <input type="checkbox" checked={autoRoll} onChange={onAutoRollChange} />
         <span className="dot" />
         <span className="txt">Auto roll on champion lock</span>
       </label>
