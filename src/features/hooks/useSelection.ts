@@ -8,6 +8,7 @@ export function useSelection() {
     championAlias: "",
     skinId: 0,
     chromaId: 0,
+    locked: false,
   });
 
   useEffect(() => {

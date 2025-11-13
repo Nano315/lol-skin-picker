@@ -35,6 +35,7 @@ declare global {
         championAlias: string;
         skinId: number;
         chromaId: number;
+        locked: boolean;
       }>;
       onSelection: (
         cb: (s: {
@@ -42,6 +43,7 @@ declare global {
           championAlias: string;
           skinId: number;
           chromaId: number;
+          locked: boolean;
         }) => void
       ) => Unsub;
 

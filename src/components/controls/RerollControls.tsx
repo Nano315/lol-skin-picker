@@ -1,6 +1,6 @@
 import GradientText from "@/components/GradientText/GradientText";
 import { faPalette, faDice } from "@fortawesome/free-solid-svg-icons";
-import type { OwnedSkin } from "@/features/types";
+import type { OwnedSkin, Selection } from "@/features/types";
 import { api } from "@/features/api";
 
 export default function RerollControls({
@@ -9,14 +9,19 @@ export default function RerollControls({
   skins,
 }: {
   phase: string;
-  selection: { championId: number; skinId: number };
+  selection: Selection;
   skins: OwnedSkin[];
   onChanged: () => void;
 }) {
-  if (phase !== "ChampSelect" || selection.championId === 0) return null;
+  const notInChampSelect = phase !== "ChampSelect";
+  const noChampion = selection.championId === 0;
+  const notLocked = !selection.locked;
+
+  // n’affiche pas tant que le champion n’est pas LOCK
+  if (notInChampSelect || noChampion || notLocked) return null;
 
   const hasChromas = !!skins.find((s) => s.id === selection.skinId)?.chromas
-    ?.length; // Optional chaining avoids crashing when chromas is undefined.
+    ?.length;
 
   return (
     <div className="reroll-wrapper">

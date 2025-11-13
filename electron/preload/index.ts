@@ -54,6 +54,7 @@ const api = {
       championAlias: string;
       skinId: number;
       chromaId: number;
+      locked: boolean;
     }) => void
   ) => {
     const listener = (_e: any, sel: any) => cb(sel);

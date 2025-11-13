@@ -29,6 +29,18 @@ interface SelectionRes {
   selectedSkinId?: number;
 }
 
+interface ChampSelectAction {
+  actorCellId?: number;
+  championId?: number;
+  completed?: boolean;
+  type?: string;
+}
+
+interface ChampSelectSession {
+  actions?: ChampSelectAction[][];
+  localPlayerCellId?: number;
+}
+
 /* ---- type envoyé au renderer ---- */
 export interface OwnedSkin {
   id: number;
@@ -56,6 +68,8 @@ export class SkinsService extends EventEmitter {
 
   skins: OwnedSkin[] = [];
 
+  private championLocked = false;
+
   setCreds(creds: LockCreds) {
     this.stop();
     this.creds = creds;
@@ -76,6 +90,9 @@ export class SkinsService extends EventEmitter {
     this.manualPoller = null;
     this.currentChampion = 0;
     this.lastAppliedChampion = 0;
+    this.championLocked = false;
+    this.selectedSkinId = 0;
+    this.selectedChromaId = 0;
     if (this.skins.length) {
       this.skins = [];
       this.emit("skins", []);
@@ -118,6 +135,7 @@ export class SkinsService extends EventEmitter {
       championAlias: getChampionAlias(this.currentChampion),
       skinId: this.selectedSkinId,
       chromaId: this.selectedChromaId,
+      locked: this.championLocked,
     };
   }
 
@@ -172,6 +190,13 @@ export class SkinsService extends EventEmitter {
 
     if (champ && champ !== this.currentChampion) {
       this.currentChampion = champ;
+
+      // nouvelle game / nouveau champion => on repart à zéro côté sélection
+      this.championLocked = false;
+      this.selectedSkinId = 0;
+      this.selectedChromaId = 0;
+      this.emit("selection", this.getSelection());
+
       await this.refreshSkinsAndMaybeApply();
     }
 
@@ -319,41 +344,89 @@ export class SkinsService extends EventEmitter {
     if (!this.creds || !this.currentChampion) return;
 
     const { protocol, port, password } = this.creds;
-    const url = `${protocol}://127.0.0.1:${port}/lol-champ-select/v1/session/my-selection`;
+    const base = `${protocol}://127.0.0.1:${port}`;
     const auth = Buffer.from(`riot:${password}`).toString("base64");
 
     try {
-      const data = (await fetch(url, {
-        headers: { Authorization: `Basic ${auth}` },
-      }).then((r) => r.json())) as SelectionRes;
-      const selId = data.selectedSkinId ?? 0;
-      if (
-        !selId ||
-        selId === this.selectedChromaId ||
-        selId === this.selectedSkinId
-      )
-        return;
+      // On récupère à la fois la sélection et la session champ select
+      const [selectionData, sessionData] = await Promise.all([
+        fetch(`${base}/lol-champ-select/v1/session/my-selection`, {
+          headers: { Authorization: `Basic ${auth}` },
+        }).then((r) => r.json() as Promise<SelectionRes>),
+        fetch(`${base}/lol-champ-select/v1/session`, {
+          headers: { Authorization: `Basic ${auth}` },
+        }).then((r) =>
+          r.ok
+            ? (r.json() as Promise<ChampSelectSession>)
+            : Promise.resolve(null)
+        ),
+      ]);
 
-      let skinId = selId;
-      let chromaId = 0;
+      // --- 1) Calcul du flag "locked" ---
+      let lockedChanged = false;
 
-      const directSkin = this.skins.find((s) => s.id === selId);
-      if (directSkin) {
-        skinId = directSkin.id;
-      } else {
-        for (const s of this.skins) {
-          const c = s.chromas.find((ch) => ch.id === selId);
-          if (c) {
-            skinId = s.id;
-            chromaId = c.id;
-            break;
+      if (sessionData && Array.isArray(sessionData.actions)) {
+        const cellId = sessionData.localPlayerCellId;
+        let locked = false;
+
+        if (typeof cellId === "number") {
+          for (const group of sessionData.actions) {
+            for (const action of group) {
+              if (
+                action.type === "pick" &&
+                action.actorCellId === cellId &&
+                typeof action.completed === "boolean"
+              ) {
+                locked = action.completed;
+                break;
+              }
+            }
+            if (locked) break;
           }
+        }
+
+        if (locked !== this.championLocked) {
+          this.championLocked = locked;
+          lockedChanged = true;
         }
       }
 
-      this.selectedSkinId = skinId;
-      this.selectedChromaId = chromaId;
-      this.emit("selection", this.getSelection());
+      // --- 2) Mise à jour skin/chroma si ça a changé ---
+      const selId = selectionData.selectedSkinId ?? 0;
+
+      let selectionChanged = false;
+
+      if (
+        selId &&
+        selId !== this.selectedChromaId &&
+        selId !== this.selectedSkinId
+      ) {
+        let skinId = selId;
+        let chromaId = 0;
+
+        const directSkin = this.skins.find((s) => s.id === selId);
+        if (directSkin) {
+          skinId = directSkin.id;
+        } else {
+          for (const s of this.skins) {
+            const c = s.chromas.find((ch) => ch.id === selId);
+            if (c) {
+              skinId = s.id;
+              chromaId = c.id;
+              break;
+            }
+          }
+        }
+
+        this.selectedSkinId = skinId;
+        this.selectedChromaId = chromaId;
+        selectionChanged = true;
+      }
+
+      // --- 3) On notifie le renderer si quelque chose a changé ---
+      if (selectionChanged || lockedChanged) {
+        this.emit("selection", this.getSelection());
+      }
     } catch {
       /* ignore */
     }
@@ -363,7 +436,13 @@ export class SkinsService extends EventEmitter {
   on(event: "skins", fn: (l: OwnedSkin[]) => void): this;
   on(
     event: "selection",
-    fn: (s: { skinId: number; chromaId: number }) => void
+    fn: (s: {
+      championId: number;
+      championAlias: string;
+      skinId: number;
+      chromaId: number;
+      locked: boolean;
+    }) => void
   ): this;
   on(event: "icon", fn: (id: number) => void): this;
   override on(event: string, listener: (...args: any[]) => void): this {
@@ -372,7 +451,16 @@ export class SkinsService extends EventEmitter {
   }
 
   emit(event: "skins", l: OwnedSkin[]): boolean;
-  emit(event: "selection", s: { skinId: number; chromaId: number }): boolean;
+  emit(
+    event: "selection",
+    s: {
+      championId: number;
+      championAlias: string;
+      skinId: number;
+      chromaId: number;
+      locked: boolean;
+    }
+  ): boolean;
   emit(event: "icon", id: number): boolean;
   override emit(event: string, ...args: any[]): boolean {
     // eslint-disable-line @typescript-eslint/no-explicit-any

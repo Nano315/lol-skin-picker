@@ -3,6 +3,7 @@ export type Selection = {
   championAlias: string;
   skinId: number;
   chromaId: number;
+  locked: boolean;
 };
 
 export type OwnedSkin = {
