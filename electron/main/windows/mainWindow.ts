@@ -17,10 +17,8 @@ function getPreloadPath() {
 
 function getIconPath() {
   if (app.isPackaged) {
-    // en prod, electron-builder met icon.ico dans resources/
     return path.join(process.resourcesPath, "icon.ico");
   }
-  // en dev, on va chercher dans public/
   return path.join(process.cwd(), "public", "icon.ico");
 }
 
@@ -42,10 +40,12 @@ export async function createMainWindow() {
   });
 
   if (process.env.VITE_DEV_SERVER_URL) {
+    // Dev : Vite dev server
     await win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    const dist = path.join(process.cwd(), "dist");
-    await win.loadFile(path.join(dist, "index.html"));
+    // Prod : fichier HTML packagé
+    const indexHtml = path.join(__dirname, "../dist/index.html");
+    await win.loadFile(indexHtml);
   }
 
   win.once("ready-to-show", () => win?.show());
