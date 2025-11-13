@@ -91,10 +91,11 @@ function wireDomainEvents() {
 }
 
 app.whenReady().then(async () => {
-  await createWindowWithPrefs();
   registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
   wireDomainEvents();
   updaterHooks();
+
+  await createWindowWithPrefs();
 
   lcu.start();
 });
