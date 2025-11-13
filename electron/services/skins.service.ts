@@ -165,15 +165,35 @@ export class SkinsService extends EventEmitter {
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
     if (!skin || skin.chromas.length === 0) return;
 
-    let chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
-    if (skin.chromas.length > 1) {
-      while (chroma.id === this.selectedChromaId) {
-        chroma = skin.chromas[Math.floor(Math.random() * skin.chromas.length)];
-      }
-    }
-    const applied = await this.applySkin(chroma.id);
-    if (!applied) return; // Avoid lying about the active chroma when the LCU rejects it.
-    this.selectedChromaId = chroma.id;
+    // 1) Construire toutes les options possibles :
+    //    - l'ID du skin de base (pas de chroma)
+    //    - tous les chromas possédés
+    const allChoices: number[] = [
+      skin.id, // base (sans chroma)
+      ...skin.chromas.map((c) => c.id), // chromas
+    ];
+
+    // 2) ID actuellement actif côté LCU :
+    //    - si selectedChromaId != 0 -> chroma actif
+    //    - sinon -> variante de base
+    const currentId = this.selectedChromaId || skin.id;
+
+    // 3) On exclut l'option actuellement active
+    const pool = allChoices.filter((id) => id !== currentId);
+    if (pool.length === 0) return; // devrait être impossible, mais par sécurité
+
+    // 4) On pioche un nouvel ID
+    const pickedId = pool[Math.floor(Math.random() * pool.length)];
+
+    // 5) On applique le skin/chroma
+    const applied = await this.applySkin(pickedId);
+    if (!applied) return; // ne pas mentir à l'UI si le LCU refuse
+
+    // 6) Mise à jour de l'état :
+    //    - si on est revenu au skin de base -> chromaId = 0
+    //    - sinon -> chromaId = ID du chroma
+    this.selectedChromaId = pickedId === skin.id ? 0 : pickedId;
+
     this.emit("selection", this.getSelection());
   }
 
@@ -391,23 +411,22 @@ export class SkinsService extends EventEmitter {
         }
       }
 
-      // --- 2) Mise à jour skin/chroma si ça a changé ---
+      // --- 2) Recalcul complet skin/chroma à partir de selectedSkinId ---
       const selId = selectionData.selectedSkinId ?? 0;
 
-      let selectionChanged = false;
+      let newSkinId = 0;
+      let newChromaId = 0;
 
-      if (
-        selId &&
-        selId !== this.selectedChromaId &&
-        selId !== this.selectedSkinId
-      ) {
+      if (selId) {
         let skinId = selId;
         let chromaId = 0;
 
         const directSkin = this.skins.find((s) => s.id === selId);
         if (directSkin) {
+          // selId = ID d'un skin → pas de chroma
           skinId = directSkin.id;
         } else {
+          // sinon on cherche dans les chromas
           for (const s of this.skins) {
             const c = s.chromas.find((ch) => ch.id === selId);
             if (c) {
@@ -418,9 +437,18 @@ export class SkinsService extends EventEmitter {
           }
         }
 
-        this.selectedSkinId = skinId;
-        this.selectedChromaId = chromaId;
-        selectionChanged = true;
+        newSkinId = skinId;
+        newChromaId = chromaId;
+      }
+
+      // eslint-disable-next-line prefer-const
+      let selectionChanged =
+        newSkinId !== this.selectedSkinId ||
+        newChromaId !== this.selectedChromaId;
+
+      if (selectionChanged) {
+        this.selectedSkinId = newSkinId;
+        this.selectedChromaId = newChromaId;
       }
 
       // --- 3) On notifie le renderer si quelque chose a changé ---
