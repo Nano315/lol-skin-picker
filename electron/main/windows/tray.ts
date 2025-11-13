@@ -38,7 +38,7 @@ function getAutoUpdater(): AutoUpdater | null {
 
 function getTrayIconPath() {
   if (app.isPackaged) {
-    const p = path.join(process.resourcesPath, "assets", "icon.ico");
+    const p = path.join(process.resourcesPath, "icon.ico");
     if (fs.existsSync(p)) return p;
     console.warn("[Tray] Not found:", p);
     return "";
