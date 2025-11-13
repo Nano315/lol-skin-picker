@@ -1,4 +1,4 @@
-import { BrowserWindow } from "electron";
+import { BrowserWindow, app } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,9 +11,20 @@ export function getMainWindow() {
   return win;
 }
 
-export async function createMainWindow() {
-  const preloadPath = path.join(__dirname, "index.mjs");
+function getPreloadPath() {
+  return path.join(__dirname, "index.mjs");
+}
 
+function getIconPath() {
+  if (app.isPackaged) {
+    // en prod, electron-builder met icon.ico dans resources/
+    return path.join(process.resourcesPath, "icon.ico");
+  }
+  // en dev, on va chercher dans public/
+  return path.join(process.cwd(), "public", "icon.ico");
+}
+
+export async function createMainWindow() {
   win = new BrowserWindow({
     width: 900,
     height: 645,
@@ -21,8 +32,9 @@ export async function createMainWindow() {
     maximizable: false,
     fullscreenable: false,
     show: false,
+    icon: getIconPath(),
     webPreferences: {
-      preload: preloadPath,
+      preload: getPreloadPath(),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
