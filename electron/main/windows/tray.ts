@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Menu, Tray, nativeImage, app, dialog } from "electron";
-import { autoUpdater } from "electron-updater";
 import path from "node:path";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -10,6 +10,31 @@ const require = createRequire(import.meta.url);
 
 let tray: Tray | null = null;
 let manualUpdateRequested = false;
+
+// Type util pour autoUpdater
+type AutoUpdater = typeof import("electron-updater")["autoUpdater"];
+let autoUpdater: AutoUpdater | null = null;
+
+/**
+ * Charge electron-updater uniquement en prod, et de façon safe.
+ */
+function getAutoUpdater(): AutoUpdater | null {
+  if (!app.isPackaged) {
+    // Pas d'auto-update en dev
+    return null;
+  }
+
+  if (autoUpdater) return autoUpdater;
+
+  try {
+    ({ autoUpdater } =
+      require("electron-updater") as typeof import("electron-updater"));
+    return autoUpdater;
+  } catch (err) {
+    console.error("[Updater] electron-updater not available:", err);
+    return null;
+  }
+}
 
 function getTrayIconPath() {
   if (app.isPackaged) {
@@ -49,15 +74,20 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
   };
 
   const manualCheckForUpdates = () => {
-    if (!app.isPackaged) {
+    const au = getAutoUpdater();
+
+    if (!au) {
       dialog.showMessageBox({
         type: "info",
-        message: "Updates unavailable in dev",
+        message: app.isPackaged
+          ? "Auto-update unavailable."
+          : "Updates unavailable in dev",
       });
       return;
     }
+
     manualUpdateRequested = true;
-    autoUpdater.checkForUpdates().catch((err) => {
+    au.checkForUpdates().catch((err: any) => {
       dialog.showErrorBox("Update error", err?.message ?? String(err));
       manualUpdateRequested = false;
     });
@@ -86,21 +116,17 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
 }
 
 export function updaterHooks() {
-  const { autoUpdater } =
-    require("electron-updater") as typeof import("electron-updater");
+  const au = getAutoUpdater();
+  if (!au) return;
 
-  autoUpdater.on("checking-for-update", () => {
+  au.on("checking-for-update", () => {
     if (manualUpdateRequested) {
-      const { dialog } = require("electron");
-      dialog.showMessageBox({ message: "Checking for updates…" });
+      dialog.showMessageBox({ type: "info", message: "Checking for updates…" });
     }
   });
 
-  autoUpdater.on("update-available", (info: any) => {
+  au.on("update-available", (info: any) => {
     if (manualUpdateRequested) {
-      // app never used
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { dialog } = require("electron");
       dialog.showMessageBox({
         type: "info",
         message: "Update available",
@@ -109,9 +135,8 @@ export function updaterHooks() {
     }
   });
 
-  autoUpdater.on("update-not-available", () => {
+  au.on("update-not-available", () => {
     if (manualUpdateRequested) {
-      const { dialog, app } = require("electron");
       dialog.showMessageBox({
         type: "info",
         message: "You're up to date",
@@ -121,12 +146,11 @@ export function updaterHooks() {
     }
   });
 
-  autoUpdater.on("download-progress", (p: any) => {
+  au.on("download-progress", (p: any) => {
     console.log(`[Updater] ${Math.round(p.percent)} %`);
   });
 
-  autoUpdater.on("update-downloaded", (info: any) => {
-    const { dialog } = require("electron");
+  au.on("update-downloaded", (info: any) => {
     if (manualUpdateRequested) {
       manualUpdateRequested = false;
       dialog
@@ -138,8 +162,8 @@ export function updaterHooks() {
           message: "Update ready",
           detail: `Version ${info.version} has been downloaded.`,
         })
-        .then(({ response }: any) => {
-          if (response === 0) autoUpdater.quitAndInstall();
+        .then(({ response }) => {
+          if (response === 0) au.quitAndInstall();
         });
     } else {
       console.log("[Updater] downloaded – will install on quit");
