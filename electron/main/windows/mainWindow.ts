@@ -5,6 +5,12 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Taille & ratio de base
+const DEFAULT_WIDTH = 900;
+const DEFAULT_HEIGHT = 645;
+// 900x645 simplifié = 60/43
+const WINDOW_ASPECT_RATIO = 60 / 43;
+
 let win: BrowserWindow | null = null;
 
 export function getMainWindow() {
@@ -24,11 +30,14 @@ function getIconPath() {
 
 export async function createMainWindow() {
   win = new BrowserWindow({
-    width: 900,
-    height: 645,
-    resizable: false,
-    maximizable: false,
+    width: DEFAULT_WIDTH,
+    height: DEFAULT_HEIGHT,
+    minWidth: DEFAULT_WIDTH,
+    minHeight: DEFAULT_HEIGHT,
+    resizable: true,
+    maximizable: true,
     fullscreenable: false,
+
     show: false,
     icon: getIconPath(),
     webPreferences: {
@@ -39,11 +48,12 @@ export async function createMainWindow() {
     },
   });
 
+  // Verrouille le ratio 60/43 (≈ 900x645)
+  win.setAspectRatio(WINDOW_ASPECT_RATIO);
+
   if (process.env.VITE_DEV_SERVER_URL) {
-    // Dev : Vite dev server
     await win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    // Prod : fichier HTML packagé
     const indexHtml = path.join(__dirname, "../dist/index.html");
     await win.loadFile(indexHtml);
   }
