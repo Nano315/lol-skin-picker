@@ -3,6 +3,7 @@ import fetch from "node-fetch";
 import { EventEmitter } from "node:events";
 import type { LockCreds } from "./lcuWatcher";
 import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
+import { webcrypto } from "node:crypto";
 
 /* ---- réponses API ---- */
 interface SummonerRes {
@@ -69,6 +70,16 @@ export class SkinsService extends EventEmitter {
   skins: OwnedSkin[] = [];
 
   private championLocked = false;
+
+  // Mémoire glissante & historique
+  private readonly SKIN_HISTORY_WINDOW = 3; // N derniers skins à éviter
+  private readonly CHROMA_HISTORY_WINDOW = 2; // N derniers chromas à éviter
+
+  // Par champion → derniers skins joués
+  private skinHistoryByChampion = new Map<number, number[]>();
+
+  // Par skin → dernières variantes (skin nu + chromas)
+  private chromaHistoryBySkin = new Map<number, number[]>();
 
   setCreds(creds: LockCreds) {
     this.stop();
@@ -143,20 +154,145 @@ export class SkinsService extends EventEmitter {
     return this.profileIconId;
   }
 
+  /** RNG robuste basé sur crypto.getRandomValues */
+  private randomInt(max: number): number {
+    if (max <= 1) return 0;
+    const buf = new Uint32Array(1);
+    webcrypto.getRandomValues(buf);
+    return buf[0] % max;
+  }
+
+  /** Ajoute une valeur dans l'historique (clé = champion ou skin) avec une taille max raisonnable */
+  private pushHistory(
+    map: Map<number, number[]>,
+    key: number,
+    value: number,
+    maxWindow: number
+  ) {
+    if (!key || !value) return;
+    let arr = map.get(key);
+    if (!arr) {
+      arr = [];
+      map.set(key, arr);
+    }
+    arr.push(value);
+    // on garde un historique raisonnable pour pondérer (4x la fenêtre glissante)
+    const HARD_LIMIT = maxWindow * 4;
+    if (arr.length > HARD_LIMIT) {
+      arr.splice(0, arr.length - HARD_LIMIT);
+    }
+  }
+
+  /**
+   * Sélection "intelligente" dans allChoices :
+   * - évite prevId
+   * - évite les N derniers (historyWindow)
+   * - si possible : privilégie les jamais vus
+   * - sinon : pondération LRU (plus c’est ancien, plus c’est probable)
+   */
+  private pickWithHistory(
+    allChoices: number[],
+    history: number[],
+    historyWindow: number,
+    prevId: number | null
+  ): number | null {
+    if (!allChoices.length) return null;
+
+    // 1) Construire l'ensemble des interdits (prev + N derniers)
+    const banned = new Set<number>();
+    if (prevId != null) banned.add(prevId);
+
+    const recent = history.slice(-historyWindow);
+    for (const id of recent) banned.add(id);
+
+    let pool = allChoices.filter((id) => !banned.has(id));
+
+    // 2) Si on a tout banni, on retombe sur "juste pas prevId"
+    if (!pool.length) {
+      pool = allChoices.filter((id) => id !== prevId);
+      if (!pool.length) {
+        // 1 seul choix possible -> on le prend
+        return allChoices[0];
+      }
+    }
+
+    // 3) Priorité aux jamais vus
+    const neverSeen = pool.filter((id) => !history.includes(id));
+    if (neverSeen.length) {
+      const idx = this.randomInt(neverSeen.length);
+      return neverSeen[idx];
+    }
+
+    // 4) Pondération LRU : plus c'est ancien dans l'historique, plus le poids est grand
+    const weights = pool.map((id) => {
+      const lastIndex = history.lastIndexOf(id);
+      if (lastIndex === -1) return 1;
+      const distance = history.length - lastIndex; // 1 = dernier, 2 = avant-dernier, etc.
+      return distance > 0 ? distance : 1;
+    });
+
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = this.randomInt(total);
+
+    for (let i = 0; i < pool.length; i++) {
+      r -= weights[i];
+      if (r < 0) return pool[i];
+    }
+
+    return pool[pool.length - 1];
+  }
+
   async rerollSkin() {
     if (!this.skins.length) return;
+
     const pool = this.includeDefaultSkin
       ? this.skins
       : this.skins.filter((s) => s.id % 1000 !== 0) || this.skins;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    const finalId = pick.chromas.length
-      ? pick.chromas[Math.floor(Math.random() * pick.chromas.length)].id
-      : pick.id;
 
-    const applied = await this.applySkin(finalId);
-    if (!applied) return; // Only update selection when the server accepts the change.
+    const skinIds = pool.map((s) => s.id);
+    const history = this.skinHistoryByChampion.get(this.currentChampion) ?? [];
+
+    const pickedSkinId = this.pickWithHistory(
+      skinIds,
+      history,
+      this.SKIN_HISTORY_WINDOW,
+      this.selectedSkinId || null
+    );
+    if (!pickedSkinId) return;
+
+    const pick = pool.find((s) => s.id === pickedSkinId);
+    if (!pick) return;
+
+    // Variantes possibles : base ou chromas
+    const variantChoices = pick.chromas.length
+      ? [pick.id, ...pick.chromas.map((c) => c.id)]
+      : [pick.id];
+
+    const variantId =
+      variantChoices.length === 1
+        ? variantChoices[0]
+        : variantChoices[this.randomInt(variantChoices.length)];
+
+    const applied = await this.applySkin(variantId);
+    if (!applied) return;
+
     this.selectedSkinId = pick.id;
-    this.selectedChromaId = finalId !== pick.id ? finalId : 0;
+    this.selectedChromaId = variantId !== pick.id ? variantId : 0;
+
+    // Historique skin + chroma
+    this.pushHistory(
+      this.skinHistoryByChampion,
+      this.currentChampion,
+      pick.id,
+      this.SKIN_HISTORY_WINDOW
+    );
+    this.pushHistory(
+      this.chromaHistoryBySkin,
+      pick.id,
+      variantId,
+      this.CHROMA_HISTORY_WINDOW
+    );
+
     this.emit("selection", this.getSelection());
     this.lastAppliedChampion = this.currentChampion;
   }
@@ -165,34 +301,33 @@ export class SkinsService extends EventEmitter {
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
     if (!skin || skin.chromas.length === 0) return;
 
-    // 1) Construire toutes les options possibles :
-    //    - l'ID du skin de base (pas de chroma)
-    //    - tous les chromas possédés
-    const allChoices: number[] = [
-      skin.id, // base (sans chroma)
-      ...skin.chromas.map((c) => c.id), // chromas
-    ];
+    // Toutes les variantes possibles : base + chromas
+    const allChoices: number[] = [skin.id, ...skin.chromas.map((c) => c.id)];
 
-    // 2) ID actuellement actif côté LCU :
-    //    - si selectedChromaId != 0 -> chroma actif
-    //    - sinon -> variante de base
+    // ID actuellement actif (base ou chroma)
     const currentId = this.selectedChromaId || skin.id;
 
-    // 3) On exclut l'option actuellement active
-    const pool = allChoices.filter((id) => id !== currentId);
-    if (pool.length === 0) return; // devrait être impossible, mais par sécurité
+    const history = this.chromaHistoryBySkin.get(skin.id) ?? [];
 
-    // 4) On pioche un nouvel ID
-    const pickedId = pool[Math.floor(Math.random() * pool.length)];
+    const pickedId = this.pickWithHistory(
+      allChoices,
+      history,
+      this.CHROMA_HISTORY_WINDOW,
+      currentId
+    );
+    if (!pickedId) return;
 
-    // 5) On applique le skin/chroma
     const applied = await this.applySkin(pickedId);
-    if (!applied) return; // ne pas mentir à l'UI si le LCU refuse
+    if (!applied) return;
 
-    // 6) Mise à jour de l'état :
-    //    - si on est revenu au skin de base -> chromaId = 0
-    //    - sinon -> chromaId = ID du chroma
     this.selectedChromaId = pickedId === skin.id ? 0 : pickedId;
+
+    this.pushHistory(
+      this.chromaHistoryBySkin,
+      skin.id,
+      pickedId,
+      this.CHROMA_HISTORY_WINDOW
+    );
 
     this.emit("selection", this.getSelection());
   }
@@ -323,15 +458,50 @@ export class SkinsService extends EventEmitter {
       const pool = this.includeDefaultSkin
         ? owned
         : owned.filter((s) => s.id % 1000 !== 0) || owned;
-      const picked = pool[Math.floor(Math.random() * pool.length)];
-      const finalId = picked.chromas.length
-        ? picked.chromas[Math.floor(Math.random() * picked.chromas.length)].id
-        : picked.id;
+
+      const skinIds = pool.map((s) => s.id);
+      const history =
+        this.skinHistoryByChampion.get(this.currentChampion) ?? [];
+
+      const pickedSkinId = this.pickWithHistory(
+        skinIds,
+        history,
+        this.SKIN_HISTORY_WINDOW,
+        this.selectedSkinId || null
+      );
+      if (!pickedSkinId) return;
+
+      const picked = pool.find((s) => s.id === pickedSkinId);
+      if (!picked) return;
+
+      const variantChoices = picked.chromas.length
+        ? [picked.id, ...picked.chromas.map((c) => c.id)]
+        : [picked.id];
+
+      const finalId =
+        variantChoices.length === 1
+          ? variantChoices[0]
+          : variantChoices[this.randomInt(variantChoices.length)];
 
       const applied = await this.applySkin(finalId);
-      if (!applied) return; // Skip optimistic updates when the LCU rejects the skin.
+      if (!applied) return;
+
       this.selectedSkinId = picked.id;
       this.selectedChromaId = finalId !== picked.id ? finalId : 0;
+
+      this.pushHistory(
+        this.skinHistoryByChampion,
+        this.currentChampion,
+        picked.id,
+        this.SKIN_HISTORY_WINDOW
+      );
+      this.pushHistory(
+        this.chromaHistoryBySkin,
+        picked.id,
+        finalId,
+        this.CHROMA_HISTORY_WINDOW
+      );
+
       this.emit("selection", this.getSelection());
       this.lastAppliedChampion = this.currentChampion;
     }
