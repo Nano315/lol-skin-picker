@@ -1,7 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import type { OwnedSkin, Selection } from "../types";
+
+const ROOMS_URL = "http://localhost:4000";
+
+/* ---------- Types ---------- */
 
 type RoomPlayer = {
   socketId: string;
@@ -13,136 +15,149 @@ type RoomPlayer = {
   };
 };
 
-type RoomState = {
+type RoomSummary = {
   id: string;
   ownerId: string;
   players: RoomPlayer[];
 };
 
+/* ---------- Socket singleton + cache global ---------- */
+
 let socket: Socket | null = null;
 
-export function useRoom() {
-  const [room, setRoom] = useState<RoomState | null>(null);
-  const [connected, setConnected] = useState(false);
+// petit cache global pour garder l’état entre montages de la page
+let cachedRoom: RoomSummary | null = null;
+let cachedIsInRoom = false;
+let cachedIsOwner = false;
 
-  // à adapter : pseudo de l’utilisateur (pour le MVP on peut hardcode/chopper depuis un input)
-  const playerName = "Player";
+function getSocket() {
+  if (!socket) {
+    socket = io(ROOMS_URL, {
+      autoConnect: true,
+    });
+  }
+  return socket;
+}
+
+/* ---------- Hook ---------- */
+
+export function useRoom() {
+  // on initialise le state React depuis le cache global
+  const [room, setRoom] = useState<RoomSummary | null>(() => cachedRoom);
+  const [isInRoom, setIsInRoom] = useState<boolean>(() => cachedIsInRoom);
+  const [isOwner, setIsOwner] = useState<boolean>(() => cachedIsOwner);
 
   useEffect(() => {
-    if (!socket) {
-      socket = io("http://localhost:4000");
-    }
+    const s = getSocket();
 
-    const s = socket;
+    const handleRoomUpdated = (next: RoomSummary) => {
+      // on met à jour le cache global
+      cachedRoom = next;
+      cachedIsInRoom = true;
+      cachedIsOwner = next.ownerId === s.id;
 
-    const onConnect = () => setConnected(true);
-    const onDisconnect = () => {
-      setConnected(false);
-      setRoom(null);
+      // et le state React
+      setRoom(next);
+      setIsInRoom(true);
+      setIsOwner(next.ownerId === s.id);
     };
 
-    const onRoomUpdated = (data: RoomState) => {
-      setRoom(data);
-    };
+    s.on("room-updated", handleRoomUpdated);
 
-    const onApplyAssignment = async (payload: {
-      roomId: string;
-      selectedSkinId: number | null;
-      selectedChromaId: number | null;
-    }) => {
-      if (!payload.selectedSkinId) return;
-
-      // 👉 ici, il faut exposer depuis l'API une méthode
-      // pour appliquer un skin/chroma précis côté Electron.
-      // Pour l’instant on pourra juste LOGER,
-      // puis on branchera sur un IPC "apply-external-skin".
-      console.log("[ROOM] apply assignment", payload);
-
-      // TODO : appeler une méthode exposée via window.lcu / IPC
-      // ex: api.applyExternalSkin(payload.selectedChromaId ?? payload.selectedSkinId);
-    };
-
-    s.on("connect", onConnect);
-    s.on("disconnect", onDisconnect);
-    s.on("room-updated", onRoomUpdated);
-    s.on("apply-assignment", onApplyAssignment);
+    // au montage du hook : on demande au serveur si on est déjà dans une room
+    s.emit(
+      "get-current-room",
+      (res: { ok: boolean; room: RoomSummary | null }) => {
+        if (res.ok && res.room) {
+          handleRoomUpdated(res.room);
+        }
+      }
+    );
 
     return () => {
-      s.off("connect", onConnect);
-      s.off("disconnect", onDisconnect);
-      s.off("room-updated", onRoomUpdated);
-      s.off("apply-assignment", onApplyAssignment);
+      // très important : on retire juste le listener
+      s.off("room-updated", handleRoomUpdated);
+      // on NE déconnecte PAS le socket ici
     };
   }, []);
 
-  const isInRoom = !!room;
-  const isOwner = !!room && socket && room.ownerId === socket.id;
+  const createRoom = useCallback(() => {
+    const s = getSocket();
+    s.emit(
+      "create-room",
+      { name: "Player" },
+      (res: { ok: boolean; room?: RoomSummary; error?: string }) => {
+        if (!res.ok || !res.room) {
+          console.error("create-room error", res.error);
+          return;
+        }
 
-  const createRoom = useCallback(
-    () =>
-      new Promise<RoomState | null>((resolve) => {
-        if (!socket) return resolve(null);
-        socket.emit("create-room", { name: playerName }, (res: any) => {
-          if (res?.ok) {
-            setRoom(res.room);
-            resolve(res.room);
-          } else {
-            resolve(null);
-          }
-        });
-      }),
-    [playerName]
-  );
+        cachedRoom = res.room;
+        cachedIsInRoom = true;
+        cachedIsOwner = true;
 
-  const joinRoom = useCallback(
-    (code: string) =>
-      new Promise<RoomState | null>((resolve) => {
-        if (!socket) return resolve(null);
-        socket.emit("join-room", { code, name: playerName }, (res: any) => {
-          if (res?.ok) {
-            setRoom(res.room);
-            resolve(res.room);
-          } else {
-            resolve(null);
-          }
-        });
-      }),
-    [playerName]
-  );
+        setRoom(res.room);
+        setIsInRoom(true);
+        setIsOwner(true);
+      }
+    );
+  }, []);
+
+  const joinRoom = useCallback((code: string) => {
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed || trimmed.length !== 4) return;
+
+    const s = getSocket();
+    s.emit(
+      "join-room",
+      { code: trimmed, name: "Player" },
+      (res: { ok: boolean; room?: RoomSummary; error?: string }) => {
+        if (!res.ok || !res.room) {
+          console.error("join-room error", res.error);
+          return;
+        }
+
+        cachedRoom = res.room;
+        cachedIsInRoom = true;
+        cachedIsOwner = res.room.ownerId === s.id;
+
+        setRoom(res.room);
+        setIsInRoom(true);
+        setIsOwner(res.room.ownerId === s.id);
+      }
+    );
+  }, []);
 
   const leaveRoom = useCallback(() => {
-    if (!socket || !room) return;
-    socket.emit("leave-room", { roomId: room.id });
+    if (!room) return;
+    const s = getSocket();
+
+    s.emit("leave-room", { roomId: room.id });
+
+    cachedRoom = null;
+    cachedIsInRoom = false;
+    cachedIsOwner = false;
+
     setRoom(null);
+    setIsInRoom(false);
+    setIsOwner(false);
   }, [room]);
 
   const ownerReroll = useCallback(() => {
-    if (!socket || !room || !isOwner) return;
-    socket.emit("owner-reroll", { roomId: room.id });
-  }, [room, isOwner]);
+    if (!room) return;
+    const s = getSocket();
+    s.emit("owner-reroll", { roomId: room.id });
+  }, [room]);
 
-  // TODO : fonction pour envoyer l'état local au serveur
-  const sendState = useCallback(
-    async (championId: number, skins: OwnedSkin[], selection: Selection) => {
-      if (!socket || !room) return;
-      socket.emit("update-state", {
-        roomId: room.id,
-        championId,
-        ownedSkins: skins.map((s) => ({
-          skinId: s.id,
-          chromaIds: s.chromas.map((c) => c.id),
-        })),
-        currentSelection: {
-          skinId: selection.skinId || null,
-          chromaId: selection.chromaId || null,
-        },
-      });
-    },
-    [room]
-  );
+  const seedRoomDev = useCallback(() => {
+    if (!room) return;
+
+    console.log("[front] seedRoomDev for room", room.id);
+    const s = getSocket();
+    s.emit("seed-room", { roomId: room.id });
+  }, [room]);
 
   return {
-    connected,
     room,
     isInRoom,
     isOwner,
@@ -150,6 +165,6 @@ export function useRoom() {
     joinRoom,
     leaveRoom,
     ownerReroll,
-    sendState,
+    seedRoomDev,
   };
 }
