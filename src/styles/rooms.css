@@ -1,0 +1,59 @@
+.rooms-members-row {
+  display: flex;
+  gap: 16px;
+  padding: 24px;
+  justify-content: center;
+}
+
+.room-member-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 160px;
+  gap: 8px;
+}
+
+.room-member-skin {
+  width: 100%;
+  aspect-ratio: 9 / 16; /* vertical */
+  border-radius: 20px;
+  background: #111;
+  overflow: hidden;
+}
+
+.room-member-name {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.rooms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 83%;
+  max-width: 1000px;
+  margin: 0 auto 16px;
+}
+
+.rooms-leave-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: #3f445a;
+  color: #cdcecf;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.rooms-leave-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+.rooms-leave-btn:active {
+  transform: translateY(0);
+  opacity: 1;
+}
