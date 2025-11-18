@@ -21,6 +21,8 @@ export function registerSkinsIpc(
   ipcMain.handle("get-selection", () => svc.getSelection());
   ipcMain.handle("get-summoner-icon", () => svc.getProfileIcon());
 
+  ipcMain.handle("get-summoner-name", () => svc.getSummonerName());
+
   svc.on("skins", (list) => getWin()?.webContents.send("owned-skins", list));
   svc.on("selection", (sel) => getWin()?.webContents.send("selection", sel));
   svc.on("icon", (id) => getWin()?.webContents.send("summoner-icon", id));

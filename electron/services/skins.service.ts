@@ -11,6 +11,7 @@ interface SummonerRes {
   accountId?: number;
   id?: number;
   profileIconId?: number;
+  gameName?: string;
 }
 interface SkinRes {
   id: number;
@@ -66,6 +67,8 @@ export class SkinsService extends EventEmitter {
 
   private profileIconId = 0;
   private autoRollEnabled = true;
+
+  private summonerName = "";
 
   skins: OwnedSkin[] = [];
 
@@ -152,6 +155,10 @@ export class SkinsService extends EventEmitter {
 
   getProfileIcon() {
     return this.profileIconId;
+  }
+
+  getSummonerName() {
+    return this.summonerName;
   }
 
   /** RNG robuste basé sur crypto.getRandomValues */
@@ -367,11 +374,16 @@ export class SkinsService extends EventEmitter {
       const r = (await fetch(url, {
         headers: { Authorization: `Basic ${auth}` },
       }).then((r) => r.json())) as SummonerRes;
+
       this.summonerId = r.summonerId ?? r.accountId ?? r.id ?? null;
       this.profileIconId = r.profileIconId ?? 0;
+
+      this.summonerName = (r.gameName ?? "").trim();
+
       this.emit("icon", this.profileIconId);
     } catch {
       this.summonerId = null;
+      this.summonerName = "";
     }
   }
 

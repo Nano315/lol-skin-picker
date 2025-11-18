@@ -57,3 +57,33 @@
   transform: translateY(0);
   opacity: 1;
 }
+
+.rooms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+}
+
+.rooms-leave-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #2b2f3c;
+  color: #f5f5f5;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.rooms-leave-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+.rooms-leave-btn:active {
+  transform: translateY(0);
+  opacity: 1;
+}

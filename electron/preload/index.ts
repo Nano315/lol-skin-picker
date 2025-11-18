@@ -19,6 +19,9 @@ const api = {
     return () => ipcRenderer.removeListener("summoner-icon", listener);
   },
 
+  /* Summoner Name */
+  getSummonerName: () => ipcRenderer.invoke("get-summoner-name"),
+
   /* Gameflow */
   getPhase: () => ipcRenderer.invoke("get-gameflow-phase"),
   onPhase: (cb: (p: string) => void) => {

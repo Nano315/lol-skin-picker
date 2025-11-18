@@ -13,6 +13,8 @@ declare global {
       getSummonerIcon: () => Promise<number>;
       onSummonerIcon: (cb: (id: number) => void) => Unsub;
 
+      getSummonerName: () => Promise<string>;
+
       getPhase: () => Promise<string>;
       onPhase: (cb: (p: string) => void) => Unsub;
 

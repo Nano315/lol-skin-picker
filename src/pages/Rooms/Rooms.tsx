@@ -1,3 +1,4 @@
+// src/pages/Rooms/Rooms.tsx
 import { useSelection } from "@/features/hooks/useSelection";
 import { useRooms } from "@/features/hooks/useRooms";
 import { useState } from "react";
@@ -5,14 +6,18 @@ import Header from "@/components/layout/Header";
 import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
 import { RoomMemberCard } from "@/components/RoomMemberCard";
+import { useSummonerName } from "@/features/hooks/useSummonerName";
 
 export function RoomsPage() {
   const { status, iconId } = useConnection();
   const phase = useGameflow();
   const [selection] = useSelection();
-  const { room, joined, error, create, join } = useRooms(selection);
-  const [name, setName] = useState("");
+  const { room, joined, error, create, join, leave } = useRooms(selection);
   const [code, setCode] = useState("");
+
+  const summonerName = useSummonerName();
+  const isConnected = status === "connected"; // adapte si ton status a d'autres valeurs
+  const canUseRooms = isConnected && !!summonerName;
 
   if (!joined) {
     return (
@@ -22,16 +27,30 @@ export function RoomsPage() {
           <div className="rooms-join-create">
             <h2>Rooms</h2>
 
+            {!isConnected && (
+              <p className="rooms-warning">
+                Connecte-toi au client League of Legends pour utiliser les
+                rooms.
+              </p>
+            )}
+
+            {isConnected && !summonerName && (
+              <p className="rooms-warning">
+                Récupération de ton pseudo depuis le client...
+              </p>
+            )}
+
             {error && <p style={{ color: "tomato" }}>{error}</p>}
 
             <div className="card">
               <h3>Créer une room</h3>
-              <input
-                placeholder="Votre pseudo"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <button onClick={() => create(name)}>Créer</button>
+              <button
+                onClick={() => summonerName && create(summonerName)}
+                disabled={!canUseRooms}
+              >
+                Créer avec mon pseudo
+                {summonerName ? ` (${summonerName})` : ""}
+              </button>
             </div>
 
             <div className="card">
@@ -41,12 +60,13 @@ export function RoomsPage() {
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
               />
-              <input
-                placeholder="Votre pseudo"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <button onClick={() => join(code, name)}>Rejoindre</button>
+              <button
+                onClick={() => summonerName && join(code.trim(), summonerName)}
+                disabled={!canUseRooms || !code.trim()}
+              >
+                Rejoindre avec mon pseudo
+                {summonerName ? ` (${summonerName})` : ""}
+              </button>
             </div>
           </div>
         </main>
@@ -60,6 +80,9 @@ export function RoomsPage() {
       <main className="main">
         <div className="rooms-header">
           <h2>Room {room?.code}</h2>
+          <button className="rooms-leave-btn" onClick={leave}>
+            Quitter la room
+          </button>
         </div>
 
         <div className="rooms-members-row">
