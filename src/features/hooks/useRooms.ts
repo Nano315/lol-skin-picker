@@ -5,10 +5,8 @@ import { roomsClient, type RoomState } from "../roomsClient";
 import type { Selection } from "../types";
 
 export function useRooms(selection: Selection) {
-  const [room, setRoom] = useState<RoomState | null>(() =>
-    roomsClient.getCurrentRoom()
-  );
-  const [joined, setJoined] = useState<boolean>(() => roomsClient.isJoined());
+  const [room, setRoom] = useState<RoomState | null>(null);
+  const [joined, setJoined] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // s’abonner aux updates globales du client
@@ -23,15 +21,17 @@ export function useRooms(selection: Selection) {
       roomsClient.connect();
     }
 
-    return unsubscribe; // on se désabonne seulement de l’event, pas du socket
+    return unsubscribe; // on se désabonne seulement de l’event
   }, []);
 
   async function create(name: string) {
     try {
-      setError(null);
-      await roomsClient.createRoom(name);
+      const { room } = await roomsClient.createRoom(name);
+      setRoom(room);
+      setJoined(true);
       roomsClient.connect();
       roomsClient.sendSelection(selection);
+      setError(null);
     } catch (e: any) {
       setError(e?.message ?? String(e));
     }
@@ -39,10 +39,12 @@ export function useRooms(selection: Selection) {
 
   async function join(code: string, name: string) {
     try {
-      setError(null);
-      await roomsClient.joinRoom(code, name);
+      const { room } = await roomsClient.joinRoom(code, name);
+      setRoom(room);
+      setJoined(true);
       roomsClient.connect();
       roomsClient.sendSelection(selection);
+      setError(null);
     } catch (e: any) {
       setError(e?.message ?? String(e));
     }
@@ -54,12 +56,20 @@ export function useRooms(selection: Selection) {
     setRoom(null);
   }
 
-  // à chaque changement de sélection, on notifie la room
+  // à chaque changement de sélection OU changement de joined,
+  // on notifie la room si on est dedans
   useEffect(() => {
-    if (roomsClient.isJoined()) {
+    if (joined) {
       roomsClient.sendSelection(selection);
     }
-  }, [selection.championId, selection.skinId, selection.chromaId, selection]);
+  }, [
+    joined,
+    selection.championId,
+    selection.skinId,
+    selection.chromaId,
+    selection.championAlias,
+    selection,
+  ]);
 
   return { room, joined, error, create, join, leave };
 }

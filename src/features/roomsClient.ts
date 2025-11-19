@@ -2,7 +2,7 @@
 import { io, Socket } from "socket.io-client";
 import type { Selection } from "./types";
 
-const ROOMS_SERVER_URL = "http://localhost:4000"; // à adapter en prod
+const ROOMS_SERVER_URL = "http://localhost:4000";
 
 export type RoomMember = {
   id: string;
@@ -36,10 +36,11 @@ class RoomsClient {
 
   subscribe(listener: (room: RoomState | null) => void): () => void {
     this.listeners.add(listener);
+    // On envoie l’état actuel dès l’inscription
     listener(this.room);
 
     return () => {
-      this.listeners.delete(listener); // on ignore le booléen
+      this.listeners.delete(listener);
     };
   }
 
@@ -58,12 +59,18 @@ class RoomsClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
-    if (!res.ok) throw new Error("Failed to create room");
-    const data = await res.json();
+
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = data?.error ?? "Failed to create room";
+      throw new Error(msg);
+    }
 
     this.roomId = data.roomId;
     this.memberId = data.memberId;
     const room = data.room as RoomState;
+
+    // -> on met à jour le cache interne + listeners
     this.emitRoom(room);
 
     return { room };
@@ -75,12 +82,18 @@ class RoomsClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code, name }),
     });
-    if (!res.ok) throw new Error("Failed to join room");
-    const data = await res.json();
+
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = data?.error ?? "Failed to join room";
+      throw new Error(msg);
+    }
 
     this.roomId = data.roomId;
     this.memberId = data.memberId;
     const room = data.room as RoomState;
+
+    // -> idem ici
     this.emitRoom(room);
 
     return { room };
@@ -92,7 +105,7 @@ class RoomsClient {
       throw new Error("No roomId/memberId set");
     }
     if (this.socket) {
-      // déjà connecté : on laisse comme ça
+      // déjà connecté
       return;
     }
 
@@ -113,6 +126,7 @@ class RoomsClient {
   // utilisé uniquement pour "quitter la room"
   leaveRoom() {
     if (this.socket && this.roomId && this.memberId) {
+      // le serveur ne gère pas encore 'leave-room', mais ce n'est pas grave
       this.socket.emit("leave-room", {
         roomId: this.roomId,
         memberId: this.memberId,
