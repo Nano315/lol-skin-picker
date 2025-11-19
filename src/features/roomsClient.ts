@@ -8,6 +8,7 @@ export type RoomMember = {
   id: string;
   name: string;
   championId: number;
+  championAlias: string;
   skinId: number;
   chromaId: number;
 };
@@ -130,6 +131,7 @@ class RoomsClient {
       roomId: this.roomId,
       memberId: this.memberId,
       championId: selection.championId,
+      championAlias: selection.championAlias,
       skinId: selection.skinId,
       chromaId: selection.chromaId,
     });

@@ -16,7 +16,7 @@ export function RoomsPage() {
   const [code, setCode] = useState("");
 
   const summonerName = useSummonerName();
-  const isConnected = status === "connected"; // adapte si ton status a d'autres valeurs
+  const isConnected = status === "connected";
   const canUseRooms = isConnected && !!summonerName;
 
   if (!joined) {
@@ -74,6 +74,10 @@ export function RoomsPage() {
     );
   }
 
+  // Toujours 5 slots
+  const members = room?.members ?? [];
+  const slots = Array.from({ length: 5 }, (_, index) => members[index] ?? null);
+
   return (
     <div className="app">
       <Header status={status} phase={phase} iconId={iconId} />
@@ -86,8 +90,12 @@ export function RoomsPage() {
         </div>
 
         <div className="rooms-members-row">
-          {room?.members.map((m) => (
-            <RoomMemberCard key={m.id} member={m} />
+          {slots.map((member, index) => (
+            <RoomMemberCard
+              key={member?.id ?? `empty-${index}`}
+              member={member ?? undefined}
+              slotIndex={index}
+            />
           ))}
         </div>
       </main>
