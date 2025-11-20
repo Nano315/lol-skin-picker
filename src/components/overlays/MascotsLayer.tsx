@@ -12,7 +12,7 @@ export default function MascotsLayer() {
         className="mascot m1"
         style={
           {
-            top: "72%",
+            top: "73%",
             left: "54%",
             ["--aura" as any]: "#a394ddff",
           } as React.CSSProperties
@@ -36,7 +36,7 @@ export default function MascotsLayer() {
         className="mascot m3"
         style={
           {
-            top: "77%",
+            top: "78%",
             right: "88%",
             ["--aura" as any]: "#6dc26c",
           } as React.CSSProperties
@@ -48,7 +48,7 @@ export default function MascotsLayer() {
         className="mascot m4"
         style={
           {
-            bottom: "88%",
+            bottom: "80%",
             right: "88%",
             ["--aura" as any]: "#ecececff",
           } as React.CSSProperties
@@ -60,7 +60,7 @@ export default function MascotsLayer() {
         className="mascot m5"
         style={
           {
-            top: "0%",
+            top: "10%",
             left: "85%",
             ["--aura" as any]: "#ecececff",
           } as React.CSSProperties
