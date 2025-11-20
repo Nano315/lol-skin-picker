@@ -5,10 +5,11 @@ import fallbackSkin from "/fallback-skin.png?url";
 
 type Props = {
   member?: RoomMember;
+  /** 0..4 => slot1..slot5 */
   slotIndex: number;
 };
 
-export function RoomMemberCard({ member }: Props) {
+export function RoomMemberCard({ member, slotIndex }: Props) {
   const isOccupied = !!member;
 
   // Valeurs "safe" pour les hooks & calculs
@@ -26,18 +27,24 @@ export function RoomMemberCard({ member }: Props) {
     locked: false,
   });
 
-  // --- Portrait type loading screen ---
-  // DDragon : /cdn/img/champion/loading/Ahri_0.jpg
+  // Portrait loading screen
   let portraitUrl = "";
   if (championId && skinId && championAlias) {
     const skinIndex = skinId - championId * 1000;
     portraitUrl = `http://ddragon.leagueoflegends.com/cdn/img/champion/loading/${championAlias}_${skinIndex}.jpg`;
   }
-
   const displayedSkin = portraitUrl || fallbackSkin;
 
+  const classes = [
+    "room-member-card",
+    `room-member-card--slot-${slotIndex + 1}`,
+    !isOccupied ? "room-member-card--empty" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className="room-member-card">
+    <div className={classes}>
       <div
         className="room-member-skin"
         style={
