@@ -2,7 +2,13 @@
 import { io, Socket } from "socket.io-client";
 import type { Selection } from "./types";
 
-const ROOMS_SERVER_URL = "http://localhost:4000";
+const ROOMS_SERVER_URL = import.meta.env.VITE_ROOMS_SERVER_URL;
+
+if (!ROOMS_SERVER_URL) {
+  console.warn(
+    "[roomsClient] No ROOMS_SERVER_URL configured, requests will fail."
+  );
+}
 
 export type RoomMember = {
   id: string;
