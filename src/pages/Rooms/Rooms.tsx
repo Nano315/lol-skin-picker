@@ -64,6 +64,32 @@ export function RoomsPage() {
     }));
   }, [room?.members, summonerName]);
 
+  const handleCopyCode = () => {
+    if (!room?.code) return;
+
+    const text = room.code;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {
+        // fallback silencieux, sans changer le visuel
+      });
+    } else {
+      // Fallback DOM pour vieux navigateurs
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand("copy");
+      } catch {
+        // ignore
+      }
+      document.body.removeChild(textarea);
+    }
+  };
+
   /* ===================== VUE "PAS ENCORE DANS UNE ROOM" ===================== */
 
   if (!joined) {
@@ -72,40 +98,46 @@ export function RoomsPage() {
         <Header status={status} phase={phase} iconId={iconId} />
         <main className="main">
           <div className="rooms-join-create">
-
             {!isConnected && (
               <p className="rooms-warning">
-                Connect to the League of Legends client to use rooms.
+                Connect your League of Legends client to use rooms.
               </p>
             )}
 
             {error && <p style={{ color: "tomato" }}>{error}</p>}
 
-            <div className="card">
-              <h3>Create a room</h3>
-              <button
-                onClick={() => summonerName && create(summonerName)}
-                disabled={!canUseRooms}
-              >
-                Create
-                {summonerName ? ` (${summonerName})` : ""}
-              </button>
-            </div>
+            <div className="rooms-panel card">
+              <div className="rooms-side rooms-side--left">
+                <p className="rooms-side-label">Start a new room</p>
+                <button
+                  className="rooms-primary-btn"
+                  onClick={() => summonerName && create(summonerName)}
+                  disabled={!canUseRooms}
+                >
+                  Create room
+                </button>
+              </div>
 
-            <div className="card">
-              <h3>Join a room</h3>
-              <input
-                placeholder="Room code (e.g., ABC123)"
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-              />
-              <button
-                onClick={() => summonerName && join(code.trim(), summonerName)}
-                disabled={!canUseRooms || !code.trim()}
-              >
-                Join
-                {summonerName ? ` (${summonerName})` : ""}
-              </button>
+              <div className="rooms-divider" aria-hidden="true" />
+
+              <div className="rooms-side rooms-side--right">
+                <p className="rooms-side-label">Join an existing room</p>
+                <input
+                  className="rooms-input"
+                  placeholder="Room code (e.g. ABC123)"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                />
+                <button
+                  className="rooms-primary-btn"
+                  onClick={() =>
+                    summonerName && join(code.trim(), summonerName)
+                  }
+                  disabled={!canUseRooms || !code.trim()}
+                >
+                  Join room
+                </button>
+              </div>
             </div>
           </div>
         </main>
@@ -120,7 +152,9 @@ export function RoomsPage() {
       <Header status={status} phase={phase} iconId={iconId} />
       <main className="main">
         <div className="rooms-header">
-          <h2>Room {room?.code}</h2>
+          <h2>
+            Room <span style={{cursor: "pointer"}} onClick={handleCopyCode}>{room?.code}</span>
+          </h2>
           <button className="rooms-leave-btn" onClick={leave}>
             Leave room
           </button>
