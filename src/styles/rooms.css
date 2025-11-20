@@ -92,7 +92,7 @@
 
 /* Surélévation par slot (logique 1..5) */
 .room-member-card--slot-1 {
-  margin-bottom: 0;
+  margin-bottom: 20px;
 }
 
 .room-member-card--slot-2,
@@ -102,7 +102,7 @@
 
 .room-member-card--slot-4,
 .room-member-card--slot-5 {
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 /* ---------- Skin dans la carte ---------- */
@@ -121,6 +121,11 @@
   height: 100%;
   object-fit: cover;
   display: block;
+
+  /* léger zoom pour couper l’ombre LoL */
+  transform: scale(1.08);
+  transform-origin: center;
+  transition: transform 0.2s ease-out;
 }
 
 /* Nom du joueur */
