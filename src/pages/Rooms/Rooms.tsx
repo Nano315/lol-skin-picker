@@ -72,32 +72,30 @@ export function RoomsPage() {
         <Header status={status} phase={phase} iconId={iconId} />
         <main className="main">
           <div className="rooms-join-create">
-            <h2>Rooms</h2>
 
             {!isConnected && (
               <p className="rooms-warning">
-                Connecte-toi au client League of Legends pour utiliser les
-                rooms.
+                Connect to the League of Legends client to use rooms.
               </p>
             )}
 
             {error && <p style={{ color: "tomato" }}>{error}</p>}
 
             <div className="card">
-              <h3>Créer une room</h3>
+              <h3>Create a room</h3>
               <button
                 onClick={() => summonerName && create(summonerName)}
                 disabled={!canUseRooms}
               >
-                Créer avec mon pseudo
+                Create
                 {summonerName ? ` (${summonerName})` : ""}
               </button>
             </div>
 
             <div className="card">
-              <h3>Rejoindre une room</h3>
+              <h3>Join a room</h3>
               <input
-                placeholder="Code room (ex: ABC123)"
+                placeholder="Room code (e.g., ABC123)"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
               />
@@ -105,7 +103,7 @@ export function RoomsPage() {
                 onClick={() => summonerName && join(code.trim(), summonerName)}
                 disabled={!canUseRooms || !code.trim()}
               >
-                Rejoindre avec mon pseudo
+                Join
                 {summonerName ? ` (${summonerName})` : ""}
               </button>
             </div>
@@ -124,7 +122,7 @@ export function RoomsPage() {
         <div className="rooms-header">
           <h2>Room {room?.code}</h2>
           <button className="rooms-leave-btn" onClick={leave}>
-            Quitter la room
+            Leave room
           </button>
         </div>
 
