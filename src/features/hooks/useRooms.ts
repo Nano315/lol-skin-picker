@@ -1,28 +1,77 @@
 // src/features/hooks/useRooms.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
-import { roomsClient, type RoomState } from "../roomsClient";
+import { useEffect, useState, useCallback } from "react";
+import {
+  roomsClient,
+  type RoomState,
+  type SynergyResult,
+} from "../roomsClient";
 import type { Selection } from "../types";
+import { useOwnedSkins } from "./useOwnedSkins";
+
+// Helper pour l'application via API Electron
+const { api } = window as any;
 
 export function useRooms(selection: Selection) {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // s’abonner aux updates globales du client
+  // State pour stocker le résultat de l'algo (Owner only)
+  const [synergyResult, setSynergyResult] = useState<SynergyResult | null>(
+    null
+  );
+
+  // Récupération des skins locaux
+  const skins = useOwnedSkins();
+
+  // --- 1. Abonnement Room State & Synergy ---
   useEffect(() => {
-    const unsubscribe = roomsClient.subscribe((nextRoom) => {
+    const unsubRoom = roomsClient.subscribe((nextRoom) => {
       setRoom(nextRoom);
       setJoined(roomsClient.isJoined());
     });
 
-    // si on était déjà dans une room (reload / retour sur la page)
+    const unsubSynergy = roomsClient.subscribeSynergy((res) => {
+      setSynergyResult(res);
+    });
+
+    const unsubForce = roomsClient.subscribeForceApply((skinId, chromaId) => {
+      // C'est ici qu'on appelle l'API Electron pour forcer le changement
+      // On suppose que api.gameflow.selectSkin existe (ou méthode équivalente)
+      console.log(`[Rooms] Force apply: Skin ${skinId}, Chroma ${chromaId}`);
+      if (api?.gameflow?.selectSkin) {
+        // Note: L'API attend souvent juste le skinId final (qui peut être un chroma ID)
+        // Si chromaId != 0, c'est lui qu'on envoie généralement.
+        const targetId = chromaId !== 0 ? chromaId : skinId;
+        api.gameflow.selectSkin(targetId);
+      }
+    });
+
     if (roomsClient.isJoined()) {
       roomsClient.connect();
     }
 
-    return unsubscribe; // on se désabonne seulement de l’event
+    return () => {
+      unsubRoom();
+      unsubSynergy();
+      unsubForce();
+    };
   }, []);
+
+  // --- 2. Auto-Send Inventory ---
+  // Dès que l'utilisateur est dans une room et que ses skins sont chargés
+  useEffect(() => {
+    if (joined && skins.length > 0) {
+      // On mappe pour correspondre au format OwnedSkinShort
+      const payload = skins.map((s) => ({
+        id: s.id,
+        name: s.name,
+        chromas: s.chromas,
+      }));
+      roomsClient.sendInventory(payload);
+    }
+  }, [joined, skins]);
 
   async function create(name: string) {
     try {
@@ -54,10 +103,10 @@ export function useRooms(selection: Selection) {
     roomsClient.leaveRoom();
     setJoined(false);
     setRoom(null);
+    setSynergyResult(null);
   }
 
-  // à chaque changement de sélection OU changement de joined,
-  // on notifie la room si on est dedans
+  // Update selection standard
   useEffect(() => {
     if (joined) {
       roomsClient.sendSelection(selection);
@@ -71,5 +120,32 @@ export function useRooms(selection: Selection) {
     selection,
   ]);
 
-  return { room, joined, error, create, join, leave };
+  // --- 3. Méthodes Synergy ---
+  const requestSynergy = useCallback(() => {
+    roomsClient.requestSynergy();
+  }, []);
+
+  const applySynergy = useCallback(
+    (selectionMap: Record<string, { skinId: number; chromaId: number }>) => {
+      roomsClient.applySynergy(selectionMap);
+      // On vide le résultat pour fermer le panneau ou donner un feedback visuel
+      setSynergyResult(null);
+    },
+    []
+  );
+
+  const clearSynergy = useCallback(() => setSynergyResult(null), []);
+
+  return {
+    room,
+    joined,
+    error,
+    create,
+    join,
+    leave,
+    synergyResult,
+    requestSynergy,
+    applySynergy,
+    clearSynergy,
+  };
 }

@@ -1,0 +1,114 @@
+/* src/components/controls/SynergyControls.css */
+.synergy-panel {
+  background: #1e2328; /* LoL Hextech dark blue */
+  border: 1px solid #c8aa6e; /* Gold border */
+  padding: 16px;
+  margin-top: 16px;
+  border-radius: 4px;
+  color: #f0e6d2;
+}
+
+.synergy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.synergy-header h3 {
+  margin: 0;
+  color: #c8aa6e;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.synergy-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #3c3c41;
+  padding-bottom: 8px;
+}
+
+.synergy-tab {
+  background: transparent;
+  border: 1px solid #3c3c41;
+  color: #888;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.synergy-tab.active {
+  background: rgba(200, 170, 110, 0.1);
+  border-color: #c8aa6e;
+  color: #f0e6d2;
+}
+
+/* Tier Colors */
+.synergy-tab.tier-100.active {
+  border-color: #0acbe6;
+  color: #0acbe6;
+} /* Perfect (Blue/Diamond) */
+.synergy-tab.tier-80.active {
+  border-color: #ff4e50;
+  color: #ff4e50;
+} /* Color (Red/Chroma) */
+.synergy-tab.tier-50.active {
+  border-color: #cd7f32;
+  color: #cd7f32;
+} /* Partial (Bronze) */
+
+.tier-count {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.8em;
+}
+
+.synergy-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.synergy-description {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.synergy-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+}
+
+.synergy-btn {
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.synergy-btn.primary {
+  background: linear-gradient(to top, #1e2328, #1e282d);
+  border: 1px solid #c8aa6e;
+  color: #c8aa6e;
+}
+.synergy-btn.primary:hover {
+  background: #c8aa6e;
+  color: #1e2328;
+}
+
+.synergy-btn.secondary {
+  background: #3c3c41;
+  color: white;
+}

@@ -7,18 +7,52 @@ import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
 import { RoomMemberCard } from "@/components/RoomMemberCard";
 import { useSummonerName } from "@/features/hooks/useSummonerName";
+import { SynergyControls } from "@/components/controls/SynergyControls";
 import type { RoomMember } from "@/features/roomsClient";
 
 export function RoomsPage() {
   const { status, iconId } = useConnection();
   const phase = useGameflow();
   const [selection] = useSelection();
-  const { room, joined, error, create, join, leave } = useRooms(selection);
+
+  // Récupération des nouvelles props de useRooms
+  const {
+    room,
+    joined,
+    error,
+    create,
+    join,
+    leave,
+    synergyResult,
+    requestSynergy,
+    applySynergy,
+    clearSynergy,
+  } = useRooms(selection);
+
   const [code, setCode] = useState("");
 
   const summonerName = useSummonerName();
   const isConnected = status === "connected";
   const canUseRooms = isConnected && !!summonerName;
+
+  // --- Helper: Est-ce que je suis le owner ? ---
+  // On suppose que le membre local est le premier de orderedSlots ou on compare ownerId
+  // Le plus simple est de comparer l'ID si on l'a, mais room.members ne contient pas mon ID socket brut
+  // Cependant, room.ownerId existe. Il faut trouver mon memberId dans le client ou comparer les noms.
+  // Dans roomsClient.ts, memberId est privé.
+  // ASTUCE : Dans create/join, on reçoit "owner: boolean".
+  // Pour faire simple ici, on va check si member.id === room.ownerId dans la boucle d'affichage
+  // Ou on peut rajouter une prop `isOwner` retournée par useRooms (basée sur roomsClient.room?.ownerId === roomsClient.memberId)
+
+  // (Pour le code ci-dessous, je suppose que tu as accès à l'info owner, sinon on le déduit du nom)
+  const isOwner = useMemo(() => {
+    if (!room || !summonerName) return false;
+    // On cherche le membre qui correspond à mon nom
+    const me = room.members.find(
+      (m) => m.name.toLowerCase() === summonerName.toLowerCase()
+    );
+    return me ? me.id === room.ownerId : false;
+  }, [room, summonerName]);
 
   // --- Construction des 5 slots logiques (1..5) + ordre visuel 4-2-1-3-5 ---
   const orderedSlots = useMemo<
@@ -153,12 +187,32 @@ export function RoomsPage() {
       <main className="main">
         <div className="rooms-header">
           <h2>
-            Room <span style={{cursor: "pointer"}} onClick={handleCopyCode}>{room?.code}</span>
+            Room{" "}
+            <span style={{ cursor: "pointer" }} onClick={handleCopyCode}>
+              {room?.code}
+            </span>
           </h2>
-          <button className="rooms-leave-btn" onClick={leave}>
-            Leave room
-          </button>
+          <div style={{ display: "flex", gap: "10px" }}>
+            {/* BOUTON SYNERGY (Owner Only) */}
+            {isOwner && !synergyResult && room && room.members.length > 1 && (
+              <button className="rooms-primary-btn" onClick={requestSynergy}>
+                ✨ Find Synergy
+              </button>
+            )}
+            <button className="rooms-leave-btn" onClick={leave}>
+              Leave room
+            </button>
+          </div>
         </div>
+
+        {/* PANNEAU DE CONTROLE SYNERGY (S'affiche si résultat dispo) */}
+        {isOwner && synergyResult && (
+          <SynergyControls
+            result={synergyResult}
+            onApply={applySynergy}
+            onCancel={clearSynergy}
+          />
+        )}
 
         <div className="rooms-members-row">
           {orderedSlots.map(({ member, slotIndex }) => (
