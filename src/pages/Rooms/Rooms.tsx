@@ -31,6 +31,8 @@ export function RoomsPage() {
 
   const [code, setCode] = useState("");
 
+  const [copied, setCopied] = useState(false);
+
   const summonerName = useSummonerName();
   const isConnected = status === "connected";
   const canUseRooms = isConnected && !!summonerName;
@@ -103,12 +105,12 @@ export function RoomsPage() {
 
     const text = room.code;
 
+    // On essaye de copier, et on affiche le feedback quoi qu’il arrive
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).catch(() => {
-        // fallback silencieux, sans changer le visuel
+        /* ignore */
       });
     } else {
-      // Fallback DOM pour vieux navigateurs
       const textarea = document.createElement("textarea");
       textarea.value = text;
       textarea.style.position = "fixed";
@@ -118,10 +120,14 @@ export function RoomsPage() {
       try {
         document.execCommand("copy");
       } catch {
-        // ignore
+        /* ignore */
       }
       document.body.removeChild(textarea);
     }
+
+    // feedback visuel
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
   };
 
   /* ===================== VUE "PAS ENCORE DANS UNE ROOM" ===================== */
@@ -188,9 +194,14 @@ export function RoomsPage() {
         <div className="rooms-header">
           <h2>
             Room{" "}
-            <span style={{ cursor: "pointer" }} onClick={handleCopyCode}>
-              {room?.code}
-            </span>
+            <button
+              type="button"
+              className="rooms-code-btn"
+              onClick={handleCopyCode}
+            >
+              <span className="rooms-code-text">{room?.code}</span>
+              {copied && <span className="rooms-code-badge">Copied!</span>}
+            </button>
           </h2>
           <div style={{ display: "flex", gap: "10px" }}>
             {/* BOUTON SYNERGY (Owner Only) */}
