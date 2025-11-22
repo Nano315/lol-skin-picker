@@ -21,6 +21,8 @@ declare global {
       getSkins: () => Promise<OwnedSkin[]>;
       onSkins: (cb: (s: OwnedSkin[]) => void) => Unsub;
 
+      applySkinId: (id: number) => Promise<void>;
+
       getIncludeDefault: () => Promise<boolean>;
       toggleIncludeDefault: () => Promise<void>;
       setIncludeDefault: (v: boolean) => Promise<void>;

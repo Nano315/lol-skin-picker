@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow } from "electron";
-import type { SkinsService } from "../../services/skins.service";
+import { SkinsService } from "../../services/skins.service";
 
 export function registerSkinsIpc(
   svc: SkinsService,
@@ -9,7 +9,9 @@ export function registerSkinsIpc(
 
   ipcMain.handle("get-include-default", () => svc.getIncludeDefault());
   ipcMain.handle("toggle-include-default", () => svc.toggleIncludeDefault());
-  ipcMain.handle("set-include-default", (_e, v: boolean) => svc.setIncludeDefault(!!v));
+  ipcMain.handle("set-include-default", (_e, v: boolean) =>
+    svc.setIncludeDefault(!!v)
+  );
 
   ipcMain.handle("get-auto-roll", () => svc.getAutoRoll());
   ipcMain.handle("toggle-auto-roll", () => svc.toggleAutoRoll());
@@ -22,6 +24,11 @@ export function registerSkinsIpc(
   ipcMain.handle("get-summoner-icon", () => svc.getProfileIcon());
 
   ipcMain.handle("get-summoner-name", () => svc.getSummonerName());
+
+  // <<< AJOUT / CORRECTION ICI >>>
+  ipcMain.handle("apply-skin-id", (_e, skinId: number) =>
+    svc.applySkin(skinId)
+  );
 
   svc.on("skins", (list) => getWin()?.webContents.send("owned-skins", list));
   svc.on("selection", (sel) => getWin()?.webContents.send("selection", sel));

@@ -22,6 +22,10 @@ export const api = {
   getSkins: () => lcu.getSkins() as Promise<OwnedSkin[]>,
   onSkins: (cb: (s: OwnedSkin[]) => void): Unsub => asUnsub(lcu.onSkins(cb)),
 
+  applySkinId(skinId: number) {
+    return window.lcu.applySkinId(skinId);
+  },
+
   // options
   getIncludeDefault: () => lcu.getIncludeDefault(),
   toggleIncludeDefault: () => lcu.toggleIncludeDefault(),

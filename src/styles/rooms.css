@@ -254,3 +254,64 @@
   color: #fff;
   opacity: 1;
 }
+
+/* ---- Group Reroll Controls ---- */
+
+.group-reroll-wrapper {
+  margin-top: 18px;
+  margin-bottom: 6px;
+  width: 83%;
+  max-width: 1000px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.group-reroll-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+.group-reroll-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.group-reroll-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.group-reroll-select {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #13171d;
+  color: #e5e5e5;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.group-reroll-select:focus {
+  border-color: #6248ff;
+}
+
+.group-reroll-color-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.group-reroll-text {
+  white-space: nowrap;
+}

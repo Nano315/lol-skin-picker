@@ -38,6 +38,8 @@ const api = {
     return () => ipcRenderer.removeListener("owned-skins", listener);
   },
 
+  applySkinId: (skinId: number) => ipcRenderer.invoke("apply-skin-id", skinId),
+
   /* Options */
   getIncludeDefault: () => ipcRenderer.invoke("get-include-default"),
   toggleIncludeDefault: () => ipcRenderer.invoke("toggle-include-default"),

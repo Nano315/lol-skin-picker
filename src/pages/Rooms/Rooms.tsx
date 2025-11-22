@@ -1,13 +1,16 @@
 // src/pages/Rooms/Rooms.tsx
 import { useSelection } from "@/features/hooks/useSelection";
 import { useRooms } from "@/features/hooks/useRooms";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
 import { RoomMemberCard } from "@/components/RoomMemberCard";
 import { useSummonerName } from "@/features/hooks/useSummonerName";
 import type { RoomMember } from "@/features/roomsClient";
+import { GroupRerollControls } from "@/components/controls/GroupRerollControls";
+import { api } from "@/features/api";
+import { roomsClient } from "@/features/roomsClient";
 
 export function RoomsPage() {
   const { status, iconId } = useConnection();
@@ -18,7 +21,6 @@ export function RoomsPage() {
 
   const summonerName = useSummonerName();
   const isConnected = status === "connected";
-  const canUseRooms = isConnected && !!summonerName;
 
   const [copied, setCopied] = useState(false);
 
@@ -29,7 +31,6 @@ export function RoomsPage() {
     const members = room?.members ?? [];
 
     if (members.length === 0) {
-      // 5 slots vides par défaut
       return Array.from({ length: 5 }, (_, i) => ({
         member: null,
         slotIndex: i,
@@ -38,18 +39,15 @@ export function RoomsPage() {
 
     const normalizedSummoner = summonerName?.toLowerCase().trim() ?? null;
 
-    // On cherche le joueur local par son pseudo
     const selfMember: RoomMember =
       normalizedSummoner != null
         ? members.find(
             (m) => m.name.toLowerCase().trim() === normalizedSummoner
-          ) ?? members[0] // fallback : premier membre
+          ) ?? members[0]
         : members[0];
 
     const others = members.filter((m) => m !== selfMember);
 
-    // Slots logiques : index 0..4 = slots 1..5
-    // slot1 = joueur local, slots 2..5 = autres
     const logicalSlots: (RoomMember | null)[] = Array(5).fill(null);
     logicalSlots[0] = selfMember;
 
@@ -57,7 +55,6 @@ export function RoomsPage() {
       logicalSlots[i + 1] = others[i];
     }
 
-    // Ordre visuel : 4, 2, 1, 3, 5 => indices 3,1,0,2,4
     const indexOrder = [3, 1, 0, 2, 4];
 
     return indexOrder.map((idx) => ({
@@ -66,12 +63,43 @@ export function RoomsPage() {
     }));
   }, [room?.members, summonerName]);
 
+  const isOwner =
+    !!room &&
+    !!summonerName &&
+    (() => {
+      const normalized = summonerName.toLowerCase().trim();
+      const self = room.members.find(
+        (m) => m.name.toLowerCase().trim() === normalized
+      );
+      return !!self && room.ownerId === self.id;
+    })();
+
+  // -> Appliquer le combo quand le serveur en choisit un
+  useEffect(() => {
+    if (!room || !summonerName) return;
+
+    const normalized = summonerName.toLowerCase().trim();
+    const self = room.members.find(
+      (m) => m.name.toLowerCase().trim() === normalized
+    );
+    if (!self) return;
+
+    const unsubscribe = roomsClient.onGroupCombo((payload) => {
+      const pick = payload.picks.find((p) => p.memberId === self.id);
+      if (!pick) return;
+
+      const finalId = pick.chromaId || pick.skinId;
+      api.applySkinId(finalId);
+    });
+
+    return unsubscribe;
+  }, [room, summonerName]);
+
   const handleCopyCode = () => {
     if (!room?.code) return;
 
     const text = room.code;
 
-    // On essaye de copier, et on affiche le feedback quoi qu’il arrive
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).catch(() => {
         /* ignore */
@@ -91,7 +119,6 @@ export function RoomsPage() {
       document.body.removeChild(textarea);
     }
 
-    // feedback visuel
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1200);
   };
@@ -118,7 +145,7 @@ export function RoomsPage() {
                 <button
                   className="rooms-primary-btn"
                   onClick={() => summonerName && create(summonerName)}
-                  disabled={!canUseRooms}
+                  disabled={!isConnected}
                 >
                   Create room
                 </button>
@@ -139,7 +166,7 @@ export function RoomsPage() {
                   onClick={() =>
                     summonerName && join(code.trim(), summonerName)
                   }
-                  disabled={!canUseRooms || !code.trim()}
+                  disabled={!isConnected || !code.trim()}
                 >
                   Join room
                 </button>
@@ -183,6 +210,15 @@ export function RoomsPage() {
             />
           ))}
         </div>
+
+        {room && (
+          <GroupRerollControls
+            room={room}
+            phase={phase}
+            isOwner={isOwner}
+            selectionLocked={selection.locked}
+          />
+        )}
       </main>
     </div>
   );

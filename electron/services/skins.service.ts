@@ -519,7 +519,7 @@ export class SkinsService extends EventEmitter {
     }
   }
 
-  private async applySkin(skinId: number): Promise<boolean> {
+  async applySkin(skinId: number): Promise<boolean> {
     if (!this.creds) return false;
     const { protocol, port, password } = this.creds;
     const url = `${protocol}://127.0.0.1:${port}/lol-champ-select/v1/session/my-selection`;

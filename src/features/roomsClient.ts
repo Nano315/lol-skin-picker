@@ -10,6 +10,26 @@ if (!ROOMS_SERVER_URL) {
   );
 }
 
+export type ColorSynergy = {
+  type: "sameColor";
+  color: string;
+  members: string[];
+  coverage: number;
+  combinationCount: number;
+};
+
+export type GroupComboPick = {
+  memberId: string;
+  skinId: number;
+  chromaId: number;
+};
+
+export type GroupComboPayload = {
+  type: "sameColor";
+  color: string;
+  picks: GroupComboPick[];
+};
+
 export type RoomMember = {
   id: string;
   name: string;
@@ -17,6 +37,7 @@ export type RoomMember = {
   championAlias: string;
   skinId: number;
   chromaId: number;
+  ready?: boolean;
 };
 
 export type RoomState = {
@@ -24,6 +45,22 @@ export type RoomState = {
   code: string;
   ownerId: string;
   members: RoomMember[];
+  synergy?: {
+    colors: ColorSynergy[];
+  };
+};
+
+/** Toutes les combinaisons skin/chroma possédées sur le champion lock. */
+export type GroupSkinOption = {
+  skinId: number;
+  chromaId: number; // 0 = sans chroma
+  auraColor: string | null; // EXACTEMENT la couleur utilisée pour l’aura côté front
+};
+
+export type OwnedOptionsPayload = {
+  championId: number;
+  championAlias: string;
+  options: GroupSkinOption[];
 };
 
 class RoomsClient {
@@ -34,6 +71,8 @@ class RoomsClient {
   private room: RoomState | null = null;
   private listeners = new Set<(room: RoomState | null) => void>();
 
+  private comboListeners = new Set<(payload: GroupComboPayload) => void>();
+
   // ---- helpers de state global ----
   private emitRoom(room: RoomState | null) {
     this.room = room;
@@ -42,9 +81,7 @@ class RoomsClient {
 
   subscribe(listener: (room: RoomState | null) => void): () => void {
     this.listeners.add(listener);
-    // On envoie l’état actuel dès l’inscription
-    listener(this.room);
-
+    listener(this.room); // état actuel immédiat
     return () => {
       this.listeners.delete(listener);
     };
@@ -56,6 +93,13 @@ class RoomsClient {
 
   isJoined() {
     return !!this.roomId && !!this.memberId;
+  }
+
+  onGroupCombo(listener: (payload: GroupComboPayload) => void): () => void {
+    this.comboListeners.add(listener);
+    return () => {
+      this.comboListeners.delete(listener);
+    };
   }
 
   // ---- REST : create / join ----
@@ -75,10 +119,7 @@ class RoomsClient {
     this.roomId = data.roomId;
     this.memberId = data.memberId;
     const room = data.room as RoomState;
-
-    // -> on met à jour le cache interne + listeners
     this.emitRoom(room);
-
     return { room };
   }
 
@@ -98,10 +139,7 @@ class RoomsClient {
     this.roomId = data.roomId;
     this.memberId = data.memberId;
     const room = data.room as RoomState;
-
-    // -> idem ici
     this.emitRoom(room);
-
     return { room };
   }
 
@@ -110,10 +148,7 @@ class RoomsClient {
     if (!this.roomId || !this.memberId) {
       throw new Error("No roomId/memberId set");
     }
-    if (this.socket) {
-      // déjà connecté
-      return;
-    }
+    if (this.socket) return;
 
     this.socket = io(ROOMS_SERVER_URL, { autoConnect: true });
 
@@ -127,12 +162,14 @@ class RoomsClient {
     this.socket.on("room-state", (room: RoomState) => {
       this.emitRoom(room);
     });
+
+    this.socket.on("group-apply-combo", (payload: GroupComboPayload) => {
+      for (const l of this.comboListeners) l(payload);
+    });
   }
 
-  // utilisé uniquement pour "quitter la room"
   leaveRoom() {
     if (this.socket && this.roomId && this.memberId) {
-      // le serveur ne gère pas encore 'leave-room', mais ce n'est pas grave
       this.socket.emit("leave-room", {
         roomId: this.roomId,
         memberId: this.memberId,
@@ -154,6 +191,28 @@ class RoomsClient {
       championAlias: selection.championAlias,
       skinId: selection.skinId,
       chromaId: selection.chromaId,
+    });
+  }
+
+  /** Envoi de TOUTES les options skin/chroma pour le champion lock. */
+  sendOwnedOptions(payload: OwnedOptionsPayload) {
+    if (!this.socket || !this.roomId || !this.memberId) return;
+    this.socket.emit("owned-options", {
+      roomId: this.roomId,
+      memberId: this.memberId,
+      championId: payload.championId,
+      championAlias: payload.championAlias,
+      options: payload.options,
+    });
+  }
+
+  requestGroupReroll(payload: { type: "sameColor"; color: string }) {
+    if (!this.socket || !this.roomId || !this.memberId) return;
+    this.socket.emit("request-group-reroll", {
+      roomId: this.roomId,
+      memberId: this.memberId,
+      type: payload.type,
+      color: payload.color,
     });
   }
 }
