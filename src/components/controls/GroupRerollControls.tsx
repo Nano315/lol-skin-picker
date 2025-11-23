@@ -1,3 +1,4 @@
+// GroupRerollControls.tsx
 import { useEffect, useMemo, useState } from "react";
 import type { RoomState, ColorSynergy } from "@/features/roomsClient";
 import { roomsClient } from "@/features/roomsClient";
@@ -8,7 +9,7 @@ type Props = {
   room: RoomState;
   phase: string;
   isOwner: boolean;
-  selectionLocked: boolean; // ton selection.locked local
+  selectionLocked: boolean;
 };
 
 function makeKey(c: ColorSynergy) {
@@ -21,7 +22,6 @@ export function GroupRerollControls({
   isOwner,
   selectionLocked,
 }: Props) {
-  // On ne garde que les couleurs qui ont au moins 1 combinaison possible
   const colors = (room.synergy?.colors ?? []).filter(
     (c) => c.combinationCount > 0
   );
@@ -32,20 +32,20 @@ export function GroupRerollControls({
   }, [room.members]);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
-  // synchroniser la sélection quand les options changent
   useEffect(() => {
     if (!colors.length) {
       setSelectedKey(null);
+      setOpen(false);
       return;
     }
     if (selectedKey && colors.some((c) => makeKey(c) === selectedKey)) {
-      return; // clé actuelle encore valide
+      return;
     }
     setSelectedKey(makeKey(colors[0]));
   }, [colors, selectedKey]);
 
-  // Conditions d’affichage => comme les rerolls solo, mais au niveau du groupe
   if (!isOwner) return null;
   if (phase !== "ChampSelect") return null;
   if (!selectionLocked) return null;
@@ -62,34 +62,66 @@ export function GroupRerollControls({
     });
   };
 
+  const selectedLabel = (() => {
+    const combos = selected.combinationCount;
+    return `${combos} combinaison${combos > 1 ? "s" : ""}`;
+  })();
+
   return (
     <div className="group-reroll-wrapper">
       <div className="group-reroll-label">Group Reroll</div>
 
       <div className="group-reroll-controls">
         <div className="group-reroll-select-wrapper">
-          <select
-            className="group-reroll-select"
-            value={selectedKey ?? ""}
-            onChange={(e) => setSelectedKey(e.target.value)}
+          {/* Trigger custom "select" */}
+          <button
+            type="button"
+            className="group-reroll-trigger"
+            onClick={() => setOpen((o) => !o)}
           >
-            {colors.map((c) => {
-              const key = makeKey(c);
-              const combos = c.combinationCount;
-              return (
-                <option key={key} value={key}>
-                  {c.color} • {combos} combinaison
-                  {combos > 1 ? "s" : ""}
-                </option>
-              );
-            })}
-          </select>
+            <div className="group-reroll-trigger-main">
+              <span
+                className="group-reroll-chip"
+                style={{ backgroundColor: selected.color }}
+              />
+              <span className="group-reroll-trigger-text">{selectedLabel}</span>
+            </div>
+            <span className="group-reroll-trigger-caret">▾</span>
+          </button>
 
-          {/* petit rond de couleur pour prévisualiser */}
-          <span
-            className="group-reroll-color-dot"
-            style={{ backgroundColor: selected.color }}
-          />
+          {/* Dropdown options */}
+          {open && (
+            <div className="group-reroll-dropdown">
+              {colors.map((c) => {
+                const key = makeKey(c);
+                const combos = c.combinationCount;
+                const label = `${combos} combo${combos > 1 ? "s" : ""}`;
+
+                const isActive = key === selectedKey;
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={
+                      "group-reroll-option" +
+                      (isActive ? " group-reroll-option--active" : "")
+                    }
+                    onClick={() => {
+                      setSelectedKey(key);
+                      setOpen(false);
+                    }}
+                  >
+                    <span
+                      className="group-reroll-chip"
+                      style={{ backgroundColor: c.color }}
+                    />
+                    <span className="group-reroll-option-text">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <button className="reroll-btn" onClick={handleReroll}>

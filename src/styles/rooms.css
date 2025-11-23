@@ -258,7 +258,7 @@
 /* ---- Group Reroll Controls ---- */
 
 .group-reroll-wrapper {
-  margin-top: 0px;
+  margin-top: 0;
   margin-bottom: 6px;
   width: 83%;
   max-width: 1000px;
@@ -282,7 +282,10 @@
   flex-wrap: wrap;
 }
 
+/* ---- Custom select style ---- */
+
 .group-reroll-select-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -290,28 +293,116 @@
   max-width: 320px;
 }
 
-.group-reroll-select {
+/* bouton principal (valeur sélectionnée) */
+.group-reroll-trigger {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: #13171d;
   color: #e5e5e5;
   font-size: 0.85rem;
+  cursor: pointer;
   outline: none;
 }
 
-.group-reroll-select:focus {
-  border-color: #6248ff;
+.group-reroll-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
-.group-reroll-color-dot {
-  width: 18px;
-  height: 18px;
+.group-reroll-trigger-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-reroll-trigger-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-reroll-trigger-caret {
+  opacity: 0.8;
+  font-size: 0.7rem;
+}
+
+/* petit rectangle de couleur */
+.group-reroll-chip {
+  width: 32px;
+  height: 10px;
   border-radius: 999px;
   border: 1px solid rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
 }
 
+/* dropdown */
+
+.group-reroll-dropdown {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #101218;
+  box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.5);
+
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.group-reroll-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.group-reroll-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.group-reroll-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+.group-reroll-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #e5e5e5;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.group-reroll-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.group-reroll-option--active {
+  background: rgba(98, 72, 255, 0.22);
+}
+
+.group-reroll-option-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* garde ça pour le bouton "Reroll Group" */
 .group-reroll-text {
   white-space: nowrap;
 }
