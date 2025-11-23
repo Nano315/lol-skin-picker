@@ -11,11 +11,15 @@ import type { RoomMember } from "@/features/roomsClient";
 import { GroupRerollControls } from "@/components/controls/GroupRerollControls";
 import { api } from "@/features/api";
 import { roomsClient } from "@/features/roomsClient";
+import { useOwnedSkins } from "@/features/hooks/useOwnedSkins";
+import type { GroupSkinOption } from "@/features/roomsClient";
+import { computeChromaColor } from "@/features/chromaColor";
 
 export function RoomsPage() {
   const { status, iconId } = useConnection();
   const phase = useGameflow();
   const [selection] = useSelection();
+  const skins = useOwnedSkins();
   const { room, joined, error, create, join, leave } = useRooms(selection);
   const [code, setCode] = useState("");
 
@@ -122,6 +126,74 @@ export function RoomsPage() {
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1200);
   };
+
+  // Quand on est en ChampSelect, que le champion est lock et qu'on connaît les skins,
+  // on envoie TOUTES les options skin/chroma avec la VRAIE couleur d'aura.
+  useEffect(() => {
+    if (!room) return;
+    if (phase !== "ChampSelect") return;
+    if (!selection.locked) return;
+    if (!selection.championId) return;
+    if (!skins.length) return;
+
+    let cancelled = false;
+
+    async function run() {
+      const options: GroupSkinOption[] = [];
+
+      // Chaque OwnedSkin correspond au champion courant (selection.championId)
+      for (const s of skins) {
+        // Variante "skin nu" (sans chroma) -> auraColor peut être null
+        const baseColor = await computeChromaColor({
+          championId: selection.championId,
+          skinId: s.id,
+          chromaId: 0,
+        });
+
+        options.push({
+          skinId: s.id,
+          chromaId: 0,
+          auraColor: baseColor,
+        });
+
+        // Variantes chroma
+        for (const c of s.chromas) {
+          const color = await computeChromaColor({
+            championId: selection.championId,
+            skinId: s.id,
+            chromaId: c.id,
+          });
+
+          options.push({
+            skinId: s.id,
+            chromaId: c.id,
+            auraColor: color,
+          });
+        }
+      }
+
+      if (cancelled) return;
+
+      roomsClient.sendOwnedOptions({
+        championId: selection.championId,
+        championAlias: selection.championAlias,
+        options,
+      });
+    }
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    room,
+    phase,
+    selection.championId,
+    selection.championAlias,
+    selection.locked,
+    skins,
+  ]);
 
   /* ===================== VUE "PAS ENCORE DANS UNE ROOM" ===================== */
 
