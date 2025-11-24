@@ -1,9 +1,9 @@
-// GroupRerollControls.tsx
 import { useEffect, useMemo, useState } from "react";
 import type { RoomState, ColorSynergy } from "@/features/roomsClient";
 import { roomsClient } from "@/features/roomsClient";
 import GradientText from "@/components/GradientText/GradientText";
-import { faDice } from "@fortawesome/free-solid-svg-icons";
+import { faDice, faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 type Props = {
   room: RoomState;
@@ -33,6 +33,7 @@ export function GroupRerollControls({
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [spinning, setSpinning] = useState(false);
 
   useEffect(() => {
     if (!colors.length) {
@@ -59,6 +60,24 @@ export function GroupRerollControls({
     roomsClient.requestGroupReroll({
       type: "sameColor",
       color: selected.color,
+    });
+  };
+
+  const handleRandomReroll = () => {
+    if (!colors.length) return;
+
+    const idx = Math.floor(Math.random() * colors.length);
+    const choice = colors[idx];
+    const key = makeKey(choice);
+
+    setSelectedKey(key);
+
+    setSpinning(true);
+    window.setTimeout(() => setSpinning(false), 400);
+
+    roomsClient.requestGroupReroll({
+      type: "sameColor",
+      color: choice.color,
     });
   };
 
@@ -89,14 +108,27 @@ export function GroupRerollControls({
             <span className="group-reroll-trigger-caret">▾</span>
           </button>
 
-          {/* Dropdown options */}
+          {/* bouton random + reroll avec FontAwesome */}
+          <button
+            type="button"
+            className={
+              "group-reroll-random-btn" + (spinning ? " is-spinning" : "")
+            }
+            onClick={handleRandomReroll}
+            aria-label="Random color & reroll"
+          >
+            <FontAwesomeIcon
+              icon={faArrowsRotate}
+              className="group-reroll-random-icon"
+            />
+          </button>
+
           {open && (
             <div className="group-reroll-dropdown">
               {colors.map((c) => {
                 const key = makeKey(c);
                 const combos = c.combinationCount;
                 const label = `${combos} combo${combos > 1 ? "s" : ""}`;
-
                 const isActive = key === selectedKey;
 
                 return (
