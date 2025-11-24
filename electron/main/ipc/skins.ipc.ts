@@ -24,8 +24,10 @@ export function registerSkinsIpc(
   ipcMain.handle("get-summoner-icon", () => svc.getProfileIcon());
 
   ipcMain.handle("get-summoner-name", () => svc.getSummonerName());
+  svc.on("summoner-name", (name) =>
+    getWin()?.webContents.send("summoner-name", name)
+  );
 
-  // <<< AJOUT / CORRECTION ICI >>>
   ipcMain.handle("apply-skin-id", (_e, skinId: number) =>
     svc.applySkin(skinId)
   );

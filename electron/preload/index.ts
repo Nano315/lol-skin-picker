@@ -21,6 +21,11 @@ const api = {
 
   /* Summoner Name */
   getSummonerName: () => ipcRenderer.invoke("get-summoner-name"),
+  onSummonerName: (cb: (name: string) => void) => {
+    const listener = (_e: any, name: string) => cb(name);
+    ipcRenderer.on("summoner-name", listener);
+    return () => ipcRenderer.removeListener("summoner-name", listener);
+  },
 
   /* Gameflow */
   getPhase: () => ipcRenderer.invoke("get-gameflow-phase"),
@@ -43,7 +48,8 @@ const api = {
   /* Options */
   getIncludeDefault: () => ipcRenderer.invoke("get-include-default"),
   toggleIncludeDefault: () => ipcRenderer.invoke("toggle-include-default"),
-  setIncludeDefault: (v: boolean) => ipcRenderer.invoke("set-include-default", v),
+  setIncludeDefault: (v: boolean) =>
+    ipcRenderer.invoke("set-include-default", v),
 
   getAutoRoll: () => ipcRenderer.invoke("get-auto-roll"),
   toggleAutoRoll: () => ipcRenderer.invoke("toggle-auto-roll"),

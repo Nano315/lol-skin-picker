@@ -13,6 +13,8 @@ export const api = {
 
   // summoner name
   getSummonerName: () => lcu.getSummonerName(),
+  onSummonerName: (cb: (name: string) => void): Unsub =>
+    asUnsub(lcu.onSummonerName(cb)),
 
   // gameflow
   getPhase: () => lcu.getPhase(),

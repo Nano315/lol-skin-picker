@@ -381,9 +381,11 @@ export class SkinsService extends EventEmitter {
       this.summonerName = (r.gameName ?? "").trim();
 
       this.emit("icon", this.profileIconId);
+      this.emit("summoner-name", this.summonerName);
     } catch {
       this.summonerId = null;
       this.summonerName = "";
+      this.emit("summoner-name", "");
     }
   }
 
@@ -655,8 +657,8 @@ export class SkinsService extends EventEmitter {
     }) => void
   ): this;
   on(event: "icon", fn: (id: number) => void): this;
+  on(event: "summoner-name", fn: (name: string) => void): this;
   override on(event: string, listener: (...args: any[]) => void): this {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.on(event, listener);
   }
 
@@ -672,8 +674,8 @@ export class SkinsService extends EventEmitter {
     }
   ): boolean;
   emit(event: "icon", id: number): boolean;
+  emit(event: "summoner-name", name: string): boolean;
   override emit(event: string, ...args: any[]): boolean {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     return super.emit(event, ...args);
   }
 }

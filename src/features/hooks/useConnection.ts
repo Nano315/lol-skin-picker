@@ -1,23 +1,55 @@
+// src/features/hooks/useConnection.ts
 import { useEffect, useState } from "react";
 import { api } from "../api";
 
+type ConnectionStatus = "unknown" | "connected" | "disconnected";
+
 export function useConnection() {
-  const [status, setStatus] = useState("checking");
-  const [iconId, setIconId] = useState(0);
+  const [status, setStatus] = useState<ConnectionStatus>("unknown");
+  const [iconId, setIconId] = useState<number | null>(null);
 
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
+    let unsubStatus: (() => void) | null = null;
+    let unsubIcon: (() => void) | null = null;
 
-    api.getStatus().then((v) => mounted && setStatus(v));
-    api.getSummonerIcon().then((v) => mounted && setIconId(v));
+    async function init() {
+      try {
+        // 1) état initial
+        const [initialStatus, initialIcon] = await Promise.all([
+          api.getStatus(),
+          api.getSummonerIcon().catch(() => null),
+        ]);
 
-    const off1 = api.onStatus(setStatus);
-    const off2 = api.onSummonerIcon(setIconId);
+        if (cancelled) return;
+
+        setStatus(initialStatus === "connected" ? "connected" : "disconnected");
+
+        if (typeof initialIcon === "number") {
+          setIconId(initialIcon);
+        }
+      } catch {
+        if (!cancelled) {
+          setStatus("disconnected");
+        }
+      }
+
+      // 2) abonnement aux updates temps réel
+      unsubStatus = api.onStatus((next) => {
+        setStatus(next === "connected" ? "connected" : "disconnected");
+      });
+
+      unsubIcon = api.onSummonerIcon((id) => {
+        setIconId(id);
+      });
+    }
+
+    void init();
 
     return () => {
-      mounted = false;
-      if (typeof off1 === "function") off1();
-      if (typeof off2 === "function") off2();
+      cancelled = true;
+      unsubStatus?.();
+      unsubIcon?.();
     };
   }, []);
 

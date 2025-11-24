@@ -23,8 +23,9 @@ export function RoomsPage() {
   const { room, joined, error, create, join, leave } = useRooms(selection);
   const [code, setCode] = useState("");
 
-  const summonerName = useSummonerName();
   const isConnected = status === "connected";
+  const summonerName = useSummonerName(status);
+  const canUseRooms = isConnected && !!summonerName;
 
   const [copied, setCopied] = useState(false);
 
@@ -209,6 +210,12 @@ export function RoomsPage() {
               </p>
             )}
 
+            {isConnected && !summonerName && (
+              <p className="rooms-warning">
+                Fetching your summoner name from the client...
+              </p>
+            )}
+
             {error && <p style={{ color: "tomato" }}>{error}</p>}
 
             <div className="rooms-panel card">
@@ -217,7 +224,7 @@ export function RoomsPage() {
                 <button
                   className="rooms-primary-btn"
                   onClick={() => summonerName && create(summonerName)}
-                  disabled={!isConnected}
+                  disabled={!canUseRooms}
                 >
                   Create room
                 </button>
@@ -238,7 +245,7 @@ export function RoomsPage() {
                   onClick={() =>
                     summonerName && join(code.trim(), summonerName)
                   }
-                  disabled={!isConnected || !code.trim()}
+                  disabled={!canUseRooms || !code.trim()}
                 >
                   Join room
                 </button>

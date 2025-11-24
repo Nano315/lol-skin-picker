@@ -8,7 +8,7 @@ export default function Header({
 }: {
   status: string;
   phase: string;
-  iconId: number;
+  iconId: number | null;
 }) {
   const iconUrl = iconId
     ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`
