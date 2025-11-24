@@ -166,6 +166,16 @@ class RoomsClient {
     this.socket.on("group-apply-combo", (payload: GroupComboPayload) => {
       for (const l of this.comboListeners) l(payload);
     });
+
+    this.socket.on("room-closed", (payload: { reason?: string }) => {
+      console.log("[roomsClient] room closed", payload);
+      this.roomId = null;
+      this.memberId = null;
+      this.emitRoom(null);
+      // On coupe le socket pour éviter les reconnections inutiles
+      this.socket?.disconnect();
+      this.socket = null;
+    });
   }
 
   leaveRoom() {
