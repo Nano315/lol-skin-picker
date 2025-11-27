@@ -1,6 +1,7 @@
 /* -------- layout global -------- */
 .app {
   min-height: 100vh;
+  margin: 0 18px;
   display: flex;
   flex-direction: column;
 }
@@ -40,7 +41,7 @@
 
 .card:hover {
   border-color: rgba(255, 255, 255, 0.14);
-  transform: translateY(-3px);
+  transform: translateY(-1px);
   box-shadow: 0 25px 90px rgba(0, 0, 0, 0.7);
 }
 

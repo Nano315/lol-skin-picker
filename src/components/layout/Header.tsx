@@ -18,7 +18,7 @@ export default function Header({
     if (status === "disconnected" || phase === "Unknown")
       return "Not connected to client";
     if (status === "checking") return "Searching for client…";
-    return phase === "None" ? "Connected to client" : phase;
+    return status === "connected" ? "Connected to client" : status;
   };
 
   return (

@@ -14,8 +14,7 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.06), transparent 45%),
-    linear-gradient(180deg, rgba(9, 9, 11, 0.8) 0%, rgba(9, 9, 11, 0.95) 100%);
+  background: url("/bg-cover.png") center / cover no-repeat fixed;
   opacity: 0.8;
   pointer-events: none;
   z-index: -1;

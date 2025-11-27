@@ -17,7 +17,7 @@
     background 0.18s ease;
 }
 .reroll-btn:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   border-color: rgba(255, 255, 255, 0.12);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }

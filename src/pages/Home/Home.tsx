@@ -10,7 +10,6 @@ import { useChromaColor } from "@/features/hooks/useChromaColor";
 import { api } from "@/features/api";
 
 export default function Home() {
-
   const { status, iconId } = useConnection();
   const phase = useGameflow();
   const skins = useOwnedSkins();
@@ -50,6 +49,11 @@ export default function Home() {
 
               <div className="detail-grid">
                 <div className="detail-item">
+                  <p className="detail-label">Phase</p>
+                  <p className="detail-value">{phase}</p>
+                </div>
+
+                <div className="detail-item">
                   <p className="detail-label">Champion</p>
                   <p className="detail-value">
                     {selection.championAlias || "En attente du lock-in"}
@@ -61,11 +65,6 @@ export default function Home() {
                   <p className="detail-value">
                     {selection.skinId ? selection.skinId : "Aucun skin actif"}
                   </p>
-                </div>
-
-                <div className="detail-item">
-                  <p className="detail-label">Phase</p>
-                  <p className="detail-value">{phase}</p>
                 </div>
 
                 <div className="detail-item">
