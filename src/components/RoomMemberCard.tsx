@@ -48,16 +48,15 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
     .filter(Boolean)
     .join(" ");
 
-  const auraStyle =
-    chromaColor && isOccupied
-      ? {
-          backgroundColor: `${chromaColor}1f`,
-          borderColor: chromaColor,
-        }
-      : undefined;
-
   return (
-    <div className={classes} style={auraStyle}>
+    <div
+      className={classes}
+      style={{
+        backgroundColor: chromaColor ?? undefined,
+        transition: "background-color 0.5s ease, border-color 0.5s ease",
+        borderColor: chromaColor ? "rgba(255,255,255,0.2)" : undefined,
+      }}
+    >
       <div className="room-member-skin">
         <img
           src={displayedSkin}

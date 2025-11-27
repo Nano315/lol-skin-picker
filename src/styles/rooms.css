@@ -29,7 +29,7 @@
 }
 
 .rooms-card-header {
-  margin-bottom: 4px;
+  margin-bottom: 18px;
 }
 
 .rooms-card-desc {
@@ -158,7 +158,6 @@
 /* ---------- Member card ---------- */
 
 .room-member-card {
-  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
