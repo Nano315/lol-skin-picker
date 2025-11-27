@@ -38,6 +38,7 @@
 }
 
 .track {
+  box-sizing: border-box;
   width: 48px;
   height: 26px;
   border-radius: 999px;
@@ -62,11 +63,10 @@
 .switch input:checked + .track {
   background: var(--accent);
   border-color: rgba(255, 255, 255, 0.22);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 6px rgba(85, 167, 255, 0.12);
 }
 
 .switch input:checked + .track .thumb {
-  transform: translateX(22px);
+  transform: translateX(24px);
   background: #fff;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
 }
