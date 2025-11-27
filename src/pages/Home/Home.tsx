@@ -19,6 +19,15 @@ export default function Home() {
   const hasLockedChampion =
     selection.championId !== 0 && selection.locked && phase === "ChampSelect";
 
+  const activeSkin = skins.find((s) => s.id === selection.skinId);
+
+  const skinLabel = activeSkin
+    ? activeSkin.name
+    : selection.skinId || "En attente du lock-in";
+
+  const chromaLabel = activeSkin
+    ? selection.chromaId || "Défaut" : "En attente du lock-in";
+
   return (
     <div className="app">
       <Header status={status} phase={phase} iconId={iconId} />
@@ -28,13 +37,9 @@ export default function Home() {
             <section
               className="card preview-card"
               style={{
-                // On applique la couleur du chroma en fond si elle existe.
-                // Le undefined permet de revenir à la couleur CSS par défaut (var(--panel-color))
                 backgroundColor: chromaColor ?? undefined,
-                // Transition fluide pour l'effet "aura" qui change
                 transition:
                   "background-color 0.5s ease, border-color 0.5s ease",
-                // Optionnel : on peut aussi teinter légèrement la bordure
                 borderColor: chromaColor ? "rgba(255,255,255,0.2)" : undefined,
               }}
             >
@@ -68,22 +73,20 @@ export default function Home() {
                 <div className="detail-item">
                   <p className="detail-label">Champion</p>
                   <p className="detail-value">
-                    {selection.championAlias || "En attente du lock-in"}
+                    {hasLockedChampion
+                      ? selection.championAlias
+                      : "En attente du lock-in"}
                   </p>
                 </div>
 
                 <div className="detail-item">
-                  <p className="detail-label">Skin ID</p>
-                  <p className="detail-value">
-                    {selection.skinId ? selection.skinId : "Aucun skin actif"}
-                  </p>
+                  <p className="detail-label">Skin</p>
+                  <p className="detail-value">{skinLabel}</p>
                 </div>
 
                 <div className="detail-item">
                   <p className="detail-label">Chroma</p>
-                  <p className="detail-value">
-                    {selection.chromaId || "Défaut"}
-                  </p>
+                  <p className="detail-value">{chromaLabel}</p>
                 </div>
               </div>
             </section>
