@@ -48,16 +48,17 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
     .filter(Boolean)
     .join(" ");
 
-  return (
-    <div className={classes}>
-      <div
-        className="room-member-skin"
-        style={
-          chromaColor && isOccupied
-            ? { boxShadow: `0 0 30px ${chromaColor}` }
-            : undefined
+  const auraStyle =
+    chromaColor && isOccupied
+      ? {
+          backgroundColor: `${chromaColor}1f`,
+          borderColor: chromaColor,
         }
-      >
+      : undefined;
+
+  return (
+    <div className={classes} style={auraStyle}>
+      <div className="room-member-skin">
         <img
           src={displayedSkin}
           alt={isOccupied ? member!.name : "Empty slot"}
@@ -69,7 +70,7 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
       {isOccupied ? (
         <div className="room-member-name">{member!.name}</div>
       ) : (
-        <div className="room-member-placeholder">Waiting for player</div>
+        <div className="room-member-placeholder">Empty slot</div>
       )}
     </div>
   );

@@ -100,6 +100,24 @@ export function RoomsPage() {
     return unsubscribe;
   }, [room, summonerName]);
 
+  const allReady = useMemo(() => {
+    if (!room?.members.length) return false;
+    return room.members.every((m) => m.championId !== 0 && m.ready);
+  }, [room?.members]);
+
+  const hasSynergy = useMemo(() => {
+    if (!room) return false;
+    return (room.synergy?.colors ?? []).some((c) => c.combinationCount > 0);
+  }, [room]);
+
+  const canShowRerollControls =
+    !!room &&
+    isOwner &&
+    phase === "ChampSelect" &&
+    selection.locked &&
+    allReady &&
+    hasSynergy;
+
   const handleCopyCode = () => {
     if (!room?.code) return;
 
@@ -204,66 +222,66 @@ export function RoomsPage() {
         <Header status={status} phase={phase} iconId={iconId} />
         <main className="main">
           <div className="page-shell rooms-shell">
-            <div className="rooms-join-create">
+            <div className="bento-grid rooms-bento">
               {!isConnected && (
-                <p className="rooms-warning">
-                  Connect your League of Legends client to use rooms.
-                </p>
+                <p className="rooms-warning">Connect your League of Legends client to use rooms.</p>
               )}
 
               {isConnected && !summonerName && (
-                <p className="rooms-warning">
-                  Fetching your summoner name from the client...
-                </p>
+                <p className="rooms-warning">Fetching your summoner name from the client...</p>
               )}
 
               {error && <p style={{ color: "tomato" }}>{error}</p>}
 
-              <div className="rooms-join-grid">
-                <section className="rooms-card card">
-                  <div className="rooms-card-header">
-                    <p className="rooms-side-label">Start a new room</p>
-                    <h2 className="rooms-card-title">Create a lobby</h2>
+              <section className="card rooms-cta-card">
+                <div className="rooms-card-header card-header">
+                  <div>
+                    <p className="eyebrow">CREATE</p>
+                    <h2 className="card-title">Start a new lobby</h2>
                   </div>
-                  <p className="rooms-card-desc">
-                    Generate a fresh room and invite your group instantly.
-                  </p>
+                </div>
+
+                <p className="rooms-card-desc">
+                  Generate a fresh room and invite your group instantly.
+                </p>
+
+                <button
+                  className="rooms-primary-btn"
+                  onClick={() => summonerName && create(summonerName)}
+                  disabled={!canUseRooms}
+                >
+                  Create room
+                </button>
+              </section>
+
+              <section className="card rooms-cta-card">
+                <div className="rooms-card-header card-header">
+                  <div>
+                    <p className="eyebrow">JOIN</p>
+                    <h2 className="card-title">Enter a room code</h2>
+                  </div>
+                </div>
+
+                <p className="rooms-card-desc">
+                  Enter the shared code to sync up with your teammates.
+                </p>
+
+                <div className="rooms-input-row">
+                  <input
+                    className="rooms-input"
+                    placeholder="Room code (e.g. ABC123)"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  />
                   <button
                     className="rooms-primary-btn"
-                    onClick={() => summonerName && create(summonerName)}
-                    disabled={!canUseRooms}
+                    onClick={() => summonerName && join(code.trim(), summonerName)}
+                    disabled={!canUseRooms || !code.trim()}
                   >
-                    Create room
+                    Join room
                   </button>
-                </section>
-
-                <section className="rooms-card card">
-                  <div className="rooms-card-header">
-                    <p className="rooms-side-label">Join an existing room</p>
-                    <h2 className="rooms-card-title">Jump into a lobby</h2>
-                  </div>
-                  <p className="rooms-card-desc">
-                    Enter the shared code to sync up with your teammates.
-                  </p>
-                  <div className="rooms-input-row">
-                    <input
-                      className="rooms-input"
-                      placeholder="Room code (e.g. ABC123)"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    />
-                    <button
-                      className="rooms-primary-btn"
-                      onClick={() =>
-                        summonerName && join(code.trim(), summonerName)
-                      }
-                      disabled={!canUseRooms || !code.trim()}
-                    >
-                      Join room
-                    </button>
-                  </div>
-                </section>
-              </div>
+                </div>
+              </section>
             </div>
           </div>
         </main>
@@ -278,46 +296,59 @@ export function RoomsPage() {
       <Header status={status} phase={phase} iconId={iconId} />
       <main className="main">
         <div className="page-shell rooms-shell">
-          <div className="rooms-header-card card">
-            <div>
-              <p className="rooms-side-label">Lobby ready</p>
-              <div className="rooms-header-row">
-                <h2 className="rooms-title">Room</h2>
-                <button
-                  type="button"
-                  className="rooms-code-pill"
-                  onClick={handleCopyCode}
-                >
-                  <span className="rooms-code-text">{room?.code}</span>
-                  {copied && <span className="rooms-code-badge">Copied!</span>}
+          <div className="bento-grid rooms-bento">
+            <section className="card rooms-squad-card">
+              <div className="card-header rooms-card-header">
+                <div>
+                  <p className="eyebrow">SQUAD</p>
+                  <h2 className="card-title">
+                    Lobby - Room{" "}
+                    <button type="button" className="rooms-code-button" onClick={handleCopyCode}>
+                      <span className="rooms-code-text">{room?.code}</span>
+                      {copied && <span className="rooms-code-feedback">Copied!</span>}
+                    </button>
+                  </h2>
+                </div>
+
+                <button className="rooms-leave-btn" onClick={leave}>
+                  Leave Room
                 </button>
               </div>
-            </div>
 
-            <button className="rooms-leave-btn" onClick={leave}>
-              Leave
-            </button>
-          </div>
-
-          <div className="rooms-grid">
-            {orderedSlots.map(({ member, slotIndex }) => (
-              <RoomMemberCard
-                key={member?.id ?? `empty-${slotIndex}`}
-                member={member ?? undefined}
-                slotIndex={slotIndex}
-              />
-            ))}
-
-            {room && (
-              <div className="rooms-action-bar card">
-                <GroupRerollControls
-                  room={room}
-                  phase={phase}
-                  isOwner={isOwner}
-                  selectionLocked={selection.locked}
-                />
+              <div className="rooms-members-row">
+                {orderedSlots.map(({ member, slotIndex }) => (
+                  <RoomMemberCard
+                    key={member?.id ?? `empty-${slotIndex}`}
+                    member={member ?? undefined}
+                    slotIndex={slotIndex}
+                  />
+                ))}
               </div>
-            )}
+            </section>
+
+            <section className="card rooms-actions-card">
+              <div className="card-header rooms-card-header">
+                <div>
+                  <p className="eyebrow">ACTIONS</p>
+                  <h2 className="card-title">Reroll Lab</h2>
+                </div>
+              </div>
+
+              <div className="rooms-actions-body">
+                {canShowRerollControls && room ? (
+                  <GroupRerollControls
+                    room={room}
+                    phase={phase}
+                    isOwner={isOwner}
+                    selectionLocked={selection.locked}
+                  />
+                ) : (
+                  <p className="muted rooms-helper-text">
+                    En attente du verrouillage des champions...
+                  </p>
+                )}
+              </div>
+            </section>
           </div>
         </div>
       </main>
