@@ -19,3 +19,43 @@ body::before {
   pointer-events: none;
   z-index: -1;
 }
+
+
+/* ---------- Scrollbar Globale (Electron/Chromium) ---------- */
+
+::-webkit-scrollbar {
+  width: 10px; /* Largeur pour la scrollbar verticale */
+  height: 10px; /* Hauteur pour la scrollbar horizontale */
+}
+
+/* Le fond de la barre (la "piste") */
+::-webkit-scrollbar-track {
+  background: transparent; /* Transparent pour laisser voir le fond de l'app */
+}
+
+/* La partie mobile (le "pouce") */
+::-webkit-scrollbar-thumb {
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.1
+  ); /* Couleur subtile basée sur ton thème */
+  border-radius: 99px; /* Bords complètement ronds */
+
+  /* Astuce pour créer une marge autour de la barre sans réduire sa zone de clic : */
+  border: 2px solid transparent;
+  background-clip: content-box;
+
+  transition: background-color 0.2s ease;
+}
+
+/* Au survol de la souris */
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25); /* Plus visible au survol */
+}
+
+/* Coin (intersection horizontale/verticale) */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
