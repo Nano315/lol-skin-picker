@@ -6,18 +6,22 @@
 }
 
 .nav-link {
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: transparent;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
   font-size: 0.9rem;
   text-decoration: none;
   color: #d4d4d4;
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  transition: transform 0.18s ease, border-color 0.18s ease, color 0.18s ease,
+    background 0.18s ease;
 }
 
 .nav-link:hover {
-  transform: translateY(-1px);
-  opacity: 0.95;
+  transform: translateY(-2px);
+  border-color: var(--panel-border);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
 }
 .nav-link:active {
   transform: translateY(0);
@@ -25,4 +29,6 @@
 }
 .nav-link.active {
   color: #fff;
+  border-color: rgba(139, 92, 246, 0.65);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(14, 165, 233, 0.12));
 }
