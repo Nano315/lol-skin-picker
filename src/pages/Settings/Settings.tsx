@@ -78,10 +78,12 @@ export default function Settings() {
 
               <div className="about-body">
                 <p className="about-text">
-                  Not affiliated with Riot Games or DPM.lol. Crafted to make skin
-                  selection smoother and more delightful.
+                  Not affiliated with Riot Games or DPM.lol. Crafted to make
+                  skin selection smoother and more delightful.
                 </p>
-                <p className="about-meta">© 2024 Skin Picker. All rights reserved.</p>
+                <p className="about-meta">
+                  © 2025 Skin Picker. All rights reserved.
+                </p>
                 <div className="about-actions">
                   <ContactButton />
                 </div>
