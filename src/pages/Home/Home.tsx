@@ -25,7 +25,19 @@ export default function Home() {
       <main className="main">
         <div className="page-shell">
           <div className="bento-grid">
-            <section className="card preview-card">
+            <section
+              className="card preview-card"
+              style={{
+                // On applique la couleur du chroma en fond si elle existe.
+                // Le undefined permet de revenir à la couleur CSS par défaut (var(--panel-color))
+                backgroundColor: chromaColor ?? undefined,
+                // Transition fluide pour l'effet "aura" qui change
+                transition:
+                  "background-color 0.5s ease, border-color 0.5s ease",
+                // Optionnel : on peut aussi teinter légèrement la bordure
+                borderColor: chromaColor ? "rgba(255,255,255,0.2)" : undefined,
+              }}
+            >
               <div className="card-header">
                 <div>
                   <p className="eyebrow">Prévisualisation</p>
@@ -36,7 +48,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <SkinPreview selection={selection} chromaColor={chromaColor} />
+              <SkinPreview selection={selection} />
             </section>
 
             <section className="card details-card">

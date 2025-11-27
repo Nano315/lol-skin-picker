@@ -2,7 +2,6 @@ import fallbackSkin from "/fallback-skin.png?url";
 
 export default function SkinPreview({
   selection,
-  chromaColor,
 }: {
   selection: {
     championId: number;
@@ -10,7 +9,6 @@ export default function SkinPreview({
     skinId: number;
     chromaId: number;
   };
-  chromaColor: string | null;
 }) {
   const splashUrl =
     selection.skinId && selection.championAlias
@@ -21,19 +19,8 @@ export default function SkinPreview({
   const displayedSkin = splashUrl || fallbackSkin;
 
   return (
-    <div
-      className="skin-wrapper"
-      style={
-        chromaColor
-          ? { boxShadow: `1px 1px 111.3px 50px ${chromaColor}` }
-          : undefined
-      }
-    >
-      <img
-        src={displayedSkin}
-        alt="current skin"
-        className="skin-img"
-      />
+    <div className="skin-wrapper">
+      <img src={displayedSkin} alt="current skin" className="skin-img" />
     </div>
   );
 }
