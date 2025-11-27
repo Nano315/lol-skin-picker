@@ -203,52 +203,66 @@ export function RoomsPage() {
       <div className="app">
         <Header status={status} phase={phase} iconId={iconId} />
         <main className="main">
-          <div className="rooms-join-create">
-            {!isConnected && (
-              <p className="rooms-warning">
-                Connect your League of Legends client to use rooms.
-              </p>
-            )}
+          <div className="page-shell rooms-shell">
+            <div className="rooms-join-create">
+              {!isConnected && (
+                <p className="rooms-warning">
+                  Connect your League of Legends client to use rooms.
+                </p>
+              )}
 
-            {isConnected && !summonerName && (
-              <p className="rooms-warning">
-                Fetching your summoner name from the client...
-              </p>
-            )}
+              {isConnected && !summonerName && (
+                <p className="rooms-warning">
+                  Fetching your summoner name from the client...
+                </p>
+              )}
 
-            {error && <p style={{ color: "tomato" }}>{error}</p>}
+              {error && <p style={{ color: "tomato" }}>{error}</p>}
 
-            <div className="rooms-panel card">
-              <div className="rooms-side rooms-side--left">
-                <p className="rooms-side-label">Start a new room</p>
-                <button
-                  className="rooms-primary-btn"
-                  onClick={() => summonerName && create(summonerName)}
-                  disabled={!canUseRooms}
-                >
-                  Create room
-                </button>
-              </div>
+              <div className="rooms-join-grid">
+                <section className="rooms-card card">
+                  <div className="rooms-card-header">
+                    <p className="rooms-side-label">Start a new room</p>
+                    <h2 className="rooms-card-title">Create a lobby</h2>
+                  </div>
+                  <p className="rooms-card-desc">
+                    Generate a fresh room and invite your group instantly.
+                  </p>
+                  <button
+                    className="rooms-primary-btn"
+                    onClick={() => summonerName && create(summonerName)}
+                    disabled={!canUseRooms}
+                  >
+                    Create room
+                  </button>
+                </section>
 
-              <div className="rooms-divider" aria-hidden="true" />
-
-              <div className="rooms-side rooms-side--right">
-                <p className="rooms-side-label">Join an existing room</p>
-                <input
-                  className="rooms-input"
-                  placeholder="Room code (e.g. ABC123)"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                />
-                <button
-                  className="rooms-primary-btn"
-                  onClick={() =>
-                    summonerName && join(code.trim(), summonerName)
-                  }
-                  disabled={!canUseRooms || !code.trim()}
-                >
-                  Join room
-                </button>
+                <section className="rooms-card card">
+                  <div className="rooms-card-header">
+                    <p className="rooms-side-label">Join an existing room</p>
+                    <h2 className="rooms-card-title">Jump into a lobby</h2>
+                  </div>
+                  <p className="rooms-card-desc">
+                    Enter the shared code to sync up with your teammates.
+                  </p>
+                  <div className="rooms-input-row">
+                    <input
+                      className="rooms-input"
+                      placeholder="Room code (e.g. ABC123)"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    />
+                    <button
+                      className="rooms-primary-btn"
+                      onClick={() =>
+                        summonerName && join(code.trim(), summonerName)
+                      }
+                      disabled={!canUseRooms || !code.trim()}
+                    >
+                      Join room
+                    </button>
+                  </div>
+                </section>
               </div>
             </div>
           </div>
@@ -263,41 +277,49 @@ export function RoomsPage() {
     <div className="app">
       <Header status={status} phase={phase} iconId={iconId} />
       <main className="main">
-        <div className="rooms-header">
-          <h2>
-            Room{" "}
-            <button
-              type="button"
-              className="rooms-code-btn"
-              onClick={handleCopyCode}
-            >
-              <span className="rooms-code-text">{room?.code}</span>
-              {copied && <span className="rooms-code-badge">Copied!</span>}
+        <div className="page-shell rooms-shell">
+          <div className="rooms-header-card card">
+            <div>
+              <p className="rooms-side-label">Lobby ready</p>
+              <div className="rooms-header-row">
+                <h2 className="rooms-title">Room</h2>
+                <button
+                  type="button"
+                  className="rooms-code-pill"
+                  onClick={handleCopyCode}
+                >
+                  <span className="rooms-code-text">{room?.code}</span>
+                  {copied && <span className="rooms-code-badge">Copied!</span>}
+                </button>
+              </div>
+            </div>
+
+            <button className="rooms-leave-btn" onClick={leave}>
+              Leave
             </button>
-          </h2>
-          <button className="rooms-leave-btn" onClick={leave}>
-            Leave room
-          </button>
-        </div>
+          </div>
 
-        <div className="rooms-members-row">
-          {orderedSlots.map(({ member, slotIndex }) => (
-            <RoomMemberCard
-              key={member?.id ?? `empty-${slotIndex}`}
-              member={member ?? undefined}
-              slotIndex={slotIndex}
-            />
-          ))}
-        </div>
+          <div className="rooms-grid">
+            {orderedSlots.map(({ member, slotIndex }) => (
+              <RoomMemberCard
+                key={member?.id ?? `empty-${slotIndex}`}
+                member={member ?? undefined}
+                slotIndex={slotIndex}
+              />
+            ))}
 
-        {room && (
-          <GroupRerollControls
-            room={room}
-            phase={phase}
-            isOwner={isOwner}
-            selectionLocked={selection.locked}
-          />
-        )}
+            {room && (
+              <div className="rooms-action-bar card">
+                <GroupRerollControls
+                  room={room}
+                  phase={phase}
+                  isOwner={isOwner}
+                  selectionLocked={selection.locked}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </main>
     </div>
   );

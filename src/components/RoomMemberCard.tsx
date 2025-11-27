@@ -53,7 +53,9 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
       <div
         className="room-member-skin"
         style={
-          chromaColor ? { boxShadow: `0 0 30px ${chromaColor}` } : undefined
+          chromaColor && isOccupied
+            ? { boxShadow: `0 0 30px ${chromaColor}` }
+            : undefined
         }
       >
         <img
@@ -64,8 +66,11 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
         />
       </div>
 
-      {/* Pseudo seulement si la carte est occupée */}
-      {isOccupied && <div className="room-member-name">{member!.name}</div>}
+      {isOccupied ? (
+        <div className="room-member-name">{member!.name}</div>
+      ) : (
+        <div className="room-member-placeholder">Waiting for player</div>
+      )}
     </div>
   );
 }
