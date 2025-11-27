@@ -28,7 +28,7 @@ export function GroupRerollControls({
 
   const allReady = useMemo(() => {
     if (!room.members.length) return false;
-    return room.members.every((m) => m.championId !== 0 && m.ready);
+    return room.members.every((m) => m.championId !== 0);
   }, [room.members]);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
