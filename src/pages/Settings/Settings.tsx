@@ -41,28 +41,55 @@ export default function Settings() {
     <div className="app">
       <Header status={status} phase={phase} iconId={iconId} />
 
-      {/* options centrées */}
       <main className="main settings-main">
-        <OptionsPanel
-          includeDefault={includeDefault}
-          setIncludeDefault={(v) => {
-            setIncludeDefault(v);
-            save("includeDefault", v);
-          }}
-          autoRoll={autoRoll}
-          setAutoRoll={(v) => {
-            setAutoRoll(v);
-            save("autoRoll", v);
-          }}
-          savePref={save}
-        />
-      </main>
+        <div className="page-shell settings-shell">
+          <div className="settings-stack">
+            <section className="card settings-card">
+              <div className="card-header">
+                <div>
+                  <p className="eyebrow">PREFERENCES</p>
+                  <h2 className="card-title">Application Behavior</h2>
+                </div>
+              </div>
 
-      {/* mention légale en bas, centrée */}
-      <footer className="disclaimer">
-        <em>Not affiliated with Riot Games or DPM.lol.</em>
-        <ContactButton />
-      </footer>
+              <OptionsPanel
+                includeDefault={includeDefault}
+                setIncludeDefault={(v) => {
+                  setIncludeDefault(v);
+                  save("includeDefault", v);
+                }}
+                autoRoll={autoRoll}
+                setAutoRoll={(v) => {
+                  setAutoRoll(v);
+                  save("autoRoll", v);
+                }}
+                savePref={save}
+              />
+            </section>
+
+            <section className="card settings-card">
+              <div className="card-header about-header">
+                <div>
+                  <p className="eyebrow">ABOUT</p>
+                  <h2 className="card-title">Skin Picker</h2>
+                </div>
+                <span className="version-pill">v6.0.0</span>
+              </div>
+
+              <div className="about-body">
+                <p className="about-text">
+                  Not affiliated with Riot Games or DPM.lol. Crafted to make skin
+                  selection smoother and more delightful.
+                </p>
+                <p className="about-meta">© 2024 Skin Picker. All rights reserved.</p>
+                <div className="about-actions">
+                  <ContactButton />
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

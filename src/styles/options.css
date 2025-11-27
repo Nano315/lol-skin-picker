@@ -1,49 +1,72 @@
-/* -------- options (bas-gauche) -------- */
+/* -------- options (Settings) -------- */
 .options-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  /* centrage visuel dans Settings */
-  min-width: 320px;
+  gap: 6px;
 }
 
-.option {
+.option-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  background: #13171d;
-  font-size: 0.8rem;
+  justify-content: space-between;
+  padding: 12px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.option-row:last-of-type {
+  border-bottom: none;
+}
+
+.option-label {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
-  user-select: none;
-  transition: transform 0.12s ease, opacity 0.12s ease;
 }
 
-.option:hover {
-  transform: translateY(-1px);
-  opacity: 0.95;
-}
-.option:active {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.option input {
-  position: absolute; /* masqué mais accessible */
+.switch input {
+  position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #e23670; /* = false */
+.track {
+  width: 48px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.option input:checked + .dot {
-  background: #4ac97e; /* = true */
+.thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #d4d6dd;
+  transform: translateX(0);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.switch input:checked + .track {
+  background: var(--accent);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 6px rgba(85, 167, 255, 0.12);
+}
+
+.switch input:checked + .track .thumb {
+  transform: translateX(22px);
+  background: #fff;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
 }

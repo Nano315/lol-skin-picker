@@ -1,29 +1,27 @@
-/* -------- bouton contact (bas-droite) -------- */
+/* -------- bouton contact -------- */
 .contact-btn {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: 5;
-
-  background: #3f445a;
-  color: #cdcecf;
+  background: linear-gradient(135deg, #4f8dff, #7cc4ff);
+  color: #0f1722;
   text-transform: uppercase;
-  font-weight: 600;
-  font-size: x-small;
+  font-weight: 800;
+  font-size: 0.75rem;
 
   border: none;
-  border-radius: 8px;
-  padding: 6px 10px;
-  letter-spacing: 0.06em;
+  border-radius: 12px;
+  padding: 10px 16px;
+  letter-spacing: 0.08em;
   cursor: pointer;
   user-select: none;
-  transition: transform 0.12s ease, opacity 0.12s ease;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
 }
 .contact-btn:hover {
   transform: translateY(-1px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
   opacity: 0.95;
 }
 .contact-btn:active {
   transform: translateY(0);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   opacity: 1;
 }

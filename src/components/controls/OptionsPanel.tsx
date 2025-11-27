@@ -32,21 +32,29 @@ export default function OptionsPanel({
 
   return (
     <div className="options-wrapper">
-      <label className="option">
-        <input
-          type="checkbox"
-          checked={includeDefault}
-          onChange={onIncludeChange}
-        />
-        <span className="dot" />
-        <span className="txt">Include default skin</span>
-      </label>
+      <div className="option-row">
+        <span className="option-label">Include default skin</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={includeDefault}
+            onChange={onIncludeChange}
+          />
+          <span className="track">
+            <span className="thumb" />
+          </span>
+        </label>
+      </div>
 
-      <label className="option">
-        <input type="checkbox" checked={autoRoll} onChange={onAutoRollChange} />
-        <span className="dot" />
-        <span className="txt">Auto roll on champion lock</span>
-      </label>
+      <div className="option-row">
+        <span className="option-label">Auto roll on champion lock</span>
+        <label className="switch">
+          <input type="checkbox" checked={autoRoll} onChange={onAutoRollChange} />
+          <span className="track">
+            <span className="thumb" />
+          </span>
+        </label>
+      </div>
     </div>
   );
 }

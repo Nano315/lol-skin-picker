@@ -1,6 +1,59 @@
 /* Spécifique à la page Settings */
 .settings-main {
-  align-items: center; /* centre horizontalement le contenu */
-  padding: 24px; /* remplace l'ancien style inline */
-  gap: 18px; /* respiration verticale */
+  align-items: center;
+  padding: 32px 0 48px;
+}
+
+.settings-shell {
+  width: min(600px, 100%);
+}
+
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-card {
+  background: var(--panel-color);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.about-header {
+  align-items: center;
+}
+
+.version-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.about-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #e4e7ef;
+}
+
+.about-text {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.about-meta {
+  margin: 0;
+  color: var(--muted-color);
+  font-size: 0.9rem;
+}
+
+.about-actions {
+  display: flex;
+  justify-content: flex-end;
 }
