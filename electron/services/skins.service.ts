@@ -91,10 +91,17 @@ export class SkinsService extends EventEmitter {
     this.lastAppliedChampion = 0;
   }
 
+  // 1. Remplacer setInterval par une boucle récursive pour éviter les chevauchements
   start() {
     if (!this.creds || this.poller) return;
-    void this.tick();
-    this.poller = setInterval(() => this.tick(), 1500);
+    this.loopTick();
+  }
+
+  private async loopTick() {
+    if (!this.creds) return; // Condition d'arrêt
+    await this.tick();
+    // On attend la fin de tick() avant de programmer le suivant
+    this.poller = setTimeout(() => this.loopTick(), 1500);
   }
 
   stop() {
@@ -526,6 +533,10 @@ export class SkinsService extends EventEmitter {
     const { protocol, port, password } = this.creds;
     const url = `${protocol}://127.0.0.1:${port}/lol-champ-select/v1/session/my-selection`;
     const auth = Buffer.from(`riot:${password}`).toString("base64");
+    // OPTIMISTIC UPDATE : On dit tout de suite à l'app "c'est bon"
+    // pour éviter que l'interface ne revienne en arrière en attendant le LCU
+    this.selectedSkinId = skinId;
+    this.emit("selection", this.getSelection());
     try {
       const res = await fetch(url, {
         method: "PATCH",
@@ -535,11 +546,15 @@ export class SkinsService extends EventEmitter {
         },
         body: JSON.stringify({ selectedSkinId: skinId }),
       });
-      if (!res.ok) return false; // Bubble failure so callers avoid desynchronizing UI state.
+      if (!res.ok) {
+        // Si ça échoue vraiment, le prochain tick() corrigera l'erreur
+        return false;
+      }
+      // On force une lecture immédiate pour confirmer
       void this.updateManualSelection();
       return true;
     } catch {
-      return false; // Propagate network errors to callers.
+      return false;
     }
     return false; // Default to failure if we somehow drop through the try/catch.
   }

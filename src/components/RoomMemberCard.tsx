@@ -27,6 +27,11 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
     locked: false,
   });
 
+  // Gestion d'erreur pour charger l'image par défaut si le calcul d'URL échoue
+  const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.src = fallbackSkin;
+  };
+
   // Portrait loading screen
   let portraitUrl = "";
   if (championId && skinId && championAlias) {
@@ -55,6 +60,7 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
           src={displayedSkin}
           alt={isOccupied ? member!.name : "Empty slot"}
           className="room-member-skin-img"
+          onError={handleImgError}
         />
       </div>
 

@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { roomsClient, type RoomState } from "../roomsClient";
+import { api } from "../api"; // <-- On importe l'api correctement
 import type { Selection } from "../types";
 
 export function useRooms(selection: Selection) {
@@ -16,12 +17,45 @@ export function useRooms(selection: Selection) {
       setJoined(roomsClient.isJoined());
     });
 
-    // si on était déjà dans une room (reload / retour sur la page)
     if (roomsClient.isJoined()) {
       roomsClient.connect();
     }
 
-    return unsubscribe; // on se désabonne seulement de l’event
+    return unsubscribe;
+  }, []);
+
+  // Gestion des combos (Sync Chroma)
+  useEffect(() => {
+    const unsubCombo = roomsClient.onGroupCombo(async (payload) => {
+      if (payload.type === "sameColor") {
+        // 1. On utilise la nouvelle méthode getMemberId()
+        const myPick = payload.picks.find(
+          (p) => p.memberId === roomsClient.getMemberId()
+        );
+
+        if (myPick) {
+          // 2. Logique importante : Si un chroma est défini (> 0), c'est lui qu'on applique.
+          // Sinon, on applique le skin de base.
+          // Dans le LCU, sélectionner un chroma revient à "applySkinId(chromaId)".
+          const idToApply =
+            myPick.chromaId && myPick.chromaId > 0
+              ? myPick.chromaId
+              : myPick.skinId;
+
+          // On utilise la méthode correcte définie dans api.ts
+          try {
+            await api.applySkinId(idToApply);
+            console.log(`[Sync] Applied skin/chroma ID: ${idToApply}`);
+          } catch (err) {
+            console.error("[Sync] Failed to apply skin", err);
+          }
+        }
+      }
+    });
+
+    return () => {
+      unsubCombo();
+    };
   }, []);
 
   async function create(name: string) {
@@ -56,19 +90,18 @@ export function useRooms(selection: Selection) {
     setRoom(null);
   }
 
-  // à chaque changement de sélection OU changement de joined,
-  // on notifie la room si on est dedans
+  // Notifier la room des changements locaux
   useEffect(() => {
     if (joined) {
       roomsClient.sendSelection(selection);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     joined,
     selection.championId,
     selection.skinId,
     selection.chromaId,
     selection.championAlias,
-    selection,
   ]);
 
   return { room, joined, error, create, join, leave };

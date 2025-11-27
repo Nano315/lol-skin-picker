@@ -91,6 +91,10 @@ class RoomsClient {
     return this.room;
   }
 
+  getMemberId() {
+    return this.memberId;
+  }
+
   isJoined() {
     return !!this.roomId && !!this.memberId;
   }
