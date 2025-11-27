@@ -29,6 +29,22 @@ export function RoomsPage() {
 
   const [copied, setCopied] = useState(false);
 
+  const memberCount = room?.members.length ?? 0;
+  const roomStatusLabel = !room
+    ? "Offline"
+    : memberCount >= 5
+    ? "Full lobby"
+    : memberCount >= 3
+    ? "In progress"
+    : "Waiting";
+  const roomStatusTone = !room
+    ? "chip--danger"
+    : memberCount >= 5
+    ? "chip--danger"
+    : memberCount >= 3
+    ? "chip--warning"
+    : "chip--success";
+
   // --- Construction des 5 slots logiques (1..5) + ordre visuel 4-2-1-3-5 ---
   const orderedSlots = useMemo<
     { member: RoomMember | null; slotIndex: number }[]
@@ -203,53 +219,98 @@ export function RoomsPage() {
       <div className="app">
         <Header status={status} phase={phase} iconId={iconId} />
         <main className="main">
-          <div className="rooms-join-create">
-            {!isConnected && (
-              <p className="rooms-warning">
-                Connect your League of Legends client to use rooms.
-              </p>
-            )}
-
-            {isConnected && !summonerName && (
-              <p className="rooms-warning">
-                Fetching your summoner name from the client...
-              </p>
-            )}
-
-            {error && <p style={{ color: "tomato" }}>{error}</p>}
-
-            <div className="rooms-panel card">
-              <div className="rooms-side rooms-side--left">
-                <p className="rooms-side-label">Start a new room</p>
+          <div className="page-shell">
+            <div className="bento-grid rooms-grid">
+              <section className="card rooms-card rooms-card--create">
+                <div className="card-header">
+                  <div>
+                    <p className="eyebrow">New lobby</p>
+                    <h2 className="card-title">Create a room</h2>
+                  </div>
+                  <span
+                    className={`chip ${
+                      canUseRooms ? "chip--success" : "chip--warning"
+                    }`}
+                  >
+                    <span className="chip-dot" />
+                    {canUseRooms ? "Ready" : "Client required"}
+                  </span>
+                </div>
+                <p className="muted">
+                  Spin up a private lobby to sync skins and chromas with your
+                  team.
+                </p>
                 <button
-                  className="rooms-primary-btn"
+                  className="btn btn-primary rooms-primary-btn"
                   onClick={() => summonerName && create(summonerName)}
                   disabled={!canUseRooms}
                 >
                   Create room
                 </button>
-              </div>
+              </section>
 
-              <div className="rooms-divider" aria-hidden="true" />
+              <section className="card rooms-card rooms-card--join">
+                <div className="card-header">
+                  <div>
+                    <p className="eyebrow">Join friends</p>
+                    <h2 className="card-title">Enter a room code</h2>
+                  </div>
+                  <span className="chip">
+                    <span className="chip-dot" />
+                    Secure invite
+                  </span>
+                </div>
+                <div className="rooms-form">
+                  <input
+                    className="rooms-input"
+                    placeholder="Room code (e.g. ABC123)"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  />
+                  <button
+                    className="btn btn-primary rooms-primary-btn"
+                    onClick={() =>
+                      summonerName && join(code.trim(), summonerName)
+                    }
+                    disabled={!canUseRooms || !code.trim()}
+                  >
+                    Join room
+                  </button>
+                </div>
+              </section>
 
-              <div className="rooms-side rooms-side--right">
-                <p className="rooms-side-label">Join an existing room</p>
-                <input
-                  className="rooms-input"
-                  placeholder="Room code (e.g. ABC123)"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                />
-                <button
-                  className="rooms-primary-btn"
-                  onClick={() =>
-                    summonerName && join(code.trim(), summonerName)
-                  }
-                  disabled={!canUseRooms || !code.trim()}
-                >
-                  Join room
-                </button>
-              </div>
+              <section className="card rooms-card rooms-card--status">
+                <div className="card-header">
+                  <div>
+                    <p className="eyebrow">Connection</p>
+                    <h2 className="card-title">Readiness</h2>
+                  </div>
+                </div>
+                <div className="rooms-alerts">
+                  {!isConnected && (
+                    <div className="rooms-alert rooms-alert--warning">
+                      Connect your League of Legends client to use rooms.
+                    </div>
+                  )}
+
+                  {isConnected && !summonerName && (
+                    <div className="rooms-alert rooms-alert--warning">
+                      Fetching your summoner name from the client...
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="rooms-alert rooms-alert--danger">{error}</div>
+                  )}
+
+                  {!error && isConnected && summonerName && (
+                    <div className="rooms-alert rooms-alert--success">
+                      You are authenticated as <strong>{summonerName}</strong>.
+                      Share your room code to collaborate.
+                    </div>
+                  )}
+                </div>
+              </section>
             </div>
           </div>
         </main>
@@ -263,41 +324,79 @@ export function RoomsPage() {
     <div className="app">
       <Header status={status} phase={phase} iconId={iconId} />
       <main className="main">
-        <div className="rooms-header">
-          <h2>
-            Room{" "}
-            <button
-              type="button"
-              className="rooms-code-btn"
-              onClick={handleCopyCode}
-            >
-              <span className="rooms-code-text">{room?.code}</span>
-              {copied && <span className="rooms-code-badge">Copied!</span>}
-            </button>
-          </h2>
-          <button className="rooms-leave-btn" onClick={leave}>
-            Leave room
-          </button>
-        </div>
+        <div className="page-shell">
+          <div className="bento-grid rooms-grid rooms-grid--joined">
+            <section className="card rooms-card rooms-card--meta">
+              <div className="card-header rooms-meta">
+                <div>
+                  <p className="eyebrow">Group lobby</p>
+                  <h2 className="card-title">Room {room?.code}</h2>
+                </div>
+                <div className="rooms-meta-actions">
+                  <button
+                    type="button"
+                    className="rooms-code-btn btn btn-ghost"
+                    onClick={handleCopyCode}
+                  >
+                    <span className="rooms-code-text">Copy code</span>
+                    {copied && (
+                      <span className="rooms-code-badge">Copied!</span>
+                    )}
+                  </button>
+                  <button className="btn" onClick={leave}>
+                    Leave room
+                  </button>
+                </div>
+              </div>
+              <div className="rooms-meta-footer">
+                <span className={`chip ${roomStatusTone}`}>
+                  <span className="chip-dot" />
+                  {roomStatusLabel}
+                </span>
+                <span className="chip">
+                  <span className="chip-dot" />
+                  {memberCount}/5 members
+                </span>
+              </div>
+            </section>
 
-        <div className="rooms-members-row">
-          {orderedSlots.map(({ member, slotIndex }) => (
-            <RoomMemberCard
-              key={member?.id ?? `empty-${slotIndex}`}
-              member={member ?? undefined}
-              slotIndex={slotIndex}
-            />
-          ))}
-        </div>
+            <section className="card rooms-card rooms-card--members">
+              <div className="card-header">
+                <div>
+                  <p className="eyebrow">Lineup</p>
+                  <h3 className="card-title">Slots</h3>
+                </div>
+                <p className="muted">Hover a card to preview the aura glow.</p>
+              </div>
+              <div className="rooms-members-grid">
+                {orderedSlots.map(({ member, slotIndex }) => (
+                  <RoomMemberCard
+                    key={member?.id ?? `empty-${slotIndex}`}
+                    member={member ?? undefined}
+                    slotIndex={slotIndex}
+                  />
+                ))}
+              </div>
+            </section>
 
-        {room && (
-          <GroupRerollControls
-            room={room}
-            phase={phase}
-            isOwner={isOwner}
-            selectionLocked={selection.locked}
-          />
-        )}
+            {room && (
+              <section className="card rooms-card rooms-card--actions">
+                <div className="card-header">
+                  <div>
+                    <p className="eyebrow">Synergy</p>
+                    <h3 className="card-title">Group rerolls</h3>
+                  </div>
+                </div>
+                <GroupRerollControls
+                  room={room}
+                  phase={phase}
+                  isOwner={isOwner}
+                  selectionLocked={selection.locked}
+                />
+              </section>
+            )}
+          </div>
+        </div>
       </main>
     </div>
   );

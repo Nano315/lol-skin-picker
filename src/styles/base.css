@@ -1,9 +1,12 @@
 /* Corps de l’appli (fond, typo) */
 body {
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text-color);
-  background: var(--bg-color) url("/bg-cover.png") center / cover no-repeat
-    fixed;
+  background: var(--bg-color);
+  background-image: var(--surface-gradient);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Overlay sombre optionnel (contraste) */
@@ -11,7 +14,9 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: var(--bg-color);
-  opacity: 0; /* ajuste l’intensité si besoin */
+  background: radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.06), transparent 45%),
+    linear-gradient(180deg, rgba(9, 9, 11, 0.8) 0%, rgba(9, 9, 11, 0.95) 100%);
+  opacity: 0.8;
   pointer-events: none;
+  z-index: -1;
 }

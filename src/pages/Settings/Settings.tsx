@@ -37,32 +37,84 @@ export default function Settings() {
     );
   }, [read]);
 
+  const isConnected = status === "connected";
+
   return (
     <div className="app">
       <Header status={status} phase={phase} iconId={iconId} />
 
-      {/* options centrées */}
       <main className="main settings-main">
-        <OptionsPanel
-          includeDefault={includeDefault}
-          setIncludeDefault={(v) => {
-            setIncludeDefault(v);
-            save("includeDefault", v);
-          }}
-          autoRoll={autoRoll}
-          setAutoRoll={(v) => {
-            setAutoRoll(v);
-            save("autoRoll", v);
-          }}
-          savePref={save}
-        />
-      </main>
+        <div className="page-shell">
+          <div className="bento-grid settings-grid">
+            <section className="card settings-card settings-card--wide">
+              <div className="card-header">
+                <div>
+                  <p className="eyebrow">Skin picker</p>
+                  <h2 className="card-title">Reroll preferences</h2>
+                </div>
+                <span className="chip">
+                  <span className="chip-dot" />
+                  Saved locally & synced
+                </span>
+              </div>
+              <OptionsPanel
+                includeDefault={includeDefault}
+                setIncludeDefault={(v) => {
+                  setIncludeDefault(v);
+                  save("includeDefault", v);
+                }}
+                autoRoll={autoRoll}
+                setAutoRoll={(v) => {
+                  setAutoRoll(v);
+                  save("autoRoll", v);
+                }}
+                savePref={save}
+              />
+            </section>
 
-      {/* mention légale en bas, centrée */}
-      <footer className="disclaimer">
-        <em>Not affiliated with Riot Games or DPM.lol.</em>
-        <ContactButton />
-      </footer>
+            <section className="card settings-card">
+              <div className="card-header">
+                <div>
+                  <p className="eyebrow">Client</p>
+                  <h3 className="card-title">Connection & status</h3>
+                </div>
+                <span className={`chip ${isConnected ? "chip--success" : "chip--danger"}`}>
+                  <span className="chip-dot" />
+                  {isConnected ? "Connected" : "Disconnected"}
+                </span>
+              </div>
+              <div className="detail-grid settings-detail-grid">
+                <div className="detail-item">
+                  <p className="detail-label">Game phase</p>
+                  <p className="detail-value">{phase ?? "Unknown"}</p>
+                </div>
+                <div className="detail-item">
+                  <p className="detail-label">Summoner state</p>
+                  <p className="detail-value">{status}</p>
+                </div>
+              </div>
+              <p className="muted">
+                We rely on the League client being open to read your summoner
+                name and push skins automatically.
+              </p>
+            </section>
+
+            <section className="card settings-card">
+              <div className="card-header">
+                <div>
+                  <p className="eyebrow">About</p>
+                  <h3 className="card-title">Credits & support</h3>
+                </div>
+              </div>
+              <p className="muted">
+                Not affiliated with Riot Games or DPM.lol. For questions or
+                issues, reach out directly.
+              </p>
+              <ContactButton />
+            </section>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

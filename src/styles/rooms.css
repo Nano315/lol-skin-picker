@@ -1,93 +1,176 @@
-/* ---------- Header de la room ---------- */
+/* ---------- Rooms layout ---------- */
 
-.rooms-header {
-  width: 83%;
-  max-width: 1000px;
-  margin: 24px auto 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.rooms-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
 }
 
-.rooms-header h2 {
-  font-size: 1.2rem;
+.rooms-card--create,
+.rooms-card--join {
+  grid-column: span 6;
 }
 
-.rooms-leave-btn {
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: none;
-  background: #2b2f3c;
-  color: #f5f5f5;
-  font-size: 0.8rem;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  transition: transform 0.12s ease, opacity 0.12s ease;
+.rooms-card--status {
+  grid-column: span 12;
 }
 
-.rooms-leave-btn:hover {
-  transform: translateY(-1px);
-  opacity: 0.95;
+.rooms-grid--joined .rooms-card--meta {
+  grid-column: span 12;
 }
 
-.rooms-leave-btn:active {
-  transform: translateY(0);
-  opacity: 1;
+.rooms-grid--joined .rooms-card--members {
+  grid-column: span 8;
 }
 
-/* ---------- Ligne des membres (5 slots) ---------- */
-
-.rooms-members-row {
-  width: 83%;
-  max-width: 1300px;
-  margin: 28px auto 0;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end; /* permet de "surélever" via margin-bottom */
-  gap: 18px;
+.rooms-grid--joined .rooms-card--actions {
+  grid-column: span 4;
 }
 
-/* ---------- Card membre ---------- */
+.rooms-card h2,
+.rooms-card h3 {
+  margin: 0;
+}
 
-.room-member-card {
-  flex: 1 1 clamp(200px, 28vw, 340px);
+.rooms-form {
   display: flex;
   flex-direction: column;
+  gap: 14px;
+}
+
+.rooms-primary-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.rooms-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f8fafc;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.rooms-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.rooms-input:focus {
+  border-color: rgba(139, 92, 246, 0.6);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rooms-alerts {
+  display: grid;
+  gap: 12px;
+}
+
+.rooms-alert {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.02);
+  color: #e5e7eb;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.rooms-alert strong {
+  color: #fff;
+}
+
+.rooms-alert--success {
+  border-color: rgba(74, 222, 128, 0.35);
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.12), rgba(34, 197, 94, 0.05));
+}
+
+.rooms-alert--warning {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.05));
+}
+
+.rooms-alert--danger {
+  border-color: rgba(248, 113, 113, 0.35);
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.12), rgba(239, 68, 68, 0.05));
+}
+
+.rooms-meta {
+  align-items: flex-start;
+}
+
+.rooms-meta-actions {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-/* Slots vides : complètement transparents & non cliquables */
+.rooms-meta-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rooms-code-btn {
+  padding-inline: 14px;
+}
+
+.rooms-code-text {
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.rooms-code-badge {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(139, 92, 246, 0.16);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.rooms-members-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.room-member-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.02);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.room-member-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+}
+
 .room-member-card--empty {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0.35;
 }
-
-/* Surélévation par slot (logique 1..5) */
-.room-member-card--slot-1 {
-  margin-bottom: 20px;
-}
-
-.room-member-card--slot-2,
-.room-member-card--slot-3 {
-  margin-bottom: 10px;
-}
-
-.room-member-card--slot-4,
-.room-member-card--slot-5 {
-  margin-bottom: 0;
-}
-
-/* ---------- Skin dans la carte ---------- */
 
 .room-member-skin {
   width: 100%;
   aspect-ratio: 9 / 16;
-  border-radius: 24px;
+  border-radius: 18px;
   overflow: hidden;
-  background: #050608;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: radial-gradient(circle at 50% 30%, rgba(139, 92, 246, 0.12), #050608 60%);
   transition: box-shadow 0.2s ease;
 }
 
@@ -96,353 +179,57 @@
   height: 100%;
   object-fit: cover;
   display: block;
-
-  /* léger zoom pour couper l’ombre LoL */
   transform: scale(1.08);
   transform-origin: center;
   transition: transform 0.2s ease-out;
 }
 
-/* Nom du joueur */
+.room-member-card:hover .room-member-skin-img {
+  transform: scale(1.12);
+}
 
 .room-member-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-  text-align: center;
-  opacity: 0.95;
-}
-
-/* ---------- Page Rooms : layout général ---------- */
-
-.rooms-join-create {
-  width: 40%;
-  max-width: 1300px;
-  margin: 40px auto 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.rooms-warning {
-  font-size: 0.9rem;
-  color: #fbbf24;
-  padding: 8px 12px;
-  background: rgba(107, 70, 0, 0.35);
-  border-radius: 8px;
-}
-
-/* ---------- Bloc create / join ---------- */
-
-.rooms-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 20px 24px;
-}
-
-.rooms-side {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.rooms-side-label {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.7;
-}
-
-/* Barre de séparation discrète */
-.rooms-divider {
-  width: 80%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-  align-self: stretch;
-  margin: 0 auto;
-}
-
-/* Boutons rooms */
-
-.rooms-primary-btn {
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: none;
-  background: #2b2f3c;
-  color: #f5f5f5;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: center;
-  transition: transform 0.12s ease, opacity 0.12s ease;
-  border: #d4d4d4 1px solid;
-}
-
-.rooms-primary-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  border: #fff 1px solid;
-}
-
-.rooms-primary-btn:active:not(:disabled) {
-  transform: translateY(0);
-  border: #fff 1px solid;
-}
-
-.rooms-primary-btn:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-/* Input code room */
-
-.rooms-input {
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  background: rgba(15, 23, 42, 0.6);
-  color: #e5e7eb;
-  font-size: 0.9rem;
-  outline: none;
-}
-
-.rooms-input::placeholder {
-  color: rgba(148, 163, 184, 0.8);
-  font-size: 0.85rem;
-}
-
-.rooms-input:focus {
-  border-color: rgba(96, 165, 250, 0.8);
-  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.3);
-}
-
-.rooms-code-btn {
-  border: none;
-  background: transparent;
-  padding: 2px 6px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-  transition: transform 0.12s ease, opacity 0.12s ease;
-}
-
-.rooms-code-btn:hover {
-  transform: translateY(-1px);
-}
-
-.rooms-code-btn:active {
-  transform: translateY(0);
-  opacity: 0.9;
-}
-
-.rooms-code-text {
-  letter-spacing: 0.08em;
+  font-size: 0.95rem;
   font-weight: 600;
-}
-
-.rooms-code-badge {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 2px 8px;
-  border-radius: 999px;
   color: #fff;
-  opacity: 1;
+  text-align: center;
+  letter-spacing: 0.01em;
 }
-
-/* ---- Group Reroll Controls ---- */
 
 .group-reroll-wrapper {
-  margin-top: 0;
-  margin-bottom: 6px;
-  width: 83%;
-  max-width: 1000px;
+  margin: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.group-reroll-label {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.8;
+  gap: 14px;
 }
 
 .group-reroll-controls {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
 }
 
-/* ---- Custom select style ---- */
-
-.group-reroll-select-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 220px;
-  max-width: 320px;
-}
-
-/* bouton principal (valeur sélectionnée) */
-.group-reroll-trigger {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: #13171d;
-  color: #e5e5e5;
-  font-size: 0.85rem;
-  cursor: pointer;
-  outline: none;
-}
-
-.group-reroll-trigger:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-}
-
-.group-reroll-trigger-main {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.group-reroll-trigger-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.group-reroll-trigger-caret {
-  opacity: 0.8;
-  font-size: 0.7rem;
-}
-
-/* petit rectangle de couleur */
-.group-reroll-chip {
-  width: 32px;
-  height: 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.4);
-  flex-shrink: 0;
-}
-
-/* bouton random (icône arrows-rotate) */
-.group-reroll-random-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: #13171d;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
-}
-
-.group-reroll-random-btn:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: #1b2029;
-  opacity: 0.95;
-}
-
-.group-reroll-random-btn svg {
-  font-size: 0.9rem;
-  color: #e5e5e5;
-}
-
-/* animation de rotation */
-@keyframes group-reroll-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
+@media (max-width: 1100px) {
+  .rooms-card--create,
+  .rooms-card--join,
+  .rooms-card--status,
+  .rooms-grid--joined .rooms-card--meta,
+  .rooms-grid--joined .rooms-card--members,
+  .rooms-grid--joined .rooms-card--actions {
+    grid-column: span 12;
   }
 }
 
-.group-reroll-random-btn.is-spinning svg {
-  animation: group-reroll-spin 0.4s linear;
-}
+@media (max-width: 720px) {
+  .rooms-meta-actions {
+    width: 100%;
+  }
 
-/* dropdown */
+  .rooms-meta-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
 
-.group-reroll-dropdown {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  z-index: 20;
-
-  padding: 4px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: #101218;
-  box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.5);
-
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.group-reroll-dropdown::-webkit-scrollbar {
-  width: 6px;
-}
-
-.group-reroll-dropdown::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.group-reroll-dropdown::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 999px;
-}
-
-.group-reroll-option {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: #e5e5e5;
-  font-size: 0.82rem;
-  cursor: pointer;
-  text-align: left;
-}
-
-.group-reroll-option:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.group-reroll-option--active {
-  background: rgba(98, 72, 255, 0.22);
-}
-
-.group-reroll-option-text {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* garde ça pour le bouton "Reroll Group" */
-.group-reroll-text {
-  white-space: nowrap;
+  .rooms-card {
+    padding: 18px;
+  }
 }

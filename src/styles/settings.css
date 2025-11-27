@@ -1,6 +1,42 @@
 /* Spécifique à la page Settings */
 .settings-main {
-  align-items: center; /* centre horizontalement le contenu */
-  padding: 24px; /* remplace l'ancien style inline */
-  gap: 18px; /* respiration verticale */
+  align-items: center;
+  padding: 28px 0 48px;
+}
+
+.settings-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-card--wide {
+  grid-column: span 8;
+}
+
+.settings-grid .settings-card:not(.settings-card--wide) {
+  grid-column: span 4;
+}
+
+.settings-detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.settings-detail-grid .detail-item {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.settings-main .muted {
+  line-height: 1.6;
+}
+
+@media (max-width: 1100px) {
+  .settings-card--wide,
+  .settings-grid .settings-card:not(.settings-card--wide) {
+    grid-column: span 12;
+  }
 }

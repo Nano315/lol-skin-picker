@@ -3,8 +3,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 24px;
-  z-index: 1;
+  padding: 16px 24px;
+  margin: 18px auto 8px;
+  width: min(1200px, 100% - 48px);
+  background: var(--panel-color);
+  border: 1px solid var(--panel-border);
+  border-radius: 22px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 10;
 }
 
 /* logo à gauche */
@@ -16,12 +24,16 @@
 .connection {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 /* label de connexion / phase */
 .state {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   text-transform: capitalize;
 }
 
@@ -37,12 +49,12 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 30px; /* <-- rapprochement net */
+  gap: 20px;
 }
 
 /* La nav elle-même peut être un peu plus serrée */
 .nav {
   display: flex;
   align-items: center;
-  gap: 10px; /* (était 14px) */
+  gap: 10px;
 }

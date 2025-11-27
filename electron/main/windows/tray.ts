@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Menu, Tray, nativeImage, app, dialog } from "electron";
 import path from "node:path";
 import fs from "node:fs";
 import { createRequire } from "node:module";
+import type {
+  ProgressInfo,
+  UpdateDownloadedEvent,
+  UpdateInfo,
+} from "electron-updater";
 
 const require = createRequire(import.meta.url);
 
@@ -73,25 +75,28 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
     }
   };
 
-  const manualCheckForUpdates = () => {
-    const au = getAutoUpdater();
+    const manualCheckForUpdates = () => {
+      const au = getAutoUpdater();
 
-    if (!au) {
-      dialog.showMessageBox({
-        type: "info",
-        message: app.isPackaged
-          ? "Auto-update unavailable."
-          : "Updates unavailable in dev",
-      });
-      return;
-    }
+      if (!au) {
+        dialog.showMessageBox({
+          type: "info",
+          message: app.isPackaged
+            ? "Auto-update unavailable."
+            : "Updates unavailable in dev",
+        });
+        return;
+      }
 
-    manualUpdateRequested = true;
-    au.checkForUpdates().catch((err: any) => {
-      dialog.showErrorBox("Update error", err?.message ?? String(err));
-      manualUpdateRequested = false;
-    });
-  };
+      manualUpdateRequested = true;
+      au
+        .checkForUpdates()
+        .catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : String(err);
+          dialog.showErrorBox("Update error", message);
+          manualUpdateRequested = false;
+        });
+    };
 
   const refreshTrayMenu = () => {
     const w = getWin();
@@ -111,9 +116,10 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
   tray.on("double-click", toggleWindow);
   refreshTrayMenu();
 
-  // petite API interne
-  (setupTray as any).refresh = refreshTrayMenu;
-}
+    // petite API interne
+    const trayApi = setupTray as typeof setupTray & { refresh?: () => void };
+    trayApi.refresh = refreshTrayMenu;
+  }
 
 export function updaterHooks() {
   const au = getAutoUpdater();
@@ -125,7 +131,7 @@ export function updaterHooks() {
     }
   });
 
-  au.on("update-available", (info: any) => {
+    au.on("update-available", (info: UpdateInfo) => {
     if (manualUpdateRequested) {
       dialog.showMessageBox({
         type: "info",
@@ -146,14 +152,14 @@ export function updaterHooks() {
     }
   });
 
-  au.on("download-progress", (p: any) => {
-    console.log(`[Updater] ${Math.round(p.percent)} %`);
-  });
+    au.on("download-progress", (p: ProgressInfo) => {
+      console.log(`[Updater] ${Math.round(p.percent)} %`);
+    });
 
-  au.on("update-downloaded", (info: any) => {
-    if (manualUpdateRequested) {
-      manualUpdateRequested = false;
-      dialog
+    au.on("update-downloaded", (info: UpdateDownloadedEvent) => {
+      if (manualUpdateRequested) {
+        manualUpdateRequested = false;
+        dialog
         .showMessageBox({
           type: "question",
           buttons: ["Install and Restart", "Later"],
@@ -162,11 +168,11 @@ export function updaterHooks() {
           message: "Update ready",
           detail: `Version ${info.version} has been downloaded.`,
         })
-        .then(({ response }) => {
-          if (response === 0) au.quitAndInstall();
-        });
-    } else {
-      console.log("[Updater] downloaded – will install on quit");
-    }
-  });
-}
+          .then(({ response }) => {
+            if (response === 0) au.quitAndInstall();
+          });
+      } else {
+        console.log("[Updater] downloaded – will install on quit");
+      }
+    });
+  }

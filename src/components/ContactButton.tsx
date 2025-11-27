@@ -10,8 +10,8 @@ export default function ContactButton() {
     }
   };
   return (
-    <button className="contact-btn" onClick={handleContact}>
-      CONTACT
+    <button className="contact-btn btn btn-ghost" onClick={handleContact}>
+      Contact
     </button>
   );
 }

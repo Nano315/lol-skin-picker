@@ -2,48 +2,87 @@
 .options-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  /* centrage visuel dans Settings */
+  gap: 14px;
   min-width: 320px;
 }
 
 .option {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  background: #13171d;
-  font-size: 0.8rem;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: var(--glass-shadow);
+}
+
+.option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.option-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.option-sub {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted-color);
+}
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
-  user-select: none;
-  transition: transform 0.12s ease, opacity 0.12s ease;
 }
 
-.option:hover {
-  transform: translateY(-1px);
-  opacity: 0.95;
-}
-.option:active {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.option input {
-  position: absolute; /* masqué mais accessible */
+.toggle input {
+  position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #e23670; /* = false */
+.toggle-track {
+  width: 56px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--panel-border);
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.option input:checked + .dot {
-  background: #4ac97e; /* = true */
+.toggle-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(14, 165, 233, 0.2));
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  transform: translateX(0);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.toggle input:checked + .toggle-track {
+  background: rgba(139, 92, 246, 0.16);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.toggle input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(24px);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(14, 165, 233, 0.25));
+}
+
+.toggle input:focus-visible + .toggle-track {
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
 }
