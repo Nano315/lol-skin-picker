@@ -224,11 +224,15 @@ export function RoomsPage() {
           <div className="page-shell rooms-shell">
             <div className="bento-grid rooms-bento">
               {!isConnected && (
-                <p className="rooms-warning">Connect your League of Legends client to use rooms.</p>
+                <p className="rooms-warning">
+                  Connect your League of Legends client to use rooms.
+                </p>
               )}
 
               {isConnected && !summonerName && (
-                <p className="rooms-warning">Fetching your summoner name from the client...</p>
+                <p className="rooms-warning">
+                  Fetching your summoner name from the client...
+                </p>
               )}
 
               {error && <p style={{ color: "tomato" }}>{error}</p>}
@@ -275,7 +279,9 @@ export function RoomsPage() {
                   />
                   <button
                     className="rooms-primary-btn"
-                    onClick={() => summonerName && join(code.trim(), summonerName)}
+                    onClick={() =>
+                      summonerName && join(code.trim(), summonerName)
+                    }
                     disabled={!canUseRooms || !code.trim()}
                   >
                     Join room
@@ -303,9 +309,15 @@ export function RoomsPage() {
                   <p className="eyebrow">SQUAD</p>
                   <h2 className="card-title">
                     Lobby - Room{" "}
-                    <button type="button" className="rooms-code-button" onClick={handleCopyCode}>
+                    <button
+                      type="button"
+                      className="rooms-code-button"
+                      onClick={handleCopyCode}
+                    >
                       <span className="rooms-code-text">{room?.code}</span>
-                      {copied && <span className="rooms-code-feedback">Copied!</span>}
+                      {copied && (
+                        <span className="rooms-code-feedback">Copied!</span>
+                      )}
                     </button>
                   </h2>
                 </div>
@@ -326,29 +338,31 @@ export function RoomsPage() {
               </div>
             </section>
 
-            <section className="card rooms-actions-card">
-              <div className="card-header rooms-card-header">
-                <div>
-                  <p className="eyebrow">ACTIONS</p>
-                  <h2 className="card-title">Reroll Lab</h2>
+            {isOwner && (
+              <section className="card rooms-actions-card">
+                <div className="card-header rooms-card-header">
+                  <div>
+                    <p className="eyebrow">ACTIONS</p>
+                    <h2 className="card-title">Reroll Lab</h2>
+                  </div>
                 </div>
-              </div>
 
-              <div className="rooms-actions-body">
-                {canShowRerollControls && room ? (
-                  <GroupRerollControls
-                    room={room}
-                    phase={phase}
-                    isOwner={isOwner}
-                    selectionLocked={selection.locked}
-                  />
-                ) : (
-                  <p className="muted rooms-helper-text">
-                    En attente du verrouillage des champions...
-                  </p>
-                )}
-              </div>
-            </section>
+                <div className="rooms-actions-body">
+                  {canShowRerollControls && room ? (
+                    <GroupRerollControls
+                      room={room}
+                      phase={phase}
+                      isOwner={isOwner}
+                      selectionLocked={selection.locked}
+                    />
+                  ) : (
+                    <p className="muted rooms-helper-text">
+                      En attente du verrouillage des champions...
+                    </p>
+                  )}
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </main>
