@@ -5,11 +5,8 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Taille & ratio de base
-const DEFAULT_WIDTH = 900;
-const DEFAULT_HEIGHT = 645;
-// 900x645 simplifié = 60/43
-const WINDOW_ASPECT_RATIO = 60 / 43;
+const MIN_WIDTH = 900;
+const MIN_HEIGHT = 645;
 
 let win: BrowserWindow | null = null;
 
@@ -30,13 +27,13 @@ function getIconPath() {
 
 export async function createMainWindow() {
   win = new BrowserWindow({
-    width: DEFAULT_WIDTH,
-    height: DEFAULT_HEIGHT,
-    minWidth: DEFAULT_WIDTH,
-    minHeight: DEFAULT_HEIGHT,
+    width: 1280,
+    height: 720,
+    minWidth: MIN_WIDTH,
+    minHeight: MIN_HEIGHT,
     resizable: true,
     maximizable: true,
-    fullscreenable: false,
+    fullscreenable: true,
 
     show: false,
     icon: getIconPath(),
@@ -48,9 +45,6 @@ export async function createMainWindow() {
     },
   });
 
-  // Verrouille le ratio 60/43 (≈ 900x645)
-  win.setAspectRatio(WINDOW_ASPECT_RATIO);
-
   if (process.env.VITE_DEV_SERVER_URL) {
     await win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
@@ -58,6 +52,12 @@ export async function createMainWindow() {
     await win.loadFile(indexHtml);
   }
 
-  win.once("ready-to-show", () => win?.show());
+  win.once("ready-to-show", () => {
+    if (win) {
+      win.maximize(); // Maximise la fenêtre (plein écran fenêtré)
+      win.show();
+    }
+  });
+
   return win;
 }
