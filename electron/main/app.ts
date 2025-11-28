@@ -74,18 +74,49 @@ async function createWindowWithPrefs() {
 }
 
 function wireDomainEvents() {
+  // 1. Gestion de la connexion globale au client LoL
   lcu.on("status", (status: LcuStatus, creds?: LockCreds) => {
     getMainWindow()?.webContents.send("lcu-status", status);
-    if (status === "connected" && creds) {
-      getMainWindow()?.show();
 
+    if (status === "connected" && creds) {
+      // Le client vient de s'ouvrir : on démarre les services
       gameflow.setCreds(creds);
       skins.setCreds(creds);
       skins.start();
+
+      // On affiche la fenêtre au démarrage (sauf si une game est déjà en cours,
+      // ce qui sera corrigé une fraction de seconde plus tard par l'event 'phase')
+      getMainWindow()?.show();
     } else {
+      // Le client s'est fermé : on arrête tout et on cache l'app
       gameflow.stop();
       skins.stop();
       getMainWindow()?.hide();
+    }
+  });
+
+  // ---------------------------------------------------------
+  // 2. AJOUT : Gestion de la visibilité selon la phase de jeu
+  // ---------------------------------------------------------
+  gameflow.on("phase", (phase: string) => {
+    const win = getMainWindow();
+    if (!win || win.isDestroyed()) return;
+
+    // "InProgress" signifie que le joueur est en partie (ou écran de chargement)
+    if (phase === "InProgress") {
+      if (win.isVisible()) {
+        console.log("[App] Partie détectée : Mise en veille de la fenêtre");
+        win.hide();
+      }
+    }
+    // Toutes les autres phases (Lobby, ChampSelect, EndOfGame, None...)
+    else {
+      // On réaffiche la fenêtre seulement si elle était cachée
+      // et que le client LoL est toujours connecté
+      if (!win.isVisible() && lcu.isConnected()) {
+        console.log("[App] Fin de partie / Lobby : Réaffichage de la fenêtre");
+        win.show();
+      }
     }
   });
 }

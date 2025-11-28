@@ -23,6 +23,10 @@ export class LcuWatcher extends EventEmitter {
     "C:\\Program Files\\Riot Games\\League of Legends\\lockfile",
   ];
 
+  public isConnected(): boolean {
+    return this.creds !== null;
+  }
+
   start(interval = 2000) {
     if (this.timer) return;
     this.tick();
