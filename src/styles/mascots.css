@@ -1,19 +1,50 @@
 /* --- couche globale --- */
 .mascots-layer {
-  position: absolute;
+  position: fixed; /* Reste fixe au scroll pour un effet parallaxe */
   inset: 0;
   pointer-events: none;
-  z-index: 30;
+  /* Z-index bas pour rester derrière le contenu principal (qui devra avoir un z-index > 1) */
+  z-index: 1;
+  overflow: hidden;
 }
 
 /* wrapper animé */
 .mascot {
   position: absolute;
   animation: floaty ease-in-out infinite;
-  opacity: 0.95;
+  opacity: 0.9;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* variantes de timing */
+/* --- Stratégie de Positionnement --- */
+/* Le contenu fait ~1200px. On place les mascottes à partir du centre (50%) 
+   et on les pousse vers l'extérieur avec une marge de sécurité (640px). */
+
+/* Gauche */
+.mascot.pos-left {
+  right: 50%;
+  margin-right: 640px;
+}
+
+/* Droite */
+.mascot.pos-right {
+  left: 50%;
+  margin-left: 640px;
+}
+
+/* Vertical */
+.mascot.pos-top {
+  top: 12%;
+}
+.mascot.pos-middle {
+  top: 45%;
+}
+.mascot.pos-bottom {
+  bottom: 12%;
+}
+
+
+/* --- Variantes de timing (conservées de ton fichier original) --- */
 .mascot.m1 {
   animation-duration: 7s;
   animation-delay: 0s;
@@ -40,7 +71,7 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-12px);
   }
   100% {
     transform: translateY(0);
