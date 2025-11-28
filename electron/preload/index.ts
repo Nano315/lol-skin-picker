@@ -55,6 +55,10 @@ const api = {
   toggleAutoRoll: () => ipcRenderer.invoke("toggle-auto-roll"),
   setAutoRoll: (v: boolean) => ipcRenderer.invoke("set-auto-roll", v),
 
+  getAutoLaunch: () => ipcRenderer.invoke("get-auto-launch"),
+  setAutoLaunch: (enable: boolean) =>
+    ipcRenderer.invoke("set-auto-launch", enable),
+
   /* Actions & Selection */
   rerollSkin: () => ipcRenderer.invoke("reroll-skin"),
   rerollChroma: () => ipcRenderer.invoke("reroll-chroma"),

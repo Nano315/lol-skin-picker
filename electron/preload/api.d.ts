@@ -32,6 +32,9 @@ declare global {
       toggleAutoRoll: () => Promise<void>;
       setAutoRoll: (v: boolean) => Promise<void>;
 
+      getAutoLaunch: () => Promise<boolean>;
+      setAutoLaunch: (enable: boolean) => Promise<boolean>;
+
       rerollSkin: () => Promise<void>;
       rerollChroma: () => Promise<void>;
 

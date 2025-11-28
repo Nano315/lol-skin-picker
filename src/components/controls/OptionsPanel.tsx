@@ -5,12 +5,16 @@ export default function OptionsPanel({
   setIncludeDefault,
   autoRoll,
   setAutoRoll,
+  autoLaunch,
+  setAutoLaunch,
   savePref,
 }: {
   includeDefault: boolean;
   setIncludeDefault: (v: boolean) => void;
   autoRoll: boolean;
   setAutoRoll: (v: boolean) => void;
+  autoLaunch: boolean;
+  setAutoLaunch: (v: boolean) => void;
   savePref: (k: "includeDefault" | "autoRoll", v: boolean) => void;
 }) {
   const onIncludeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,8 +23,7 @@ export default function OptionsPanel({
     setIncludeDefault(v);
     savePref("includeDefault", v);
     // 2) IPC en arrière-plan
-    void api.setIncludeDefault(v).catch(() => {
-    });
+    void api.setIncludeDefault(v).catch(() => {});
   };
 
   const onAutoRollChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,6 +31,12 @@ export default function OptionsPanel({
     setAutoRoll(v);
     savePref("autoRoll", v);
     void api.setAutoRoll(v).catch(() => {});
+  };
+
+  const onAutoLaunchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.checked;
+    setAutoLaunch(v);
+    void api.setAutoLaunch(v).catch(() => {});
   };
 
   return (
@@ -50,6 +59,20 @@ export default function OptionsPanel({
         <span className="option-label">Auto roll on champion lock</span>
         <label className="switch">
           <input type="checkbox" checked={autoRoll} onChange={onAutoRollChange} />
+          <span className="track">
+            <span className="thumb" />
+          </span>
+        </label>
+      </div>
+
+      <div className="option-row">
+        <span className="option-label">Start app on Windows startup</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={autoLaunch}
+            onChange={onAutoLaunchChange}
+          />
           <span className="track">
             <span className="thumb" />
           </span>

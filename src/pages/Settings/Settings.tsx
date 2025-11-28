@@ -15,26 +15,30 @@ export default function Settings() {
   const { save, read } = usePrefs();
   const [includeDefault, setIncludeDefault] = useState(true);
   const [autoRoll, setAutoRoll] = useState(true);
+  const [autoLaunch, setAutoLaunch] = useState(false);
 
   useEffect(() => {
-    Promise.all([api.getIncludeDefault(), api.getAutoRoll()]).then(
-      ([incSrv, autoSrv]) => {
-        const incPref = read("includeDefault"); // string->bool déjà géré dans le hook
-        const autoPref = read("autoRoll");
+    Promise.all([
+      api.getIncludeDefault(),
+      api.getAutoRoll(),
+      api.getAutoLaunch(),
+    ]).then(([incSrv, autoSrv, autoLaunchSrv]) => {
+      const incPref = read("includeDefault"); // string->bool déjà géré dans le hook
+      const autoPref = read("autoRoll");
 
-        // UI d’abord : si local existe, on le montre; sinon valeur service
-        setIncludeDefault(incPref ?? incSrv);
-        setAutoRoll(autoPref ?? autoSrv);
+      // UI d’abord : si local existe, on le montre; sinon valeur service
+      setIncludeDefault(incPref ?? incSrv);
+      setAutoRoll(autoPref ?? autoSrv);
+      setAutoLaunch(autoLaunchSrv);
 
-        // Pousser la préférence locale vers le service si divergence (fire-and-forget)
-        if (incPref !== null && incPref !== incSrv) {
-          void api.setIncludeDefault(incPref).catch(() => {});
-        }
-        if (autoPref !== null && autoPref !== autoSrv) {
-          void api.setAutoRoll(autoPref).catch(() => {});
-        }
+      // Pousser la préférence locale vers le service si divergence (fire-and-forget)
+      if (incPref !== null && incPref !== incSrv) {
+        void api.setIncludeDefault(incPref).catch(() => {});
       }
-    );
+      if (autoPref !== null && autoPref !== autoSrv) {
+        void api.setAutoRoll(autoPref).catch(() => {});
+      }
+    });
   }, [read]);
 
   return (
@@ -62,6 +66,11 @@ export default function Settings() {
                 setAutoRoll={(v) => {
                   setAutoRoll(v);
                   save("autoRoll", v);
+                }}
+                autoLaunch={autoLaunch}
+                setAutoLaunch={(v) => {
+                  setAutoLaunch(v);
+                  void api.setAutoLaunch(v).catch(() => {});
                 }}
                 savePref={save}
               />
