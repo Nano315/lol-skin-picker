@@ -7,6 +7,7 @@ import {
 } from "../services/lcuWatcher";
 import { GameflowService } from "../services/gameflow.service";
 import { SkinsService } from "../services/skins.service";
+import { logger } from "../logger";
 
 import { createMainWindow, getMainWindow } from "./windows/mainWindow";
 import { registerAllIpc } from "./ipc";
@@ -26,6 +27,8 @@ if (!app.isPackaged) {
 }
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+logger.info("[App] Initialisation de l'application");
 
 const lcu = new LcuWatcher();
 const gameflow = new GameflowService();
@@ -105,7 +108,7 @@ function wireDomainEvents() {
     // "InProgress" signifie que le joueur est en partie (ou écran de chargement)
     if (phase === "InProgress") {
       if (win.isVisible()) {
-        console.log("[App] Partie détectée : Mise en veille de la fenêtre");
+        logger.info("[App] Partie détectée : Mise en veille de la fenêtre");
         win.hide();
       }
     }
@@ -114,7 +117,7 @@ function wireDomainEvents() {
       // On réaffiche la fenêtre seulement si elle était cachée
       // et que le client LoL est toujours connecté
       if (!win.isVisible() && lcu.isConnected()) {
-        console.log("[App] Fin de partie / Lobby : Réaffichage de la fenêtre");
+        logger.info("[App] Fin de partie / Lobby : Réaffichage de la fenêtre");
         win.show();
       }
     }
@@ -124,6 +127,7 @@ function wireDomainEvents() {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
+  logger.warn("[App] Deuxième instance détectée, fermeture de l'app");
   app.quit();
 } else {
   app.on("second-instance", () => {
@@ -136,6 +140,7 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
+    logger.info("[App] Application prête, initialisation des services");
     registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
     wireDomainEvents();
     updaterHooks();

@@ -4,6 +4,7 @@ import { EventEmitter } from "node:events";
 import type { LockCreds } from "./lcuWatcher";
 import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
 import { webcrypto } from "node:crypto";
+import { logger } from "../logger";
 
 /* ---- réponses API ---- */
 interface SummonerRes {
@@ -360,6 +361,10 @@ export class SkinsService extends EventEmitter {
     if (champ && champ !== this.currentChampion) {
       this.currentChampion = champ;
 
+      await ensureAliasMap();
+      const alias = getChampionAlias(champ);
+      logger.info(`[Skins] Champion détecté: ${alias} (${champ})`);
+
       // nouvelle game / nouveau champion => on repart à zéro côté sélection
       this.championLocked = false;
       this.selectedSkinId = 0;
@@ -374,6 +379,7 @@ export class SkinsService extends EventEmitter {
 
   private async fetchSummonerId() {
     if (!this.creds) return;
+    const previousSummonerId = this.summonerId;
     const { protocol, port, password } = this.creds;
     const url = `${protocol}://127.0.0.1:${port}/lol-summoner/v1/current-summoner`;
     const auth = Buffer.from(`riot:${password}`).toString("base64");
@@ -389,7 +395,14 @@ export class SkinsService extends EventEmitter {
 
       this.emit("icon", this.profileIconId);
       this.emit("summoner-name", this.summonerName);
-    } catch {
+      if (this.summonerId && this.summonerId !== previousSummonerId) {
+        logger.info("[Skins] Invocateur identifié", {
+          summonerId: this.summonerId,
+          summonerName: this.summonerName,
+        });
+      }
+    } catch (error) {
+      logger.error("[Skins] Erreur lors de la récupération du summoner", error);
       this.summonerId = null;
       this.summonerName = "";
       this.emit("summoner-name", "");
@@ -432,104 +445,115 @@ export class SkinsService extends EventEmitter {
   private async refreshSkinsAndMaybeApply() {
     if (!this.creds || this.summonerId === null || !this.currentChampion)
       return;
-    await ensureAliasMap();
+    try {
+      await ensureAliasMap();
 
-    const { protocol, port, password } = this.creds;
-    const base = `${protocol}://127.0.0.1:${port}`;
-    const headers = {
-      Authorization: `Basic ${Buffer.from(`riot:${password}`).toString(
-        "base64"
-      )}`,
-    };
+      const { protocol, port, password } = this.creds;
+      const base = `${protocol}://127.0.0.1:${port}`;
+      const headers = {
+        Authorization: `Basic ${Buffer.from(`riot:${password}`).toString(
+          "base64"
+        )}`,
+      };
 
-    const allSkins = (await fetch(
-      `${base}/lol-champions/v1/inventories/${this.summonerId}/champions/${this.currentChampion}/skins`,
-      { headers }
-    ).then((r) => r.json())) as SkinRes[];
+      const allSkins = (await fetch(
+        `${base}/lol-champions/v1/inventories/${this.summonerId}/champions/${this.currentChampion}/skins`,
+        { headers }
+      ).then((r) => r.json())) as SkinRes[];
 
-    const owned: OwnedSkin[] = [];
-    for (const s of allSkins.filter(
-      (s) => s.ownership?.owned || s.isOwned || s.owned
-    )) {
-      let chromaList: { id: number; name: string }[] = [];
-      try {
-        const chromas = (await fetch(
-          `${base}/lol-champions/v1/inventories/${this.summonerId}/champions/${this.currentChampion}/skins/${s.id}/chromas`,
-          { headers }
-        ).then((r) => (r.status === 404 ? [] : r.json()))) as ChromaRes[];
+      const owned: OwnedSkin[] = [];
+      for (const s of allSkins.filter(
+        (s) => s.ownership?.owned || s.isOwned || s.owned
+      )) {
+        let chromaList: { id: number; name: string }[] = [];
+        try {
+          const chromas = (await fetch(
+            `${base}/lol-champions/v1/inventories/${this.summonerId}/champions/${this.currentChampion}/skins/${s.id}/chromas`,
+            { headers }
+          ).then((r) => (r.status === 404 ? [] : r.json()))) as ChromaRes[];
 
-        chromaList = chromas
-          .filter((c) => c.ownership?.owned || c.isOwned || c.owned)
-          .map((c) => ({ id: c.id, name: c.name || `Chroma ${c.id}` }));
-      } catch {
-        /* ignore */
+          chromaList = chromas
+            .filter((c) => c.ownership?.owned || c.isOwned || c.owned)
+            .map((c) => ({ id: c.id, name: c.name || `Chroma ${c.id}` }));
+        } catch (error) {
+          logger.warn(
+            `[Skins] Impossible de récupérer les chromas pour le skin ${s.id}`,
+            error
+          );
+        }
+
+        owned.push({ id: s.id, name: s.name, chromas: chromaList });
       }
 
-      owned.push({ id: s.id, name: s.name, chromas: chromaList });
-    }
+      // Emit using the previous cache so the change detector can compare arrays.
+      this.emitSkinsIfChanged(owned);
 
-    // Emit using the previous cache so the change detector can compare arrays.
-    this.emitSkinsIfChanged(owned);
+      if (
+        this.autoRollEnabled &&
+        this.currentChampion !== this.lastAppliedChampion &&
+        owned.length
+      ) {
+        const pool = this.includeDefaultSkin
+          ? owned
+          : owned.filter((s) => s.id % 1000 !== 0) || owned;
 
-    if (
-      this.autoRollEnabled &&
-      this.currentChampion !== this.lastAppliedChampion &&
-      owned.length
-    ) {
-      const pool = this.includeDefaultSkin
-        ? owned
-        : owned.filter((s) => s.id % 1000 !== 0) || owned;
+        const skinIds = pool.map((s) => s.id);
+        const history =
+          this.skinHistoryByChampion.get(this.currentChampion) ?? [];
 
-      const skinIds = pool.map((s) => s.id);
-      const history =
-        this.skinHistoryByChampion.get(this.currentChampion) ?? [];
+        const pickedSkinId = this.pickWithHistory(
+          skinIds,
+          history,
+          this.SKIN_HISTORY_WINDOW,
+          this.selectedSkinId || null
+        );
+        if (!pickedSkinId) return;
 
-      const pickedSkinId = this.pickWithHistory(
-        skinIds,
-        history,
-        this.SKIN_HISTORY_WINDOW,
-        this.selectedSkinId || null
+        const picked = pool.find((s) => s.id === pickedSkinId);
+        if (!picked) return;
+
+        const variantChoices = picked.chromas.length
+          ? [picked.id, ...picked.chromas.map((c) => c.id)]
+          : [picked.id];
+
+        const finalId =
+          variantChoices.length === 1
+            ? variantChoices[0]
+            : variantChoices[this.randomInt(variantChoices.length)];
+
+        const applied = await this.applySkin(finalId);
+        if (!applied) return;
+
+        this.selectedSkinId = picked.id;
+        this.selectedChromaId = finalId !== picked.id ? finalId : 0;
+
+        this.pushHistory(
+          this.skinHistoryByChampion,
+          this.currentChampion,
+          picked.id,
+          this.SKIN_HISTORY_WINDOW
+        );
+        this.pushHistory(
+          this.chromaHistoryBySkin,
+          picked.id,
+          finalId,
+          this.CHROMA_HISTORY_WINDOW
+        );
+
+        this.emit("selection", this.getSelection());
+        this.lastAppliedChampion = this.currentChampion;
+      }
+    } catch (error) {
+      logger.error(
+        "[Skins] Erreur critique lors de la récupération des skins",
+        error
       );
-      if (!pickedSkinId) return;
-
-      const picked = pool.find((s) => s.id === pickedSkinId);
-      if (!picked) return;
-
-      const variantChoices = picked.chromas.length
-        ? [picked.id, ...picked.chromas.map((c) => c.id)]
-        : [picked.id];
-
-      const finalId =
-        variantChoices.length === 1
-          ? variantChoices[0]
-          : variantChoices[this.randomInt(variantChoices.length)];
-
-      const applied = await this.applySkin(finalId);
-      if (!applied) return;
-
-      this.selectedSkinId = picked.id;
-      this.selectedChromaId = finalId !== picked.id ? finalId : 0;
-
-      this.pushHistory(
-        this.skinHistoryByChampion,
-        this.currentChampion,
-        picked.id,
-        this.SKIN_HISTORY_WINDOW
-      );
-      this.pushHistory(
-        this.chromaHistoryBySkin,
-        picked.id,
-        finalId,
-        this.CHROMA_HISTORY_WINDOW
-      );
-
-      this.emit("selection", this.getSelection());
-      this.lastAppliedChampion = this.currentChampion;
     }
   }
 
   async applySkin(skinId: number): Promise<boolean> {
     if (!this.creds) return false;
+    logger.info(`[Skins] Tentative d'application du skin ${skinId}`);
     const { protocol, port, password } = this.creds;
     const url = `${protocol}://127.0.0.1:${port}/lol-champ-select/v1/session/my-selection`;
     const auth = Buffer.from(`riot:${password}`).toString("base64");
@@ -548,12 +572,17 @@ export class SkinsService extends EventEmitter {
       });
       if (!res.ok) {
         // Si ça échoue vraiment, le prochain tick() corrigera l'erreur
+        logger.error(
+          `[Skins] Échec application du skin ${skinId} (status ${res.status})`
+        );
         return false;
       }
+      logger.info(`[Skins] Skin appliqué avec succès: ${skinId}`);
       // On force une lecture immédiate pour confirmer
       void this.updateManualSelection();
       return true;
-    } catch {
+    } catch (error) {
+      logger.error("[Skins] Erreur lors de l'application du skin", error);
       return false;
     }
     return false; // Default to failure if we somehow drop through the try/catch.

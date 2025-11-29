@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import { EventEmitter } from "node:events";
 import type { LockCreds } from "./lcuWatcher";
+import { logger } from "../logger";
 
 export class GameflowService extends EventEmitter {
   private creds: LockCreds | null = null;
@@ -34,13 +35,15 @@ export class GameflowService extends EventEmitter {
       ).replace(/"/g, "");
       if (txt !== this.phase) {
         this.phase = txt;
+        logger.info(`[Gameflow] Phase changed to: ${txt}`);
         this.emit("phase", txt);
       }
-    } catch {
+    } catch (error) {
       if (this.phase !== "Unknown") {
         this.phase = "Unknown";
         this.emit("phase", "Unknown");
       }
+      logger.warn("[Gameflow] Erreur lors du polling de phase", error);
     }
   }
 

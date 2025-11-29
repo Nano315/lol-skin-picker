@@ -6,6 +6,7 @@ import { registerLcuIpc } from "./lcu.ipc";
 import { registerGameflowIpc } from "./gameflow.ipc";
 import { registerSkinsIpc } from "./skins.ipc";
 import { registerMiscIpc } from "./misc.ipc";
+import { registerLogIpc } from "./log.ipc";
 
 export function registerAllIpc(opts: {
   lcu: LcuWatcher;
@@ -17,4 +18,5 @@ export function registerAllIpc(opts: {
   registerGameflowIpc(opts.gameflow, opts.getWin);
   registerSkinsIpc(opts.skins, opts.getWin);
   registerMiscIpc();
+  registerLogIpc();
 }

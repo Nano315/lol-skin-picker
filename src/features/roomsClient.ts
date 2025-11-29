@@ -3,11 +3,10 @@ import { io, Socket } from "socket.io-client";
 import type { Selection } from "./types";
 
 const ROOMS_SERVER_URL = import.meta.env.VITE_ROOMS_SERVER_URL;
+const log = window.log;
 
 if (!ROOMS_SERVER_URL) {
-  console.warn(
-    "[roomsClient] No ROOMS_SERVER_URL configured, requests will fail."
-  );
+  log.warn("[roomsClient] No ROOMS_SERVER_URL configured, requests will fail.");
 }
 
 export type ColorSynergy = {
@@ -117,6 +116,7 @@ class RoomsClient {
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       const msg = data?.error ?? "Failed to create room";
+      log.error("[roomsClient] Failed to create room", { status: res.status, msg });
       throw new Error(msg);
     }
 
@@ -124,6 +124,10 @@ class RoomsClient {
     this.memberId = data.memberId;
     const room = data.room as RoomState;
     this.emitRoom(room);
+    log.info("[roomsClient] Room created and joined", {
+      roomId: this.roomId,
+      memberId: this.memberId,
+    });
     return { room };
   }
 
@@ -137,6 +141,7 @@ class RoomsClient {
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       const msg = data?.error ?? "Failed to join room";
+      log.error("[roomsClient] Failed to join room", { status: res.status, msg });
       throw new Error(msg);
     }
 
@@ -144,6 +149,10 @@ class RoomsClient {
     this.memberId = data.memberId;
     const room = data.room as RoomState;
     this.emitRoom(room);
+    log.info("[roomsClient] Joined room", {
+      roomId: this.roomId,
+      memberId: this.memberId,
+    });
     return { room };
   }
 
@@ -157,10 +166,22 @@ class RoomsClient {
     this.socket = io(ROOMS_SERVER_URL, { autoConnect: true });
 
     this.socket.on("connect", () => {
+      log.info("[roomsClient] Socket.io connected", {
+        socketId: this.socket?.id,
+        roomId: this.roomId,
+      });
       this.socket?.emit("join-room", {
         roomId: this.roomId,
         memberId: this.memberId,
       });
+    });
+
+    this.socket.on("disconnect", (reason) => {
+      log.warn("[roomsClient] Socket.io disconnected", { reason });
+    });
+
+    this.socket.on("connect_error", (error) => {
+      log.error("[roomsClient] Socket.io connection error", error);
     });
 
     this.socket.on("room-state", (room: RoomState) => {
@@ -168,11 +189,12 @@ class RoomsClient {
     });
 
     this.socket.on("group-apply-combo", (payload: GroupComboPayload) => {
+      log.info("[roomsClient] Received group combo", payload);
       for (const l of this.comboListeners) l(payload);
     });
 
     this.socket.on("room-closed", (payload: { reason?: string }) => {
-      console.log("[roomsClient] room closed", payload);
+      log.warn("[roomsClient] room closed", payload);
       this.roomId = null;
       this.memberId = null;
       this.emitRoom(null);
@@ -194,6 +216,7 @@ class RoomsClient {
     this.roomId = null;
     this.memberId = null;
     this.emitRoom(null);
+    log.info("[roomsClient] Left room", { reason: "manual" });
   }
 
   sendSelection(selection: Selection) {

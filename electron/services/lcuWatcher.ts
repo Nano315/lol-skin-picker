@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { EventEmitter } from "node:events";
+import { logger } from "../logger";
 
 /* -------- types -------- */
 export type LcuStatus = "connected" | "disconnected";
@@ -16,6 +17,7 @@ export class LcuWatcher extends EventEmitter {
 
   private timer: ReturnType<typeof setInterval> | null = null;
   private rawCache = "";
+  private lockfilePath: string | null = null;
 
   /** chemins possibles du lockfile */
   private static readonly FILES = [
@@ -34,17 +36,25 @@ export class LcuWatcher extends EventEmitter {
   }
 
   private tick() {
-    const raw = this.readLockfile();
+    const result = this.readLockfile();
 
-    if (!raw) {
+    if (!result) {
       this.toDisconnected();
       return;
+    }
+
+    const { raw, path } = result;
+
+    if (path !== this.lockfilePath) {
+      this.lockfilePath = path;
+      logger.info("[LCU] Lockfile détecté", path);
     }
 
     if (raw !== this.rawCache) {
       this.rawCache = raw;
       const parsed = this.parse(raw);
       if (!parsed) {
+        logger.warn("[LCU] Impossible de parser les credentials du lockfile");
         this.toDisconnected();
         return;
       }
@@ -55,6 +65,11 @@ export class LcuWatcher extends EventEmitter {
   private toConnected(c: LockCreds) {
     this.status = "connected";
     this.creds = c;
+    logger.info("[LCU] Connecté au client", {
+      port: c.port,
+      protocol: c.protocol,
+      lockfilePath: this.lockfilePath,
+    });
     this.emit("status", "connected", c);
   }
 
@@ -63,14 +78,19 @@ export class LcuWatcher extends EventEmitter {
       this.status = "disconnected";
       this.creds = null;
       this.rawCache = "";
+      if (this.lockfilePath) {
+        logger.info("[LCU] Client déconnecté", this.lockfilePath);
+      }
+      this.lockfilePath = null;
       this.emit("status", "disconnected");
     }
   }
 
-  private readLockfile(): string | null {
+  private readLockfile(): { raw: string; path: string } | null {
     for (const p of LcuWatcher.FILES) {
       try {
-        return fs.readFileSync(p, "utf8");
+        const raw = fs.readFileSync(p, "utf8");
+        return { raw, path: p };
       } catch {
         /* empty */
       }

@@ -2,6 +2,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { OwnedSkin } from "../services/skins.service";
 
+const logApi = {
+  info: (...args: any[]) => ipcRenderer.invoke("log-message", "info", ...args),
+  warn: (...args: any[]) => ipcRenderer.invoke("log-message", "warn", ...args),
+  error: (...args: any[]) => ipcRenderer.invoke("log-message", "error", ...args),
+  debug: (...args: any[]) => ipcRenderer.invoke("log-message", "debug", ...args),
+};
+
 const api = {
   /* LCU */
   getStatus: () => ipcRenderer.invoke("get-lcu-status"),
@@ -79,3 +86,4 @@ const api = {
 
 contextBridge.exposeInMainWorld("lcu", api);
 contextBridge.exposeInMainWorld("api", api);
+contextBridge.exposeInMainWorld("log", logApi);

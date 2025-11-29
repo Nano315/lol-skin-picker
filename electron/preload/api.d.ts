@@ -56,5 +56,12 @@ declare global {
     };
 
     api: Window["lcu"];
+
+    log: {
+      info: (...args: any[]) => Promise<void>;
+      warn: (...args: any[]) => Promise<void>;
+      error: (...args: any[]) => Promise<void>;
+      debug: (...args: any[]) => Promise<void>;
+    };
   }
 }
