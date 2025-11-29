@@ -7,10 +7,10 @@ log.transports.file.fileName = "main.log";
 log.transports.file.resolvePathFn = (variables) =>
   path.join(variables.userData, "logs", variables.fileName ?? "main.log");
 
-log.catchErrors({
+log.errorHandler.startCatching({
   showDialog: false,
-  onError: (error, origin) => {
-    log.error("Unhandled error captured", origin ?? "unknown", error);
+  onError: ({ error, processType }) => {
+    log.error("Unhandled error captured", processType ?? "unknown", error);
   },
 });
 
