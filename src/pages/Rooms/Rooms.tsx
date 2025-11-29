@@ -357,7 +357,7 @@ export function RoomsPage() {
                     />
                   ) : (
                     <p className="muted rooms-helper-text">
-                      En attente du verrouillage des champions...
+                      Waiting for champion lock-in...
                     </p>
                   )}
                 </div>

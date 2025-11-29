@@ -24,7 +24,7 @@ export default function RerollControls({
   return (
     <div className="reroll-wrapper">
       {!canReroll && (
-        <p className="muted">Verrouille un champion en phase de draft pour activer le reroll.</p>
+        <p className="muted">Lock in a champion to enable reroll.</p>
       )}
 
       {canReroll && (

@@ -21,12 +21,19 @@ export default function Home() {
 
   const activeSkin = skins.find((s) => s.id === selection.skinId);
 
-  const skinLabel = activeSkin
-    ? activeSkin.name
-    : selection.skinId || "En attente du lock-in";
+  const skinLabel =
+    phase === "ChampSelect"
+      ? activeSkin
+        ? activeSkin.name
+        : selection.skinId || "Waiting for lock-in"
+      : "...";
 
-  const chromaLabel = activeSkin
-    ? selection.chromaId || "Defaut" : "En attente du lock-in";
+  const chromaLabel =
+    phase === "ChampSelect"
+      ? activeSkin
+        ? selection.chromaId || "Default"
+        : "Waiting for lock-in"
+      : "...";
 
   return (
     <div className="app">
@@ -45,11 +52,11 @@ export default function Home() {
             >
               <div className="card-header">
                 <div>
-                  <p className="eyebrow">Previsualisation</p>
+                  <p className="eyebrow">Preview</p>
                   <h2 className="card-title">Skin Spotlight</h2>
                 </div>
                 <div className="status-pill">
-                  {hasLockedChampion ? "Pret" : "En attente"}
+                  {hasLockedChampion ? "Ready" : "Waiting"}
                 </div>
               </div>
 
@@ -60,7 +67,7 @@ export default function Home() {
               <div className="card-header">
                 <div>
                   <p className="eyebrow">Selection</p>
-                  <h3 className="card-title">Details en direct</h3>
+                  <h3 className="card-title">Live Details</h3>
                 </div>
               </div>
 
@@ -73,9 +80,9 @@ export default function Home() {
                 <div className="detail-item">
                   <p className="detail-label">Champion</p>
                   <p className="detail-value">
-                    {hasLockedChampion
+                    {phase === "ChampSelect" ? hasLockedChampion
                       ? selection.championAlias
-                      : "En attente du lock-in"}
+                      : "Waiting for lock-in" : "..."}{" "}
                   </p>
                 </div>
 
