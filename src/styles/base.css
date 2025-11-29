@@ -39,10 +39,10 @@ body::before {
     255,
     255,
     0.1
-  ); /* Couleur subtile basée sur ton thème */
-  border-radius: 99px; /* Bords complètement ronds */
+  ); /* Couleur subtile basee sur ton theme */
+  border-radius: 99px; /* Bords completement ronds */
 
-  /* Astuce pour créer une marge autour de la barre sans réduire sa zone de clic : */
+  /* Astuce pour creer une marge autour de la barre sans reduire sa zone de clic : */
   border: 2px solid transparent;
   background-clip: content-box;
 

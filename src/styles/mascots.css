@@ -3,12 +3,12 @@
   position: fixed; /* Reste fixe au scroll pour un effet parallaxe */
   inset: 0;
   pointer-events: none;
-  /* Z-index bas pour rester derrière le contenu principal (qui devra avoir un z-index > 1) */
+  /* Z-index bas pour rester derriere le contenu principal (qui devra avoir un z-index > 1) */
   z-index: 1;
   overflow: hidden;
 }
 
-/* wrapper animé */
+/* wrapper anime */
 .mascot {
   position: absolute;
   animation: floaty ease-in-out infinite;
@@ -16,9 +16,9 @@
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* --- Stratégie de Positionnement --- */
-/* Le contenu fait ~1200px. On place les mascottes à partir du centre (50%) 
-   et on les pousse vers l'extérieur avec une marge de sécurité (640px). */
+/* --- Strategie de Positionnement --- */
+/* Le contenu fait ~1200px. On place les mascottes a partir du centre (50%) 
+   et on les pousse vers l'exterieur avec une marge de securite (640px). */
 
 /* Gauche */
 .mascot.pos-left {
@@ -44,7 +44,7 @@
 }
 
 
-/* --- Variantes de timing (conservées de ton fichier original) --- */
+/* --- Variantes de timing (conservees de ton fichier original) --- */
 .mascot.m1 {
   animation-duration: 7s;
   animation-delay: 0s;
@@ -88,7 +88,7 @@
   transform: scaleX(-1);
 }
 
-/* aura derrière */
+/* aura derriere */
 .mascot::after {
   content: "";
   position: absolute;

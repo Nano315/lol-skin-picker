@@ -15,7 +15,7 @@ export function useConnection() {
 
     async function init() {
       try {
-        // 1) état initial
+        // 1) etat initial
         const [initialStatus, initialIcon] = await Promise.all([
           api.getStatus(),
           api.getSummonerIcon().catch(() => null),
@@ -34,7 +34,7 @@ export function useConnection() {
         }
       }
 
-      // 2) abonnement aux updates temps réel
+      // 2) abonnement aux updates temps reel
       unsubStatus = api.onStatus((next) => {
         setStatus(next === "connected" ? "connected" : "disconnected");
       });

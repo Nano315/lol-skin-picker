@@ -19,14 +19,14 @@ export default function Settings() {
   useEffect(() => {
     Promise.all([api.getIncludeDefault(), api.getAutoRoll()]).then(
       ([incSrv, autoSrv]) => {
-        const incPref = read("includeDefault"); // string->bool déjà géré dans le hook
+        const incPref = read("includeDefault"); // string->bool deja gere dans le hook
         const autoPref = read("autoRoll");
 
         // UI d’abord : si local existe, on le montre; sinon valeur service
         setIncludeDefault(incPref ?? incSrv);
         setAutoRoll(autoPref ?? autoSrv);
 
-        // Pousser la préférence locale vers le service si divergence (fire-and-forget)
+        // Pousser la preference locale vers le service si divergence (fire-and-forget)
         if (incPref !== null && incPref !== incSrv) {
           void api.setIncludeDefault(incPref).catch(() => {});
         }

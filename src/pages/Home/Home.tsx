@@ -26,7 +26,7 @@ export default function Home() {
     : selection.skinId || "En attente du lock-in";
 
   const chromaLabel = activeSkin
-    ? selection.chromaId || "Défaut" : "En attente du lock-in";
+    ? selection.chromaId || "Defaut" : "En attente du lock-in";
 
   return (
     <div className="app">
@@ -45,11 +45,11 @@ export default function Home() {
             >
               <div className="card-header">
                 <div>
-                  <p className="eyebrow">Prévisualisation</p>
+                  <p className="eyebrow">Previsualisation</p>
                   <h2 className="card-title">Skin Spotlight</h2>
                 </div>
                 <div className="status-pill">
-                  {hasLockedChampion ? "Prêt" : "En attente"}
+                  {hasLockedChampion ? "Pret" : "En attente"}
                 </div>
               </div>
 
@@ -59,8 +59,8 @@ export default function Home() {
             <section className="card details-card">
               <div className="card-header">
                 <div>
-                  <p className="eyebrow">Sélection</p>
-                  <h3 className="card-title">Détails en direct</h3>
+                  <p className="eyebrow">Selection</p>
+                  <h3 className="card-title">Details en direct</h3>
                 </div>
               </div>
 

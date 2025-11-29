@@ -8,13 +8,13 @@ export function useSummonerName(status: string) {
   useEffect(() => {
     let cancelled = false;
 
-    // Si on n’est pas connecté → reset du nom et pas d’abonnement
+    // Si on n’est pas connecte → reset du nom et pas d’abonnement
     if (status !== "connected") {
       setName("");
       return;
     }
 
-    // 1) on récupère la valeur actuelle (si SkinsService l’a déjà)
+    // 1) on recupere la valeur actuelle (si SkinsService l’a deja)
     async function init() {
       try {
         const raw = await api.getSummonerName();
@@ -29,7 +29,7 @@ export function useSummonerName(status: string) {
     }
     void init();
 
-    // 2) on s’abonne aux futurs changements poussés par le main
+    // 2) on s’abonne aux futurs changements pousses par le main
     const unsub =
       api.onSummonerName &&
       api.onSummonerName((n) => {

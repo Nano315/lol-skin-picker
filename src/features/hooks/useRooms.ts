@@ -28,21 +28,21 @@ export function useRooms(selection: Selection) {
   useEffect(() => {
     const unsubCombo = roomsClient.onGroupCombo(async (payload) => {
       if (payload.type === "sameColor") {
-        // 1. On utilise la nouvelle méthode getMemberId()
+        // 1. On utilise la nouvelle methode getMemberId()
         const myPick = payload.picks.find(
           (p) => p.memberId === roomsClient.getMemberId()
         );
 
         if (myPick) {
-          // 2. Logique importante : Si un chroma est défini (> 0), c'est lui qu'on applique.
+          // 2. Logique importante : Si un chroma est defini (> 0), c'est lui qu'on applique.
           // Sinon, on applique le skin de base.
-          // Dans le LCU, sélectionner un chroma revient à "applySkinId(chromaId)".
+          // Dans le LCU, selectionner un chroma revient a "applySkinId(chromaId)".
           const idToApply =
             myPick.chromaId && myPick.chromaId > 0
               ? myPick.chromaId
               : myPick.skinId;
 
-          // On utilise la méthode correcte définie dans api.ts
+          // On utilise la methode correcte definie dans api.ts
           try {
             await api.applySkinId(idToApply);
             console.log(`[Sync] Applied skin/chroma ID: ${idToApply}`);

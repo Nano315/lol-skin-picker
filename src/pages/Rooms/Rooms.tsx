@@ -146,7 +146,7 @@ export function RoomsPage() {
     window.setTimeout(() => setCopied(false), 1200);
   };
 
-  // Quand on est en ChampSelect, que le champion est lock et qu'on connaît les skins,
+  // Quand on est en ChampSelect, que le champion est lock et qu'on connait les skins,
   // on envoie TOUTES les options skin/chroma avec la VRAIE couleur d'aura.
   useEffect(() => {
     if (!room) return;
@@ -162,7 +162,7 @@ export function RoomsPage() {
 
       // Chaque OwnedSkin correspond au champion courant (selection.championId)
       for (const s of skins) {
-        // Variante "skin nu" (sans chroma) -> auraColor peut être null
+        // Variante "skin nu" (sans chroma) -> auraColor peut etre null
         const baseColor = await computeChromaColor({
           championId: selection.championId,
           skinId: s.id,

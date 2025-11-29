@@ -54,7 +54,7 @@ export async function createMainWindow() {
 
   win.once("ready-to-show", () => {
     if (win) {
-      win.maximize(); // Maximise la fenêtre (plein écran fenêtré)
+      win.maximize(); // Maximise la fenetre (plein ecran fenetre)
       win.show();
     }
   });

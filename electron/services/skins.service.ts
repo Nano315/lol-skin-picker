@@ -6,7 +6,7 @@ import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
 import { webcrypto } from "node:crypto";
 import { logger } from "../logger";
 
-/* ---- réponses API ---- */
+/* ---- reponses API ---- */
 interface SummonerRes {
   summonerId?: number;
   accountId?: number;
@@ -44,7 +44,7 @@ interface ChampSelectSession {
   localPlayerCellId?: number;
 }
 
-/* ---- type envoyé au renderer ---- */
+/* ---- type envoye au renderer ---- */
 export interface OwnedSkin {
   id: number;
   name: string;
@@ -75,14 +75,14 @@ export class SkinsService extends EventEmitter {
 
   private championLocked = false;
 
-  // Mémoire glissante & historique
-  private readonly SKIN_HISTORY_WINDOW = 3; // N derniers skins à éviter
-  private readonly CHROMA_HISTORY_WINDOW = 2; // N derniers chromas à éviter
+  // Memoire glissante & historique
+  private readonly SKIN_HISTORY_WINDOW = 3; // N derniers skins a eviter
+  private readonly CHROMA_HISTORY_WINDOW = 2; // N derniers chromas a eviter
 
-  // Par champion → derniers skins joués
+  // Par champion → derniers skins joues
   private skinHistoryByChampion = new Map<number, number[]>();
 
-  // Par skin → dernières variantes (skin nu + chromas)
+  // Par skin → dernieres variantes (skin nu + chromas)
   private chromaHistoryBySkin = new Map<number, number[]>();
 
   setCreds(creds: LockCreds) {
@@ -92,14 +92,14 @@ export class SkinsService extends EventEmitter {
     this.lastAppliedChampion = 0;
   }
 
-  // 1. Remplacer setInterval par une boucle récursive pour éviter les chevauchements
+  // 1. Remplacer setInterval par une boucle recursive pour eviter les chevauchements
   start() {
     if (!this.creds || this.poller) return;
     this.loopTick();
   }
 
   private async loopTick() {
-    if (!this.creds) return; // Condition d'arrêt
+    if (!this.creds) return; // Condition d'arret
     await this.tick();
     // On attend la fin de tick() avant de programmer le suivant
     this.poller = setTimeout(() => this.loopTick(), 1500);
@@ -121,7 +121,7 @@ export class SkinsService extends EventEmitter {
     }
   }
 
-  // Quand on entre en ChampSelect, active un poll rapide sur la sélection
+  // Quand on entre en ChampSelect, active un poll rapide sur la selection
   private enableManualFastPoll() {
     if (this.manualPoller) return;
     this.manualPoller = setInterval(() => this.updateManualSelection(), 500);
@@ -169,7 +169,7 @@ export class SkinsService extends EventEmitter {
     return this.summonerName;
   }
 
-  /** RNG robuste basé sur crypto.getRandomValues */
+  /** RNG robuste base sur crypto.getRandomValues */
   private randomInt(max: number): number {
     if (max <= 1) return 0;
     const buf = new Uint32Array(1);
@@ -177,7 +177,7 @@ export class SkinsService extends EventEmitter {
     return buf[0] % max;
   }
 
-  /** Ajoute une valeur dans l'historique (clé = champion ou skin) avec une taille max raisonnable */
+  /** Ajoute une valeur dans l'historique (cle = champion ou skin) avec une taille max raisonnable */
   private pushHistory(
     map: Map<number, number[]>,
     key: number,
@@ -191,7 +191,7 @@ export class SkinsService extends EventEmitter {
       map.set(key, arr);
     }
     arr.push(value);
-    // on garde un historique raisonnable pour pondérer (4x la fenêtre glissante)
+    // on garde un historique raisonnable pour ponderer (4x la fenetre glissante)
     const HARD_LIMIT = maxWindow * 4;
     if (arr.length > HARD_LIMIT) {
       arr.splice(0, arr.length - HARD_LIMIT);
@@ -199,11 +199,11 @@ export class SkinsService extends EventEmitter {
   }
 
   /**
-   * Sélection "intelligente" dans allChoices :
-   * - évite prevId
-   * - évite les N derniers (historyWindow)
-   * - si possible : privilégie les jamais vus
-   * - sinon : pondération LRU (plus c’est ancien, plus c’est probable)
+   * Selection "intelligente" dans allChoices :
+   * - evite prevId
+   * - evite les N derniers (historyWindow)
+   * - si possible : privilegie les jamais vus
+   * - sinon : ponderation LRU (plus c’est ancien, plus c’est probable)
    */
   private pickWithHistory(
     allChoices: number[],
@@ -231,14 +231,14 @@ export class SkinsService extends EventEmitter {
       }
     }
 
-    // 3) Priorité aux jamais vus
+    // 3) Priorite aux jamais vus
     const neverSeen = pool.filter((id) => !history.includes(id));
     if (neverSeen.length) {
       const idx = this.randomInt(neverSeen.length);
       return neverSeen[idx];
     }
 
-    // 4) Pondération LRU : plus c'est ancien dans l'historique, plus le poids est grand
+    // 4) Ponderation LRU : plus c'est ancien dans l'historique, plus le poids est grand
     const weights = pool.map((id) => {
       const lastIndex = history.lastIndexOf(id);
       if (lastIndex === -1) return 1;
@@ -354,7 +354,7 @@ export class SkinsService extends EventEmitter {
 
     const champ = await this.fetchCurrentChampion();
 
-    // witch fast-poll selon champ présent (Champ Select) ou non
+    // witch fast-poll selon champ present (Champ Select) ou non
     if (champ) this.enableManualFastPoll();
     else this.disableManualFastPoll();
 
@@ -363,9 +363,9 @@ export class SkinsService extends EventEmitter {
 
       await ensureAliasMap();
       const alias = getChampionAlias(champ);
-      logger.info(`[Skins] Champion détecté: ${alias} (${champ})`);
+      logger.info(`[Skins] Champion detecte: ${alias} (${champ})`);
 
-      // nouvelle game / nouveau champion => on repart à zéro côté sélection
+      // nouvelle game / nouveau champion => on repart a zero côte selection
       this.championLocked = false;
       this.selectedSkinId = 0;
       this.selectedChromaId = 0;
@@ -396,13 +396,13 @@ export class SkinsService extends EventEmitter {
       this.emit("icon", this.profileIconId);
       this.emit("summoner-name", this.summonerName);
       if (this.summonerId && this.summonerId !== previousSummonerId) {
-        logger.info("[Skins] Invocateur identifié", {
+        logger.info("[Skins] Invocateur identifie", {
           summonerId: this.summonerId,
           summonerName: this.summonerName,
         });
       }
     } catch (error) {
-      logger.error("[Skins] Erreur lors de la récupération du summoner", error);
+      logger.error("[Skins] Erreur lors de la recuperation du summoner", error);
       this.summonerId = null;
       this.summonerName = "";
       this.emit("summoner-name", "");
@@ -477,7 +477,7 @@ export class SkinsService extends EventEmitter {
             .map((c) => ({ id: c.id, name: c.name || `Chroma ${c.id}` }));
         } catch (error) {
           logger.warn(
-            `[Skins] Impossible de récupérer les chromas pour le skin ${s.id}`,
+            `[Skins] Impossible de recuperer les chromas pour le skin ${s.id}`,
             error
           );
         }
@@ -545,7 +545,7 @@ export class SkinsService extends EventEmitter {
       }
     } catch (error) {
       logger.error(
-        "[Skins] Erreur critique lors de la récupération des skins",
+        "[Skins] Erreur critique lors de la recuperation des skins",
         error
       );
     }
@@ -557,8 +557,8 @@ export class SkinsService extends EventEmitter {
     const { protocol, port, password } = this.creds;
     const url = `${protocol}://127.0.0.1:${port}/lol-champ-select/v1/session/my-selection`;
     const auth = Buffer.from(`riot:${password}`).toString("base64");
-    // OPTIMISTIC UPDATE : On dit tout de suite à l'app "c'est bon"
-    // pour éviter que l'interface ne revienne en arrière en attendant le LCU
+    // OPTIMISTIC UPDATE : On dit tout de suite a l'app "c'est bon"
+    // pour eviter que l'interface ne revienne en arriere en attendant le LCU
     this.selectedSkinId = skinId;
     this.emit("selection", this.getSelection());
     try {
@@ -571,14 +571,14 @@ export class SkinsService extends EventEmitter {
         body: JSON.stringify({ selectedSkinId: skinId }),
       });
       if (!res.ok) {
-        // Si ça échoue vraiment, le prochain tick() corrigera l'erreur
+        // Si ça echoue vraiment, le prochain tick() corrigera l'erreur
         logger.error(
-          `[Skins] Échec application du skin ${skinId} (status ${res.status})`
+          `[Skins] echec application du skin ${skinId} (status ${res.status})`
         );
         return false;
       }
-      logger.info(`[Skins] Skin appliqué avec succès: ${skinId}`);
-      // On force une lecture immédiate pour confirmer
+      logger.info(`[Skins] Skin applique avec succes: ${skinId}`);
+      // On force une lecture immediate pour confirmer
       void this.updateManualSelection();
       return true;
     } catch (error) {
@@ -596,7 +596,7 @@ export class SkinsService extends EventEmitter {
     const auth = Buffer.from(`riot:${password}`).toString("base64");
 
     try {
-      // On récupère à la fois la sélection et la session champ select
+      // On recupere a la fois la selection et la session champ select
       const [selectionData, sessionData] = await Promise.all([
         fetch(`${base}/lol-champ-select/v1/session/my-selection`, {
           headers: { Authorization: `Basic ${auth}` },
@@ -639,7 +639,7 @@ export class SkinsService extends EventEmitter {
         }
       }
 
-      // --- 2) Recalcul complet skin/chroma à partir de selectedSkinId ---
+      // --- 2) Recalcul complet skin/chroma a partir de selectedSkinId ---
       const selId = selectionData.selectedSkinId ?? 0;
 
       let newSkinId = 0;
@@ -679,7 +679,7 @@ export class SkinsService extends EventEmitter {
         this.selectedChromaId = newChromaId;
       }
 
-      // --- 3) On notifie le renderer si quelque chose a changé ---
+      // --- 3) On notifie le renderer si quelque chose a change ---
       if (selectionChanged || lockedChanged) {
         this.emit("selection", this.getSelection());
       }

@@ -9,9 +9,9 @@ interface GradientTextProps {
   animationSpeed?: number;
   showBorder?: boolean;
 
-  /** Nouveau : icône Font Awesome à afficher (ex: faPalette) */
+  /** Nouveau : icône Font Awesome a afficher (ex: faPalette) */
   icon?: IconDefinition;
-  /** Taille de l’icône (px, rem, em). Par défaut suit la taille du texte via 1em. */
+  /** Taille de l’icône (px, rem, em). Par defaut suit la taille du texte via 1em. */
   iconSize?: number | string;
   /** Position de l’icône par rapport au texte. */
   iconPosition?: "left" | "right";
@@ -61,7 +61,7 @@ export default function GradientText({
         maskPosition: "center",
         WebkitMaskSize: "contain",
         maskSize: "contain",
-        // Le dégradé animé passe à travers le masque (icône) :
+        // Le degrade anime passe a travers le masque (icône) :
         ...gradientStyle,
       } as const)
     : undefined;

@@ -15,7 +15,7 @@
   z-index: 20;
 }
 
-/* logo à gauche */
+/* logo a gauche */
 .logo {
   font-weight: 700;
   font-size: 1.25rem;
@@ -37,7 +37,7 @@
   text-transform: capitalize;
 }
 
-/* icône d’invocateur à droite */
+/* icône d’invocateur a droite */
 .avatar {
   width: 40px;
   height: 40px;
@@ -45,14 +45,14 @@
   object-fit: cover;
 }
 
-/* Regroupe logo + nav, très proches */
+/* Regroupe logo + nav, tres proches */
 .brand {
   display: flex;
   align-items: center;
   gap: 20px;
 }
 
-/* La nav elle-même peut être un peu plus serrée */
+/* La nav elle-meme peut etre un peu plus serree */
 .nav {
   display: flex;
   align-items: center;

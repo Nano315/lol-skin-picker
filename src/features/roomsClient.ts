@@ -49,11 +49,11 @@ export type RoomState = {
   };
 };
 
-/** Toutes les combinaisons skin/chroma possédées sur le champion lock. */
+/** Toutes les combinaisons skin/chroma possedees sur le champion lock. */
 export type GroupSkinOption = {
   skinId: number;
   chromaId: number; // 0 = sans chroma
-  auraColor: string | null; // EXACTEMENT la couleur utilisée pour l’aura côté front
+  auraColor: string | null; // EXACTEMENT la couleur utilisee pour l’aura côte front
 };
 
 export type OwnedOptionsPayload = {
@@ -80,7 +80,7 @@ class RoomsClient {
 
   subscribe(listener: (room: RoomState | null) => void): () => void {
     this.listeners.add(listener);
-    listener(this.room); // état actuel immédiat
+    listener(this.room); // etat actuel immediat
     return () => {
       this.listeners.delete(listener);
     };
@@ -198,7 +198,7 @@ class RoomsClient {
       this.roomId = null;
       this.memberId = null;
       this.emitRoom(null);
-      // On coupe le socket pour éviter les reconnections inutiles
+      // On coupe le socket pour eviter les reconnections inutiles
       this.socket?.disconnect();
       this.socket = null;
     });

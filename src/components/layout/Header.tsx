@@ -23,7 +23,7 @@ export default function Header({
 
   return (
     <header className="header">
-      {/* Bloc gauche : logo + nav rapprochés */}
+      {/* Bloc gauche : logo + nav rapproches */}
       <div className="brand">
         <div className="logo">Skin Picker</div>
 
@@ -55,7 +55,7 @@ export default function Header({
         </nav>
       </div>
 
-      {/* Bloc droit : état + avatar */}
+      {/* Bloc droit : etat + avatar */}
       <div className="connection">
         <div className="state">{connectionLabel()}</div>
         {iconUrl && <img src={iconUrl} alt="summoner" className="avatar" />}

@@ -11,7 +11,7 @@
   transition: box-shadow 0.5s ease-out;
   overflow: hidden;
   cursor: pointer;
-  /* l’espacement icône/texte est géré par le gap inline-style */
+  /* l’espacement icône/texte est gere par le gap inline-style */
 }
 
 .gradient-overlay {
@@ -60,11 +60,11 @@
   animation: gradient linear infinite;
 }
 
-/* L’icône utilise un MASQUE + le même dégradé animé */
+/* L’icône utilise un MASQUE + le meme degrade anime */
 .gradient-icon {
   display: inline-block;
   flex: 0 0 auto;
   background-size: 1200% 100%;
   animation: gradient linear infinite;
-  /* Le masque (mask-image) est injecté en inline-style pour inclure la data-URL */
+  /* Le masque (mask-image) est injecte en inline-style pour inclure la data-URL */
 }

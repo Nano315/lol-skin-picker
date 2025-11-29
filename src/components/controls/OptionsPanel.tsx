@@ -15,10 +15,10 @@ export default function OptionsPanel({
 }) {
   const onIncludeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.checked;
-    // 1) UI + stockage local immédiats
+    // 1) UI + stockage local immediats
     setIncludeDefault(v);
     savePref("includeDefault", v);
-    // 2) IPC en arrière-plan
+    // 2) IPC en arriere-plan
     void api.setIncludeDefault(v).catch(() => {
     });
   };

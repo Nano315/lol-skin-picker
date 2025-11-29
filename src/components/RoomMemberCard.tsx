@@ -18,7 +18,7 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
   const chromaId = member?.chromaId ?? 0;
   const championAlias = member?.championAlias ?? "";
 
-  // Hook toujours appelé, jamais conditionnel
+  // Hook toujours appele, jamais conditionnel
   const chromaColor = useChromaColor({
     championId,
     skinId,
@@ -27,7 +27,7 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
     locked: false,
   });
 
-  // Gestion d'erreur pour charger l'image par défaut si le calcul d'URL échoue
+  // Gestion d'erreur pour charger l'image par defaut si le calcul d'URL echoue
   const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     e.currentTarget.src = fallbackSkin;
   };

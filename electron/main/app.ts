@@ -23,7 +23,7 @@ if (!app.isPackaged) {
     "disk-cache-dir",
     path.join(devUserData, "Cache")
   );
-  app.commandLine.appendSwitch("disable-gpu-shader-disk-cache"); // évite le cache GPU
+  app.commandLine.appendSwitch("disable-gpu-shader-disk-cache"); // evite le cache GPU
 }
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -42,7 +42,7 @@ function centerInDisplay(d: Electron.Display, width: number, height: number) {
 }
 
 async function createWindowWithPrefs() {
-  // positionnement restauré
+  // positionnement restaure
   const settings = await loadSettings();
   const displays = screen.getAllDisplays();
   const width = 900,
@@ -60,7 +60,7 @@ async function createWindowWithPrefs() {
   Menu.setApplicationMenu(null);
   setupTray(getMainWindow);
 
-  // persist écran courant (debounce léger)
+  // persist ecran courant (debounce leger)
   let moveTimer: NodeJS.Timeout | null = null;
   const persist = () => {
     const current = getMainWindow();
@@ -82,16 +82,16 @@ function wireDomainEvents() {
     getMainWindow()?.webContents.send("lcu-status", status);
 
     if (status === "connected" && creds) {
-      // Le client vient de s'ouvrir : on démarre les services
+      // Le client vient de s'ouvrir : on demarre les services
       gameflow.setCreds(creds);
       skins.setCreds(creds);
       skins.start();
 
-      // On affiche la fenêtre au démarrage (sauf si une game est déjà en cours,
-      // ce qui sera corrigé une fraction de seconde plus tard par l'event 'phase')
+      // On affiche la fenetre au demarrage (sauf si une game est deja en cours,
+      // ce qui sera corrige une fraction de seconde plus tard par l'event 'phase')
       getMainWindow()?.show();
     } else {
-      // Le client s'est fermé : on arrête tout et on cache l'app
+      // Le client s'est ferme : on arrete tout et on cache l'app
       gameflow.stop();
       skins.stop();
       getMainWindow()?.hide();
@@ -99,25 +99,25 @@ function wireDomainEvents() {
   });
 
   // ---------------------------------------------------------
-  // 2. AJOUT : Gestion de la visibilité selon la phase de jeu
+  // 2. AJOUT : Gestion de la visibilite selon la phase de jeu
   // ---------------------------------------------------------
   gameflow.on("phase", (phase: string) => {
     const win = getMainWindow();
     if (!win || win.isDestroyed()) return;
 
-    // "InProgress" signifie que le joueur est en partie (ou écran de chargement)
+    // "InProgress" signifie que le joueur est en partie (ou ecran de chargement)
     if (phase === "InProgress") {
       if (win.isVisible()) {
-        logger.info("[App] Partie détectée : Mise en veille de la fenêtre");
+        logger.info("[App] Partie detectee : Mise en veille de la fenetre");
         win.hide();
       }
     }
     // Toutes les autres phases (Lobby, ChampSelect, EndOfGame, None...)
     else {
-      // On réaffiche la fenêtre seulement si elle était cachée
-      // et que le client LoL est toujours connecté
+      // On reaffiche la fenetre seulement si elle etait cachee
+      // et que le client LoL est toujours connecte
       if (!win.isVisible() && lcu.isConnected()) {
-        logger.info("[App] Fin de partie / Lobby : Réaffichage de la fenêtre");
+        logger.info("[App] Fin de partie / Lobby : Reaffichage de la fenetre");
         win.show();
       }
     }
@@ -127,7 +127,7 @@ function wireDomainEvents() {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-  logger.warn("[App] Deuxième instance détectée, fermeture de l'app");
+  logger.warn("[App] Deuxieme instance detectee, fermeture de l'app");
   app.quit();
 } else {
   app.on("second-instance", () => {
@@ -140,7 +140,7 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
-    logger.info("[App] Application prête, initialisation des services");
+    logger.info("[App] Application prete, initialisation des services");
     registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
     wireDomainEvents();
     updaterHooks();

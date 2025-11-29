@@ -9,8 +9,8 @@ const hexToRgba = (h: string, alpha = 0.5) => {
 };
 
 /**
- * Renvoie EXACTEMENT la même couleur que useChromaColor,
- * mais dans une fonction utilitaire async réutilisable.
+ * Renvoie EXACTEMENT la meme couleur que useChromaColor,
+ * mais dans une fonction utilitaire async reutilisable.
  */
 export async function computeChromaColor(params: {
   championId: number;

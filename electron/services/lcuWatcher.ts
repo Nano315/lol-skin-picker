@@ -10,7 +10,7 @@ export interface LockCreds {
   protocol: string;
 }
 
-/* -------- implémentation -------- */
+/* -------- implementation -------- */
 export class LcuWatcher extends EventEmitter {
   status: LcuStatus = "disconnected";
   creds: LockCreds | null = null;
@@ -47,7 +47,7 @@ export class LcuWatcher extends EventEmitter {
 
     if (path !== this.lockfilePath) {
       this.lockfilePath = path;
-      logger.info("[LCU] Lockfile détecté", path);
+      logger.info("[LCU] Lockfile detecte", path);
     }
 
     if (raw !== this.rawCache) {
@@ -65,7 +65,7 @@ export class LcuWatcher extends EventEmitter {
   private toConnected(c: LockCreds) {
     this.status = "connected";
     this.creds = c;
-    logger.info("[LCU] Connecté au client", {
+    logger.info("[LCU] Connecte au client", {
       port: c.port,
       protocol: c.protocol,
       lockfilePath: this.lockfilePath,
@@ -79,7 +79,7 @@ export class LcuWatcher extends EventEmitter {
       this.creds = null;
       this.rawCache = "";
       if (this.lockfilePath) {
-        logger.info("[LCU] Client déconnecté", this.lockfilePath);
+        logger.info("[LCU] Client deconnecte", this.lockfilePath);
       }
       this.lockfilePath = null;
       this.emit("status", "disconnected");

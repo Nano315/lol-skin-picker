@@ -2,13 +2,13 @@
 // → doc : https://www.electron.build/configuration/configuration
 {
   /* ------------------------------------------------------------------ */
-  /*  GÉNÉRAL                                                          */
+  /*  GeNeRAL                                                          */
   /* ------------------------------------------------------------------ */
 
   // identifiant unique de l’application (reverse-DNS)
   appId: "com.dumas.lolskinpicker",
 
-  // nom “marketing” affiché dans l’installeur, le menu, etc.
+  // nom “marketing” affiche dans l’installeur, le menu, etc.
   productName: "LoL Skin Picker",
 
   "publish": [
@@ -22,11 +22,11 @@
     }
   ],
 
-  // on empaquète tout dans un seul fichier .asar
+  // on empaquete tout dans un seul fichier .asar
   asar: true,
 
   /* ------------------------------------------------------------------ */
-  /*  SORTIE / FICHIERS À INCLURE                                       */
+  /*  SORTIE / FICHIERS a INCLURE                                       */
   /* ------------------------------------------------------------------ */
 
   // dossier où electron-builder placera les installeurs finaux
@@ -34,11 +34,11 @@
     output: "dist",
   },
 
-  // ce qui doit être inclus dans l’appli avant empaquetage
+  // ce qui doit etre inclus dans l’appli avant empaquetage
   files: [
     "dist/**", // bundle Vite (renderer)
     "dist-electron/**", // bundle Electron (main + preload)
-    "node_modules/**", // dépendances runtime
+    "node_modules/**", // dependances runtime
     "package.json", // meta + version
   ],
 
@@ -47,7 +47,7 @@
   /* ------------------------------------------------------------------ */
 
   win: {
-    // icône (256×256 px min.) – laisse .ico multi-résolution
+    // icône (256×256 px min.) – laisse .ico multi-resolution
     icon: "public/icon.ico",
 
     // type d’installeur : NSIS (EXE)
@@ -66,7 +66,7 @@
   nsis: {
     oneClick: true, // installateur silencieux (un seul clic)
     perMachine: false, // install pour l’utilisateur courant
-    deleteAppDataOnUninstall: false, // on conserve le cache lors d’une désinstallation
+    deleteAppDataOnUninstall: false, // on conserve le cache lors d’une desinstallation
   },
 
   /* ------------------------------------------------------------------ */
@@ -94,12 +94,12 @@
   */
 
   /* ------------------------------------------------------------------ */
-  /*  METADONNÉES SUPPLÉMENTAIRES (pour le package.json embarqué)       */
+  /*  METADONNeES SUPPLeMENTAIRES (pour le package.json embarque)       */
   /* ------------------------------------------------------------------ */
 
   extraMetadata: {
     version: "6.2.0",
-    description: "Applique automatiquement un skin/chroma aléatoire durant la phase de sélection de champion de League of Legends.",
+    description: "Applique automatiquement un skin/chroma aleatoire durant la phase de selection de champion de League of Legends.",
   },
   extraResources: [
     { from: "public/icon.ico", to: "icon.ico" },
