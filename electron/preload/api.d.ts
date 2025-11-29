@@ -53,6 +53,8 @@ declare global {
       ) => Unsub;
 
       openExternal: (url: string) => Promise<void>;
+
+      openLogsFolder: () => Promise<void>;
     };
 
     api: Window["lcu"];

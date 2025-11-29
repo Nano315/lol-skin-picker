@@ -52,4 +52,6 @@ export const api = {
 
   // misc
   openExternal: (url: string) => lcu.openExternal(url),
+  
+  openLogsFolder: () => lcu.openLogsFolder(),
 };

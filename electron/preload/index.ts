@@ -82,6 +82,8 @@ const api = {
 
   /* Divers */
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
+
+  openLogsFolder: () => ipcRenderer.invoke("open-logs-folder"),
 };
 
 contextBridge.exposeInMainWorld("lcu", api);

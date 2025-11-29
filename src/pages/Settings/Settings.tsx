@@ -19,14 +19,12 @@ export default function Settings() {
   useEffect(() => {
     Promise.all([api.getIncludeDefault(), api.getAutoRoll()]).then(
       ([incSrv, autoSrv]) => {
-        const incPref = read("includeDefault"); // string->bool deja gere dans le hook
+        const incPref = read("includeDefault");
         const autoPref = read("autoRoll");
 
-        // UI d’abord : si local existe, on le montre; sinon valeur service
         setIncludeDefault(incPref ?? incSrv);
         setAutoRoll(autoPref ?? autoSrv);
 
-        // Pousser la preference locale vers le service si divergence (fire-and-forget)
         if (incPref !== null && incPref !== incSrv) {
           void api.setIncludeDefault(incPref).catch(() => {});
         }
@@ -68,6 +66,43 @@ export default function Settings() {
             </section>
 
             <section className="card settings-card">
+              <div className="card-header">
+                <div>
+                  <p className="eyebrow">SUPPORT</p>
+                  <h2 className="card-title">Troubleshooting</h2>
+                </div>
+              </div>
+              <div className="options-group">
+                <div className="option-row">
+                  <div className="option-info">
+                    <span className="option-label">Debug Logs</span>
+                    <span className="option-desc">
+                      Open the logs folder to send files for bug reports.
+                    </span>
+                  </div>
+                  <button
+                    className="contact-btn"
+                    onClick={() => api.openLogsFolder()}
+                  >
+                    OPEN FOLDER
+                  </button>
+                </div>
+
+                <div className="option-row">
+                  <div className="option-info">
+                    <span className="option-label">Contact & Feedback</span>
+                    <span className="option-desc">
+                      Found a bug or have a suggestion? Feel free to reach out!
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <ContactButton />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="card settings-card">
               <div className="card-header about-header">
                 <div>
                   <p className="eyebrow">ABOUT</p>
@@ -84,9 +119,6 @@ export default function Settings() {
                 <p className="about-meta">
                   © 2025 Skin Picker. All rights reserved.
                 </p>
-                <div className="about-actions">
-                  <ContactButton />
-                </div>
               </div>
             </section>
           </div>
