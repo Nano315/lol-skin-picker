@@ -121,14 +121,29 @@ function wireDomainEvents() {
   });
 }
 
-app.whenReady().then(async () => {
-  registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
-  wireDomainEvents();
-  updaterHooks();
+const gotTheLock = app.requestSingleInstanceLock();
 
-  await createWindowWithPrefs();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    const win = getMainWindow();
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      if (!win.isVisible()) win.show();
+      win.focus();
+    }
+  });
 
-  lcu.start();
-});
+  app.whenReady().then(async () => {
+    registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
+    wireDomainEvents();
+    updaterHooks();
+
+    await createWindowWithPrefs();
+
+    lcu.start();
+  });
+}
 
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());
