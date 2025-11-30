@@ -1,82 +1,90 @@
 # LoL Skin Picker
 
-A tiny Electron + React app that auto-picks and rerolls League of Legends skins (and chromas) during Champ Select. It talks to the local LoL Client (LCU) and uses CommunityDragon for art & chroma data.
+A tiny, modern Electron + React app that auto-picks and rerolls League of Legends skins (and chromas) during Champ Select. It seamlessly talks to the local LoL Client (LCU) and orchestrates multiplayer skin synchronization.
 
 > ⚠️ Not affiliated with or endorsed by Riot Games. Use at your own risk.
 
 ### 🎨 Design & purpose
 
-The visual design is **heavily inspired by the art direction of DPM.lol**.
-This app is a **personal project** created to showcase my skills to the DPM.lol team with the hope of securing an **alternance (apprenticeship)** there. It is not an official DPM.lol product.
+The visual design is **heavily inspired by the art direction of DPM.lol**, featuring a modern **Bento Grid layout**, glassmorphism effects, and animated mascots.
+
+This app is a **personal project** created to showcase my Full Stack & UI/UX skills to the DPM.lol team with the hope of securing an **alternance (apprenticeship)** there. It is not an official DPM.lol product.
 
 ---
 
 ## ✨ Features
 
-* Auto-roll on champion lock (optional)
-* “Include default skin” toggle
-* Manual **Reroll Skin** & **Reroll Chroma** buttons
-  *(buttons appear only after you’ve selected/locked a champion)*
-* Shows the current skin splash (centered, rounded corners)
-* Dynamic glow around the splash based on current chroma color
-* Shows your summoner icon
-* Minimize to tray when the client closes, restore when it opens
-* Option persistence (stored locally)
-* Windows installer (NSIS) + auto-updates from GitHub Releases
+### 🎮 Solo Experience
+* **Smart Auto-roll:** Automatically picks a random skin/chroma upon champion lock.
+* **Smart Reroll:** Manual **Reroll Skin** & **Reroll Chroma** buttons with history tracking (avoids recent picks).
+* **Dynamic Theming:** The UI adapts its glow and borders based on the dominant color of the selected skin/chroma.
+* **Mascots Layer:** Animated mascots (Meeps, Poros, Lulu) floating in parallax.
 
-## 🖼️ UI at a glance
+### 🤝 Multiplayer Rooms (New!)
+* **Real-time Sync:** Create or join a lobby via a short code (e.g., `ABC123`).
+* **Live Dashboard:** See your teammates' picks updating in real-time.
+* **Skinergy & Group Reroll:** The app analyzes color palettes of all players to find matching "Synergies". The host can trigger a **Group Reroll** to harmonize the entire team's skins instantly.
 
-* **Header:** “Skin Picker” (left), connection state (center/right), summoner icon (right).
-* **Main:** current skin splash (660×371, radius 40px) with chroma glow.
-* **Reroll buttons:** centered under the splash (appear after champion is chosen).
-* **Option toggles:** stacked bottom-left with colored status dots (green/red).
+### ⚙️ Core
+* **Include default skin** toggle.
+* **Tray Support:** Minimizes to tray when the client closes, restores when a game starts.
+* **Persistence:** Settings and room preferences are stored locally.
+* **Auto-updates:** Integrated with GitHub Releases.
 
-## ▶️ How it works (quick)
+---
 
-**LCU watcher** reads the lockfile to authenticate and polls:
+## 🖼️ UI at a glance: The Bento Grid
 
-* current summoner (icon)
-* current champion id
-* owned skins & chromas for that champion
-* your manual skin/chroma selection (kept in sync)
+The application uses a responsive Bento layout divided into smart panels:
 
-**Randomization** honors your toggles:
+1.  **Preview Card (Top-Left):** Large, rounded display of the current splash art with a dynamic chroma glow.
+2.  **Details Card (Top-Right):** Live data showing current Game Phase, Champion Alias, and active Skin/Chroma names.
+3.  **Actions Card (Bottom):** Context-aware controls. Shows Reroll buttons in solo mode, or Group Synergy controls when in a Room.
+4.  **Rooms Tab:** A dedicated interface to manage the squad, copy invite codes, and visualize the team's loadout.
 
-* Exclude the default skin if you want
-* Auto-roll on champion lock if enabled, otherwise use the buttons
+## ▶️ How it works
 
-**Art & colors**
+**LCU Watcher & Gameflow**
+The app reads the lockfile to authenticate with the local League Client API (LCU). It polls for:
+* Summoner identity & icon.
+* Gameflow phase (Lobby, ChampSelect, InProgress...).
+* Champion ownership & current selection.
 
-* Splashes from **Data Dragon**
-* Chroma colors from **CommunityDragon** (`/chromas/:id.json` or fallback champion JSON)
+**Real-time Multiplayer (Socket.io)**
+* The app connects to a custom Node.js/Socket.io backend.
+* **Events:** It emits `update-selection` when you change skins and listens for `room-state` updates to render teammates.
+* **Synergy:** When the host clicks "Group Reroll", the server calculates the best matching skin for every player based on their owned inventory and broadcasts an `apply-skin` command.
+
+**Data Sources**
+* **CommunityDragon:** Used for chroma color analysis (hex codes) and assets.
+* **Data Dragon:** Used for champion splash art.
 
 ## 🔁 Auto-updates
 
-The app uses **electron-updater** (via `autoUpdater`) to check your **GitHub Releases**.
-
-* Publish a new release with a higher semver (`1.0.4`, `1.1.0`, …) and attach the Windows installer.
-* The app downloads/applies updates on next launch (or when you trigger checks) and prompts to restart.
-* Auto-update reads the repo/owner from your `publish` config—make sure releases are **public**.
+The app uses **electron-updater** to check your **GitHub Releases**.
+* The app downloads/applies updates on next launch.
+* Checks are performed automatically against the repository releases.
 
 ## 🔐 Disclaimer
 
-* The app only talks to the local LoL Client (LCU) on `127.0.0.1`.
+* The app only talks to the local LoL Client (LCU) on `127.0.0.1` and the dedicated Rooms server.
 * It changes only cosmetic selection (skins/chromas).
 * You are responsible for compliance with Riot’s terms. This project is not endorsed by Riot.
 
 ## 🙌 Credits
 
-* **CommunityDragon** for data & assets
-* **Data Dragon** for champion splash art
-* **Electron**, **React**, **Vite** and the awesome OSS ecosystem
+* **CommunityDragon** for data & assets.
+* **Data Dragon** for champion splash art.
+* **Electron**, **React**, **Vite**, **Socket.io** and the awesome OSS ecosystem.
 
 ## Quick “How to use”
 
-1. Start the LoL Client (or launch the app first — it’ll hide until the client appears).
-2. Lock a champion in Champ Select.
-3. The app shows the current splash with a chroma glow (if any).
-4. Use **Reroll Skin** / **Reroll Chroma** or let **Auto-roll** do it for you.
-5. Toggle **Include default skin** and **Auto roll** (bottom-left).
-   Your choices are saved and persist between restarts.
+1.  **Launch:** Start the LoL Client and the App.
+2.  **Solo:** Lock a champion. Use **Reroll** buttons or let **Auto-roll** decide.
+3.  **Multiplayer:**
+    * Go to the **Rooms** tab.
+    * **Create** a room and share the code.
+    * Wait for your friends to join and lock their champs.
+    * As the host, use the **Group Reroll** dropdown to pick a color theme (e.g., "Blue", "Red", "Golden") and sync everyone!
 
 Enjoy 💙
