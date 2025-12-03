@@ -8,6 +8,8 @@ export default function OptionsPanel({
   savePref,
   performanceMode,
   setPerformanceMode,
+  openAtLogin,
+  setOpenAtLogin,
 }: {
   includeDefault: boolean;
   setIncludeDefault: (v: boolean) => void;
@@ -15,6 +17,8 @@ export default function OptionsPanel({
   setAutoRoll: (v: boolean) => void;
   performanceMode: boolean;
   setPerformanceMode: (v: boolean) => void;
+  openAtLogin: boolean;
+  setOpenAtLogin: (v: boolean) => void;
   savePref: (k: "includeDefault" | "autoRoll" | "performanceMode", v: boolean) => void;
 }) {
   const onIncludeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +43,13 @@ export default function OptionsPanel({
     setPerformanceMode(v);
     savePref("performanceMode", v);
     void api.setPerformanceMode(v).catch(() => {});
+  };
+
+  const onOpenAtLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.checked;
+    setOpenAtLogin(v);
+    // Pas de savePref ici car c'est géré côté main process via setOpenAtLogin
+    void api.setOpenAtLogin(v).catch(() => {});
   };
 
   return (
@@ -74,6 +85,20 @@ export default function OptionsPanel({
             type="checkbox"
             checked={performanceMode}
             onChange={onPerformanceModeChange}
+          />
+          <span className="track">
+            <span className="thumb" />
+          </span>
+        </label>
+      </div>
+
+      <div className="option-row">
+        <span className="option-label">Run on Startup</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={openAtLogin}
+            onChange={onOpenAtLoginChange}
           />
           <span className="track">
             <span className="thumb" />

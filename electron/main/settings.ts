@@ -2,7 +2,7 @@ import { app } from "electron";
 import { join } from "node:path";
 import { promises as fs } from "node:fs";
 
-type Settings = { displayId?: number };
+type Settings = { displayId?: number; openAtLogin?: boolean };
 const settingsPath = join(app.getPath("userData"), "settings.json");
 
 export async function loadSettings(): Promise<Settings> {

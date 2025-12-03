@@ -59,6 +59,9 @@ declare global {
       openExternal: (url: string) => Promise<void>;
 
       openLogsFolder: () => Promise<void>;
+      
+      getOpenAtLogin: () => Promise<boolean>;
+      setOpenAtLogin: (v: boolean) => Promise<void>;
     };
 
     api: Window["lcu"];

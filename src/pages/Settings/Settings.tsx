@@ -16,13 +16,15 @@ export default function Settings() {
   const [includeDefault, setIncludeDefault] = useState(true);
   const [autoRoll, setAutoRoll] = useState(true);
   const [performanceMode, setPerformanceMode] = useState(false);
+  const [openAtLogin, setOpenAtLogin] = useState(false);
 
   useEffect(() => {
     Promise.all([
       api.getIncludeDefault(),
       api.getAutoRoll(),
       api.getPerformanceMode(),
-    ]).then(([incSrv, autoSrv, perfSrv]) => {
+      api.getOpenAtLogin(),
+    ]).then(([incSrv, autoSrv, perfSrv, openAtLoginSrv]) => {
       const incPref = read("includeDefault");
       const autoPref = read("autoRoll");
       const perfPref = read("performanceMode");
@@ -30,6 +32,7 @@ export default function Settings() {
       setIncludeDefault(incPref ?? incSrv);
       setAutoRoll(autoPref ?? autoSrv);
       setPerformanceMode(perfPref ?? perfSrv);
+      setOpenAtLogin(openAtLoginSrv);
 
       if (incPref !== null && incPref !== incSrv) {
         void api.setIncludeDefault(incPref).catch(() => {});
@@ -74,6 +77,8 @@ export default function Settings() {
                   setPerformanceMode(v);
                   save("performanceMode", v);
                 }}
+                openAtLogin={openAtLogin}
+                setOpenAtLogin={setOpenAtLogin}
                 savePref={save}
               />
             </section>

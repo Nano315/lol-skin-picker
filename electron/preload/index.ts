@@ -89,6 +89,9 @@ const api = {
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
 
   openLogsFolder: () => ipcRenderer.invoke("open-logs-folder"),
+
+  getOpenAtLogin: () => ipcRenderer.invoke("get-open-at-login"),
+  setOpenAtLogin: (v: boolean) => ipcRenderer.invoke("set-open-at-login", v),
 };
 
 contextBridge.exposeInMainWorld("lcu", api);
