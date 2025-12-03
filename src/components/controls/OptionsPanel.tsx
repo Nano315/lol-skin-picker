@@ -6,12 +6,16 @@ export default function OptionsPanel({
   autoRoll,
   setAutoRoll,
   savePref,
+  performanceMode,
+  setPerformanceMode,
 }: {
   includeDefault: boolean;
   setIncludeDefault: (v: boolean) => void;
   autoRoll: boolean;
   setAutoRoll: (v: boolean) => void;
-  savePref: (k: "includeDefault" | "autoRoll", v: boolean) => void;
+  performanceMode: boolean;
+  setPerformanceMode: (v: boolean) => void;
+  savePref: (k: "includeDefault" | "autoRoll" | "performanceMode", v: boolean) => void;
 }) {
   const onIncludeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.checked;
@@ -28,6 +32,13 @@ export default function OptionsPanel({
     setAutoRoll(v);
     savePref("autoRoll", v);
     void api.setAutoRoll(v).catch(() => {});
+  };
+
+  const onPerformanceModeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.checked;
+    setPerformanceMode(v);
+    savePref("performanceMode", v);
+    void api.setPerformanceMode(v).catch(() => {});
   };
 
   return (
@@ -50,6 +61,20 @@ export default function OptionsPanel({
         <span className="option-label">Auto roll on champion lock</span>
         <label className="switch">
           <input type="checkbox" checked={autoRoll} onChange={onAutoRollChange} />
+          <span className="track">
+            <span className="thumb" />
+          </span>
+        </label>
+      </div>
+
+      <div className="option-row">
+        <span className="option-label">Low Spec Mode (Reduces lag)</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={performanceMode}
+            onChange={onPerformanceModeChange}
+          />
           <span className="track">
             <span className="thumb" />
           </span>

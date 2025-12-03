@@ -17,6 +17,12 @@ export function registerSkinsIpc(
   ipcMain.handle("toggle-auto-roll", () => svc.toggleAutoRoll());
   ipcMain.handle("set-auto-roll", (_e, v: boolean) => svc.setAutoRoll(!!v));
 
+  ipcMain.handle("get-performance-mode", () => svc.getPerformanceMode());
+  ipcMain.handle("toggle-performance-mode", () => svc.togglePerformanceMode());
+  ipcMain.handle("set-performance-mode", (_e, v: boolean) =>
+    svc.setPerformanceMode(!!v)
+  );
+
   ipcMain.handle("reroll-skin", () => svc.rerollSkin());
   ipcMain.handle("reroll-chroma", () => svc.rerollChroma());
 

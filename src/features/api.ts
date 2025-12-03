@@ -35,6 +35,9 @@ export const api = {
   getAutoRoll: () => lcu.getAutoRoll(),
   toggleAutoRoll: () => lcu.toggleAutoRoll(),
   setAutoRoll: (v: boolean) => lcu.setAutoRoll(v),
+  getPerformanceMode: () => lcu.getPerformanceMode(),
+  togglePerformanceMode: () => lcu.togglePerformanceMode(),
+  setPerformanceMode: (v: boolean) => lcu.setPerformanceMode(v),
 
   // actions
   rerollSkin: () => lcu.rerollSkin(),

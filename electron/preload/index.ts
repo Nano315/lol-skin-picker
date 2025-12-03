@@ -62,6 +62,11 @@ const api = {
   toggleAutoRoll: () => ipcRenderer.invoke("toggle-auto-roll"),
   setAutoRoll: (v: boolean) => ipcRenderer.invoke("set-auto-roll", v),
 
+  getPerformanceMode: () => ipcRenderer.invoke("get-performance-mode"),
+  togglePerformanceMode: () => ipcRenderer.invoke("toggle-performance-mode"),
+  setPerformanceMode: (v: boolean) =>
+    ipcRenderer.invoke("set-performance-mode", v),
+
   /* Actions & Selection */
   rerollSkin: () => ipcRenderer.invoke("reroll-skin"),
   rerollChroma: () => ipcRenderer.invoke("reroll-chroma"),

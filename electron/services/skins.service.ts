@@ -68,6 +68,7 @@ export class SkinsService extends EventEmitter {
 
   private profileIconId = 0;
   private autoRollEnabled = true;
+  private performanceMode = false;
 
   private summonerName = "";
 
@@ -124,7 +125,12 @@ export class SkinsService extends EventEmitter {
   // Quand on entre en ChampSelect, active un poll rapide sur la selection
   private enableManualFastPoll() {
     if (this.manualPoller) return;
-    this.manualPoller = setInterval(() => this.updateManualSelection(), 500);
+    if (this.manualPoller) return;
+    const interval = this.performanceMode ? 1500 : 500;
+    this.manualPoller = setInterval(
+      () => this.updateManualSelection(),
+      interval
+    );
   }
   private disableManualFastPoll() {
     if (this.manualPoller) clearInterval(this.manualPoller);
@@ -149,6 +155,21 @@ export class SkinsService extends EventEmitter {
   }
   toggleAutoRoll() {
     this.setAutoRoll(!this.autoRollEnabled);
+  }
+
+  getPerformanceMode() {
+    return this.performanceMode;
+  }
+  setPerformanceMode(v: boolean) {
+    this.performanceMode = !!v;
+    // If we are currently polling, restart the poller to apply the new interval
+    if (this.manualPoller) {
+      this.disableManualFastPoll();
+      this.enableManualFastPoll();
+    }
+  }
+  togglePerformanceMode() {
+    this.setPerformanceMode(!this.performanceMode);
   }
 
   getSelection() {

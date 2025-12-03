@@ -15,24 +15,32 @@ export default function Settings() {
   const { save, read } = usePrefs();
   const [includeDefault, setIncludeDefault] = useState(true);
   const [autoRoll, setAutoRoll] = useState(true);
+  const [performanceMode, setPerformanceMode] = useState(false);
 
   useEffect(() => {
-    Promise.all([api.getIncludeDefault(), api.getAutoRoll()]).then(
-      ([incSrv, autoSrv]) => {
-        const incPref = read("includeDefault");
-        const autoPref = read("autoRoll");
+    Promise.all([
+      api.getIncludeDefault(),
+      api.getAutoRoll(),
+      api.getPerformanceMode(),
+    ]).then(([incSrv, autoSrv, perfSrv]) => {
+      const incPref = read("includeDefault");
+      const autoPref = read("autoRoll");
+      const perfPref = read("performanceMode");
 
-        setIncludeDefault(incPref ?? incSrv);
-        setAutoRoll(autoPref ?? autoSrv);
+      setIncludeDefault(incPref ?? incSrv);
+      setAutoRoll(autoPref ?? autoSrv);
+      setPerformanceMode(perfPref ?? perfSrv);
 
-        if (incPref !== null && incPref !== incSrv) {
-          void api.setIncludeDefault(incPref).catch(() => {});
-        }
-        if (autoPref !== null && autoPref !== autoSrv) {
-          void api.setAutoRoll(autoPref).catch(() => {});
-        }
+      if (incPref !== null && incPref !== incSrv) {
+        void api.setIncludeDefault(incPref).catch(() => {});
       }
-    );
+      if (autoPref !== null && autoPref !== autoSrv) {
+        void api.setAutoRoll(autoPref).catch(() => {});
+      }
+      if (perfPref !== null && perfPref !== perfSrv) {
+        void api.setPerformanceMode(perfPref).catch(() => {});
+      }
+    });
   }, [read]);
 
   return (
@@ -60,6 +68,11 @@ export default function Settings() {
                 setAutoRoll={(v) => {
                   setAutoRoll(v);
                   save("autoRoll", v);
+                }}
+                performanceMode={performanceMode}
+                setPerformanceMode={(v) => {
+                  setPerformanceMode(v);
+                  save("performanceMode", v);
                 }}
                 savePref={save}
               />

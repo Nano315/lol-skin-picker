@@ -8,6 +8,10 @@
   overflow: hidden;
 }
 
+body.low-spec .mascots-layer {
+  display: none !important;
+}
+
 /* wrapper anime */
 .mascot {
   position: absolute;

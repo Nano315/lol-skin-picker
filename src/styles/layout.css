@@ -154,3 +154,14 @@
     align-items: flex-start;
   }
 }
+
+/* Low Spec Mode overrides */
+body.low-spec .card,
+body.low-spec .header,
+body.low-spec .room-member-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(26, 27, 31, 0.95) !important;
+  box-shadow: none !important;
+  border-color: #333 !important;
+}
