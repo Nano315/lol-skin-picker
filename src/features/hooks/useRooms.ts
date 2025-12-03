@@ -59,7 +59,8 @@ export function useRooms(selection: Selection) {
   // Actions
   async function create(name: string) {
     try {
-      const { room } = await roomsClient.createRoom(name);
+      await roomsClient.createRoom(name);
+
       // L'état sera mis à jour via le subscribe ci-dessus
       roomsClient.connect();
       roomsClient.sendSelection(selection);
@@ -71,7 +72,8 @@ export function useRooms(selection: Selection) {
 
   async function join(code: string, name: string) {
     try {
-      const { room } = await roomsClient.joinRoom(code, name);
+      await roomsClient.joinRoom(code, name);
+
       roomsClient.connect();
       roomsClient.sendSelection(selection);
       setError(null);
