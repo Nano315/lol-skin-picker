@@ -14,14 +14,17 @@ import { roomsClient } from "@/features/roomsClient";
 import { useOwnedSkins } from "@/features/hooks/useOwnedSkins";
 import type { GroupSkinOption } from "@/features/roomsClient";
 import { computeChromaColor } from "@/features/chromaColor";
+import RerollControls from "@/components/controls/RerollControls";
 
 export function RoomsPage() {
   const { status, iconId } = useConnection();
   const phase = useGameflow();
-  const [selection] = useSelection();
+  const [selection, setSelection] = useSelection();
   const skins = useOwnedSkins();
   const { room, joined, error, create, join, leave } = useRooms(selection);
   const [code, setCode] = useState("");
+
+  const [skinOptions, setSkinOptions] = useState<GroupSkinOption[]>([]);
 
   const isConnected = status === "connected";
   const summonerName = useSummonerName(status);
@@ -202,13 +205,16 @@ export function RoomsPage() {
         }
       }
 
-      if (isMounted && options.length > 0) {
-        console.log(`[Rooms] Sending ${options.length} options to server.`);
-        roomsClient.sendOwnedOptions({
-          championId: selection.championId,
-          championAlias: selection.championAlias,
-          options,
-        });
+      if (isMounted) {
+        setSkinOptions(options); // Store locally
+        if (options.length > 0) {
+          console.log(`[Rooms] Sending ${options.length} options to server.`);
+          roomsClient.sendOwnedOptions({
+            championId: selection.championId,
+            championAlias: selection.championAlias,
+            options,
+          });
+        }
       }
     }
 
@@ -220,6 +226,22 @@ export function RoomsPage() {
 
     // Dépendances CRITIQUES : on relance si le champion change ou si on vient de rejoindre
   }, [room?.id, selection.championId, skins]);
+
+  // Determine active room color for local player
+  const activeRoomColor = useMemo(() => {
+    if (!room?.synergy?.colors || !skinOptions.length) return undefined;
+
+    // Find current selection color
+    const currentOption = skinOptions.find(o =>
+      o.skinId === selection.skinId &&
+      o.chromaId === selection.chromaId
+    );
+
+    if (!currentOption?.auraColor) return undefined;
+    // Check if this color is a synergy color
+    const synergy = room.synergy.colors.find(c => c.color === currentOption.auraColor);
+    return synergy ? synergy.color : undefined;
+  }, [room, skinOptions, selection.skinId, selection.chromaId]);
 
   /* ===================== VUE "PAS ENCORE DANS UNE ROOM" ===================== */
 
@@ -345,12 +367,12 @@ export function RoomsPage() {
               </div>
             </section>
 
-            {isOwner && (
+            {phase === "ChampSelect" && selection.locked && isOwner && (
               <section className="card rooms-actions-card">
                 <div className="card-header rooms-card-header">
                   <div>
                     <p className="eyebrow">ACTIONS</p>
-                    <h2 className="card-title">Reroll Lab</h2>
+                    <h2 className="card-title">Group Reroll</h2>
                   </div>
                 </div>
 
@@ -367,6 +389,27 @@ export function RoomsPage() {
                       Waiting for champion lock-in...
                     </p>
                   )}
+                </div>
+              </section>
+            )}
+
+            {phase === "ChampSelect" && selection.locked && (
+              <section className="card rooms-actions-card">
+                <div className="card-header rooms-card-header">
+                  <div>
+                    <p className="eyebrow">ACTIONS</p>
+                    <h2 className="card-title">Personal Reroll</h2>
+                  </div>
+                </div>
+                <div className="rooms-actions-body">
+                  <RerollControls
+                    phase={phase}
+                    selection={selection}
+                    skins={skins}
+                    activeRoomColor={activeRoomColor}
+                    skinOptions={skinOptions}
+                    onChanged={() => api.getSelection().then(setSelection)}
+                  />
                 </div>
               </section>
             )}

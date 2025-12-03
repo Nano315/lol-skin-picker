@@ -4,7 +4,7 @@ type Unsub = () => void;
 const lcu = window.lcu;
 
 const asUnsub = (ret: unknown): Unsub =>
-  typeof ret === "function" ? (ret as () => void) : () => {};
+  typeof ret === "function" ? (ret as () => void) : () => { };
 
 export const api = {
   // connection
@@ -55,6 +55,10 @@ export const api = {
 
   // misc
   openExternal: (url: string) => lcu.openExternal(url),
-  
+
   openLogsFolder: () => lcu.openLogsFolder(),
+
+  // aliases for specific targeting
+  setSkin: (id: number) => lcu.applySkinId(id),
+  setChroma: (id: number) => lcu.applySkinId(id),
 };
