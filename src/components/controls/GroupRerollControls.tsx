@@ -48,7 +48,7 @@ export function GroupRerollControls({
   }, [colors, selectedKey]);
 
   if (!isOwner) return null;
-  
+
   // 1. On retire la restriction stricte sur la phase
   // if (phase !== "ChampSelect") return null;
 
@@ -173,20 +173,20 @@ export function GroupRerollControls({
               })}
             </div>
           )}
-        </div>
 
-        <button className="reroll-btn" onClick={handleReroll}>
-          <GradientText
-            className="reroll-text group-reroll-text"
-            animationSpeed={6}
-            colors={["#6248FF", "#E5FF48", "#FF48ED", "#48BDFF", "#6248FF"]}
-            icon={faDice}
-            iconSize={"1.9em"}
-            gap={"1em"}
-          >
-            Reroll Group
-          </GradientText>
-        </button>
+          <button className="reroll-btn" onClick={handleReroll}>
+            <GradientText
+              className="reroll-text group-reroll-text"
+              animationSpeed={6}
+              colors={["#6248FF", "#E5FF48", "#FF48ED", "#48BDFF", "#6248FF"]}
+              icon={faDice}
+              iconSize={"1.9em"}
+              gap={"1em"}
+            >
+              Reroll Group
+            </GradientText>
+          </button>
+        </div>
       </div>
     </div>
   );
