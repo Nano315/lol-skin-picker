@@ -38,7 +38,13 @@ export class GameflowService extends EventEmitter {
         logger.info(`[Gameflow] Phase changed to: ${txt}`);
         this.emit("phase", txt);
       }
-    } catch (error) {
+    } catch (error: any) {
+      // FIX: On ignore les erreurs de connexion au démarrage (le client démarre)
+      if (error.code === "ECONNREFUSED") {
+        logger.debug("[Gameflow] En attente de l'API du client...");
+        return;
+      }
+
       if (this.phase !== "Unknown") {
         this.phase = "Unknown";
         this.emit("phase", "Unknown");

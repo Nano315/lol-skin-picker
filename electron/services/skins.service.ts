@@ -423,7 +423,13 @@ export class SkinsService extends EventEmitter {
           summonerName: this.summonerName,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      // FIX: Silence radio si le client est en train de démarrer
+      if (error.code === "ECONNREFUSED") {
+        logger.debug("[Skins] API Summoner non prete (ECONNREFUSED)");
+        return;
+      }
+
       logger.error("[Skins] Erreur lors de la recuperation du summoner", error);
       this.summonerId = null;
       this.summonerName = "";
@@ -570,7 +576,11 @@ export class SkinsService extends EventEmitter {
         this.emit("selection", this.getSelection());
         this.lastAppliedChampion = this.currentChampion;
       }
-    } catch (error) {
+    } catch (error: any) {
+      // FIX: Silence radio si le client est en train de démarrer
+      if (error.code === "ECONNREFUSED") {
+        return;
+      }
       logger.error(
         "[Skins] Erreur critique lors de la recuperation des skins",
         error
