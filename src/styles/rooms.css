@@ -235,6 +235,10 @@
   color: var(--muted-color);
 }
 
+.rooms-actions-group {
+ margin-bottom: 36px;
+}
+
 /* ---- Group Reroll Controls ---- */
 
 .group-reroll-wrapper {

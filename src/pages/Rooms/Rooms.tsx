@@ -367,52 +367,49 @@ export function RoomsPage() {
               </div>
             </section>
 
-            {phase === "ChampSelect" && selection.locked && isOwner && (
-              <section className="card rooms-actions-card">
-                <div className="card-header rooms-card-header">
-                  <div>
-                    <p className="eyebrow">ACTIONS</p>
-                    <h2 className="card-title">Group Reroll</h2>
+
+            <section className="card rooms-actions-card">
+              {isOwner && (
+                <div className="rooms-actions-group">
+                  <div className="card-header rooms-card-header">
+                    <div>
+                      <p className="eyebrow">ACTIONS</p>
+                      <h2 className="card-title">Group Reroll</h2>
+                    </div>
+                  </div>
+
+                  <div className="rooms-actions-body">
+                    {canShowRerollControls && room ? (
+                      <GroupRerollControls
+                        room={room}
+                        phase={phase}
+                        isOwner={isOwner}
+                        selectionLocked={selection.locked}
+                      />
+                    ) : (
+                      <p className="muted rooms-helper-text">
+                        Waiting for champion lock-in...
+                      </p>
+                    )}
                   </div>
                 </div>
-
-                <div className="rooms-actions-body">
-                  {canShowRerollControls && room ? (
-                    <GroupRerollControls
-                      room={room}
-                      phase={phase}
-                      isOwner={isOwner}
-                      selectionLocked={selection.locked}
-                    />
-                  ) : (
-                    <p className="muted rooms-helper-text">
-                      Waiting for champion lock-in...
-                    </p>
-                  )}
+              )}
+              <div className="card-header rooms-card-header">
+                <div>
+                  <h2 className="card-title">Personal Reroll</h2>
                 </div>
-              </section>
-            )}
-
-            {phase === "ChampSelect" && selection.locked && (
-              <section className="card rooms-actions-card">
-                <div className="card-header rooms-card-header">
-                  <div>
-                    <p className="eyebrow">ACTIONS</p>
-                    <h2 className="card-title">Personal Reroll</h2>
-                  </div>
-                </div>
-                <div className="rooms-actions-body">
-                  <RerollControls
-                    phase={phase}
-                    selection={selection}
-                    skins={skins}
-                    activeRoomColor={activeRoomColor}
-                    skinOptions={skinOptions}
-                    onChanged={() => api.getSelection().then(setSelection)}
-                  />
-                </div>
-              </section>
-            )}
+              </div>
+              <div className="rooms-actions-body">
+                <RerollControls
+                  phase={phase}
+                  selection={selection}
+                  skins={skins}
+                  activeRoomColor={activeRoomColor}
+                  skinOptions={skinOptions}
+                  onChanged={() => api.getSelection().then(setSelection)}
+                />
+              </div>
+            </section>
           </div>
         </div>
       </main>
