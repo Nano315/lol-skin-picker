@@ -1,22 +1,26 @@
-// src/features/hooks/useRooms.ts
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { roomsClient, type RoomState } from "../roomsClient";
-import { api } from "../api"; // <-- On importe l'api correctement
+import { api } from "../api";
 import type { Selection } from "../types";
 
+// On retire ownedSkins des arguments pour casser la boucle
 export function useRooms(selection: Selection) {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // s’abonner aux updates globales du client
+  // Abonnement aux mises à jour de la room
   useEffect(() => {
-    const unsubscribe = roomsClient.subscribe((nextRoom) => {
+    // Fonction de callback pour mettre à jour l'état local
+    const onRoomUpdate = (nextRoom: RoomState | null) => {
       setRoom(nextRoom);
       setJoined(roomsClient.isJoined());
-    });
+    };
 
+    // On s'abonne
+    const unsubscribe = roomsClient.subscribe(onRoomUpdate);
+
+    // Si le client est déjà connecté (cas du Hot Reload ou navigation), on reconnecte le socket
     if (roomsClient.isJoined()) {
       roomsClient.connect();
     }
@@ -24,25 +28,21 @@ export function useRooms(selection: Selection) {
     return unsubscribe;
   }, []);
 
-  // Gestion des combos (Sync Chroma)
+  // Gestion des Combos (Réception de l'ordre du serveur)
   useEffect(() => {
     const unsubCombo = roomsClient.onGroupCombo(async (payload) => {
       if (payload.type === "sameColor") {
-        // 1. On utilise la nouvelle methode getMemberId()
         const myPick = payload.picks.find(
           (p) => p.memberId === roomsClient.getMemberId()
         );
 
         if (myPick) {
-          // 2. Logique importante : Si un chroma est defini (> 0), c'est lui qu'on applique.
-          // Sinon, on applique le skin de base.
-          // Dans le LCU, selectionner un chroma revient a "applySkinId(chromaId)".
+          // Si un chroma est défini, on le prend, sinon le skin de base
           const idToApply =
             myPick.chromaId && myPick.chromaId > 0
               ? myPick.chromaId
               : myPick.skinId;
 
-          // On utilise la methode correcte definie dans api.ts
           try {
             await api.applySkinId(idToApply);
             console.log(`[Sync] Applied skin/chroma ID: ${idToApply}`);
@@ -53,16 +53,14 @@ export function useRooms(selection: Selection) {
       }
     });
 
-    return () => {
-      unsubCombo();
-    };
+    return () => unsubCombo();
   }, []);
 
+  // Actions
   async function create(name: string) {
     try {
       const { room } = await roomsClient.createRoom(name);
-      setRoom(room);
-      setJoined(true);
+      // L'état sera mis à jour via le subscribe ci-dessus
       roomsClient.connect();
       roomsClient.sendSelection(selection);
       setError(null);
@@ -74,8 +72,6 @@ export function useRooms(selection: Selection) {
   async function join(code: string, name: string) {
     try {
       const { room } = await roomsClient.joinRoom(code, name);
-      setRoom(room);
-      setJoined(true);
       roomsClient.connect();
       roomsClient.sendSelection(selection);
       setError(null);
@@ -90,12 +86,11 @@ export function useRooms(selection: Selection) {
     setRoom(null);
   }
 
-  // Notifier la room des changements locaux
+  // Synchronisation de la sélection (Champion/Skin actuel)
   useEffect(() => {
     if (joined) {
       roomsClient.sendSelection(selection);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     joined,
     selection.championId,

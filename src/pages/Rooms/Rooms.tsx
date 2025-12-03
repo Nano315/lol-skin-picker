@@ -47,8 +47,8 @@ export function RoomsPage() {
     const selfMember: RoomMember =
       normalizedSummoner != null
         ? members.find(
-            (m) => m.name.toLowerCase().trim() === normalizedSummoner
-          ) ?? members[0]
+          (m) => m.name.toLowerCase().trim() === normalizedSummoner
+        ) ?? members[0]
         : members[0];
 
     const others = members.filter((m) => m !== selfMember);
@@ -146,28 +146,37 @@ export function RoomsPage() {
     window.setTimeout(() => setCopied(false), 1200);
   };
 
-  // Quand on est en ChampSelect, que le champion est lock et qu'on connait les skins,
-  // on envoie TOUTES les options skin/chroma avec la VRAIE couleur d'aura.
+  // Calcul et envoi des skins possédés (Owned Options)
   useEffect(() => {
+    // Conditions strictes pour éviter les calculs inutiles
     if (!room) return;
-    if (phase !== "ChampSelect") return;
-    if (!selection.locked) return;
-    if (!selection.championId) return;
-    if (!skins.length) return;
+    if (!isConnected) return;
 
-    let cancelled = false;
+    // On ne le fait que si on a sélectionné un champion
+    if (!selection.championId || selection.championId === 0) return;
 
-    async function run() {
+    // On ne le fait que si on a chargé la liste des skins
+    if (!skins || skins.length === 0) return;
+
+    // Flag pour annuler si le composant est démonté pendant le calcul (async)
+    let isMounted = true;
+
+    async function computeAndSend() {
+      console.log("[Rooms] Computing skin colors for synergy...");
       const options: GroupSkinOption[] = [];
 
-      // Chaque OwnedSkin correspond au champion courant (selection.championId)
       for (const s of skins) {
-        // Variante "skin nu" (sans chroma) -> auraColor peut etre null
+        // Optimisation : On ne traite que les skins du champion actuel pour éviter d'envoyer 1000 items
+        if (s.championId !== selection.championId) continue;
+
+        // 1. Skin de base (sans chroma)
         const baseColor = await computeChromaColor({
           championId: selection.championId,
           skinId: s.id,
           chromaId: 0,
         });
+
+        if (!isMounted) return;
 
         options.push({
           skinId: s.id,
@@ -175,44 +184,42 @@ export function RoomsPage() {
           auraColor: baseColor,
         });
 
-        // Variantes chroma
+        // 2. Chromas
         for (const c of s.chromas) {
-          const color = await computeChromaColor({
+          const chromaColor = await computeChromaColor({
             championId: selection.championId,
             skinId: s.id,
             chromaId: c.id,
           });
 
+          if (!isMounted) return;
+
           options.push({
             skinId: s.id,
             chromaId: c.id,
-            auraColor: color,
+            auraColor: chromaColor,
           });
         }
       }
 
-      if (cancelled) return;
-
-      roomsClient.sendOwnedOptions({
-        championId: selection.championId,
-        championAlias: selection.championAlias,
-        options,
-      });
+      if (isMounted && options.length > 0) {
+        console.log(`[Rooms] Sending ${options.length} options to server.`);
+        roomsClient.sendOwnedOptions({
+          championId: selection.championId,
+          championAlias: selection.championAlias,
+          options,
+        });
+      }
     }
 
-    void run();
+    computeAndSend();
 
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
-  }, [
-    room,
-    phase,
-    selection.championId,
-    selection.championAlias,
-    selection.locked,
-    skins,
-  ]);
+
+    // Dépendances CRITIQUES : on relance si le champion change ou si on vient de rejoindre
+  }, [room?.id, selection.championId, skins]);
 
   /* ===================== VUE "PAS ENCORE DANS UNE ROOM" ===================== */
 

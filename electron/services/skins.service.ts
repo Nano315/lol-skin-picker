@@ -49,6 +49,7 @@ export interface OwnedSkin {
   id: number;
   name: string;
   chromas: { id: number; name: string }[];
+  championId: number;
 }
 
 export class SkinsService extends EventEmitter {
@@ -503,7 +504,12 @@ export class SkinsService extends EventEmitter {
           );
         }
 
-        owned.push({ id: s.id, name: s.name, chromas: chromaList });
+        owned.push({
+          id: s.id,
+          name: s.name,
+          chromas: chromaList,
+          championId: this.currentChampion,
+        });
       }
 
       // Emit using the previous cache so the change detector can compare arrays.

@@ -18,9 +18,9 @@ function makeKey(c: ColorSynergy) {
 
 export function GroupRerollControls({
   room,
-  phase,
+  phase: _phase,
   isOwner,
-  selectionLocked,
+  selectionLocked: _selectionLocked,
 }: Props) {
   const colors = (room.synergy?.colors ?? []).filter(
     (c) => c.combinationCount > 0
@@ -48,10 +48,29 @@ export function GroupRerollControls({
   }, [colors, selectedKey]);
 
   if (!isOwner) return null;
-  if (phase !== "ChampSelect") return null;
-  if (!selectionLocked) return null;
-  if (!allReady) return null;
+  
+  // 1. On retire la restriction stricte sur la phase
+  // if (phase !== "ChampSelect") return null;
+
+  // 2. On garde la restriction sur le lock si necessaire, mais on peut etre plus souple
+  // Si on veut pre-visualiser, on peut retirer cette ligne.
+  // Pour l'instant, on la garde car le reroll n'a de sens que si tout le monde a lock.
+  // if (!selectionLocked) return null;
+
+  // 3. Si pas de synergies, on n'affiche rien (c'est le coeur du composant)
   if (!colors.length) return null;
+
+  // 4. Si tout le monde n'est pas pret, on affiche un message d'attente au lieu de rien
+  if (!allReady) {
+    return (
+      <div className="group-reroll-wrapper">
+        <div className="group-reroll-label">Group Reroll</div>
+        <div className="group-reroll-waiting">
+          En attente des autres joueurs...
+        </div>
+      </div>
+    );
+  }
 
   const selected = colors.find((c) => makeKey(c) === selectedKey) ?? colors[0];
 

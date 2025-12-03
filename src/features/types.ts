@@ -10,4 +10,5 @@ export type OwnedSkin = {
   id: number;
   name: string;
   chromas: { id: number; name: string }[];
+  championId: number;
 };
