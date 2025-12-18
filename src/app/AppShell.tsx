@@ -35,15 +35,15 @@ export default function AppShell() {
     // when user changes it in Settings, the class is applied there? No, Settings is a page.
     // Let's make it simple: Add a listener to a custom event dispatched by usePrefs/OptionsPanel?
     // Or simpler: usePrefs could return the current value if it was a context.
-    // For now, let's stick to the requirement: "Utilise un useEffect pour surveiller la préférence".
+    // For now, let's stick to the requirement: "Utilise un useEffect pour surveiller la preference".
     // Since usePrefs reads from localStorage, we need a way to know when it changes.
-    // The user requirement says "Fichier : src/app/AppShell.tsx ... Utilise un useEffect pour surveiller la préférence 'performanceMode'."
+    // The user requirement says "Fichier : src/app/AppShell.tsx ... Utilise un useEffect pour surveiller la preference 'performanceMode'."
     
     // To make it reactive without a Context, we can listen to the window event we might dispatch or just storage event.
     // But actually, since OptionsPanel updates localStorage, we can dispatch a custom event there?
     // Or better, let's just use an interval check or the storage event (which only works across windows).
-    // Wait, the user instructions say: "Lors du changement, il doit : mettre à jour l'état React, sauvegarder via savePref..."
-    // And in AppShell: "Utilise un useEffect pour surveiller la préférence".
+    // Wait, the user instructions say: "Lors du changement, il doit : mettre a jour l'etat React, sauvegarder via savePref..."
+    // And in AppShell: "Utilise un useEffect pour surveiller la preference".
     
     // Let's implement a simple polling or event listener for the custom event if we add one. 
     // But to be safe and follow instructions strictly:
@@ -63,7 +63,7 @@ export default function AppShell() {
     
     // I will implement a `useEffect` that checks `localStorage` on mount and adds a listener for a custom event `pref-change`.
     // And I'll update `usePrefs` to dispatch that event? 
-    // The user instruction for `usePrefs` was "Mets à jour les types et la logique pour gérer une nouvelle clé".
+    // The user instruction for `usePrefs` was "Mets a jour les types et la logique pour gerer une nouvelle cle".
     // It didn't explicitly forbid adding an event dispatch.
     
     // Let's add the dispatch to `usePrefs` `save` function. It's cleaner.

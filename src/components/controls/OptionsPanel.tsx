@@ -48,7 +48,7 @@ export default function OptionsPanel({
   const onOpenAtLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.checked;
     setOpenAtLogin(v);
-    // Pas de savePref ici car c'est géré côté main process via setOpenAtLogin
+    // Pas de savePref ici car c'est gere côte main process via setOpenAtLogin
     void api.setOpenAtLogin(v).catch(() => {});
   };
 

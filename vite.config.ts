@@ -12,6 +12,13 @@ export default defineConfig({
       main: {
         // Shortcut of `build.lib.entry`.
         entry: "electron/main/app.ts",
+        vite: {
+          build: {
+            rollupOptions: {
+              external: ["bufferutil", "utf-8-validate"],
+            },
+          },
+        },
       },
       preload: {
         // Shortcut of `build.rollupOptions.input`.

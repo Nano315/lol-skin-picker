@@ -3,8 +3,9 @@ import fetch from "node-fetch";
 import { EventEmitter } from "node:events";
 import type { LockCreds } from "./lcuWatcher";
 import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
-import { webcrypto } from "node:crypto";
 import { logger } from "../logger";
+import { RandomSelector } from "../utils/RandomSelector";
+import WebSocket from "ws";
 
 /* ---- reponses API ---- */
 interface SummonerRes {
@@ -56,8 +57,9 @@ export class SkinsService extends EventEmitter {
   private creds: LockCreds | null = null;
   private summonerId: number | null = null;
 
-  private poller: ReturnType<typeof setInterval> | null = null;
-  private manualPoller: ReturnType<typeof setInterval> | null = null;
+  private poller: ReturnType<typeof setInterval> | null = null; // Main tick loop (slow)
+  private fallbackPoller: ReturnType<typeof setInterval> | null = null; // Backup polling
+  private ws: WebSocket | null = null;
 
   private currentChampion = 0;
   private lastAppliedChampion = 0;
@@ -104,14 +106,16 @@ export class SkinsService extends EventEmitter {
     if (!this.creds) return; // Condition d'arret
     await this.tick();
     // On attend la fin de tick() avant de programmer le suivant
-    this.poller = setTimeout(() => this.loopTick(), 1500);
+    // Polling general un peu plus lent car on a le WebSocket pour le reactif
+    this.poller = setTimeout(() => this.loopTick(), 2500);
   }
 
   stop() {
     if (this.poller) clearInterval(this.poller);
-    if (this.manualPoller) clearInterval(this.manualPoller);
+    this.stopFallbackPolling();
+    this.disconnectWebSocket();
+
     this.poller = null;
-    this.manualPoller = null;
     this.currentChampion = 0;
     this.lastAppliedChampion = 0;
     this.championLocked = false;
@@ -123,19 +127,98 @@ export class SkinsService extends EventEmitter {
     }
   }
 
-  // Quand on entre en ChampSelect, active un poll rapide sur la selection
-  private enableManualFastPoll() {
-    if (this.manualPoller) return;
-    if (this.manualPoller) return;
-    const interval = this.performanceMode ? 1500 : 500;
-    this.manualPoller = setInterval(
-      () => this.updateManualSelection(),
-      interval
-    );
+  /* ---------- WebSocket LCU ---------- */
+  private connectWebSocket() {
+    if (this.ws || !this.creds) return;
+
+    const { protocol, port, password } = this.creds;
+    // LCU WebSocket URL: wss://127.0.0.1:PORT
+    const wsUrl = `wss://127.0.0.1:${port}`;
+    const auth = Buffer.from(`riot:${password}`).toString("base64");
+
+    try {
+      this.ws = new WebSocket(wsUrl, {
+        headers: { Authorization: `Basic ${auth}` },
+        rejectUnauthorized: false,
+      });
+
+      this.ws.on("open", () => {
+        logger.info("[Skins] WebSocket LCU connecte.");
+        // Subscribe to Champ Select Session events
+        // API LCU WAMP-like: [5, "OnJsonApiEvent_lol-champ-select_v1_session"]
+        this.ws?.send(JSON.stringify([5, "OnJsonApiEvent_lol-champ-select_v1_session"]));
+      });
+
+      this.ws.on("message", (data: any) => {
+        const raw = data.toString().trim();
+        if (!raw) return; // Keep-alive or empty message
+        try {
+          const msg = JSON.parse(raw);
+          // [2, "OnJsonApiEvent_lol-champ-select_v1_session", { eventType: "Update", uri: "...", data: {...} }]
+          if (Array.isArray(msg) && msg[1] === "OnJsonApiEvent_lol-champ-select_v1_session") {
+            const eventData = msg[2];
+            if (eventData && eventData.data) {
+              // Trigger update on change
+              void this.handleChampSelectUpdate(eventData.data);
+            }
+          }
+        } catch (err: any) {
+          logger.debug("[Skins] Message WebSocket ignore (parse error)", { raw, err });
+        }
+      });
+
+      this.ws.on("error", (err: any) => {
+        logger.warn("[Skins] Erreur WebSocket LCU", err);
+        this.disconnectWebSocket();
+        this.enableFallbackPolling(); // Switch to fallback
+      });
+
+      this.ws.on("close", () => {
+        logger.info("[Skins] WebSocket LCU ferme.");
+        this.ws = null;
+        this.enableFallbackPolling();
+      });
+
+    } catch (err: any) {
+      logger.error("[Skins] Impossible de connecter le WebSocket", err);
+      this.enableFallbackPolling();
+    }
   }
-  private disableManualFastPoll() {
-    if (this.manualPoller) clearInterval(this.manualPoller);
-    this.manualPoller = null;
+
+  private disconnectWebSocket() {
+    if (this.ws) {
+      this.ws.terminate(); // Force close
+      this.ws = null;
+    }
+  }
+
+  /* ---------- Fallback Polling ---------- */
+  private enableFallbackPolling() {
+    if (this.fallbackPoller) return;
+    logger.info("[Skins] Activation du polling de secours (Fallback).");
+    const interval = this.performanceMode ? 5000 : 2000; // Plus lent que l'ancien 500ms
+    this.fallbackPoller = setInterval(() => this.updateManualSelection(), interval);
+  }
+
+  private stopFallbackPolling() {
+    if (this.fallbackPoller) clearInterval(this.fallbackPoller);
+    this.fallbackPoller = null;
+  }
+
+  /* -------------------------------------- */
+
+  /** Check if we should be in fast mode (WS or Poll) */
+  private setupRealtimeUpdates() {
+    // If we have a WebSocket, ensure it's connected
+    if (!this.ws) {
+      this.connectWebSocket();
+    }
+    // If WebSocket failed previously, fallbackPoller handles it.
+  }
+
+  private teardownRealtimeUpdates() {
+    this.disconnectWebSocket();
+    this.stopFallbackPolling();
   }
 
   getIncludeDefault() {
@@ -163,10 +246,10 @@ export class SkinsService extends EventEmitter {
   }
   setPerformanceMode(v: boolean) {
     this.performanceMode = !!v;
-    // If we are currently polling, restart the poller to apply the new interval
-    if (this.manualPoller) {
-      this.disableManualFastPoll();
-      this.enableManualFastPoll();
+    // Restart fallback poller if active
+    if (this.fallbackPoller) {
+      this.stopFallbackPolling();
+      this.enableFallbackPolling();
     }
   }
   togglePerformanceMode() {
@@ -191,14 +274,6 @@ export class SkinsService extends EventEmitter {
     return this.summonerName;
   }
 
-  /** RNG robuste base sur crypto.getRandomValues */
-  private randomInt(max: number): number {
-    if (max <= 1) return 0;
-    const buf = new Uint32Array(1);
-    webcrypto.getRandomValues(buf);
-    return buf[0] % max;
-  }
-
   /** Ajoute une valeur dans l'historique (cle = champion ou skin) avec une taille max raisonnable */
   private pushHistory(
     map: Map<number, number[]>,
@@ -220,65 +295,6 @@ export class SkinsService extends EventEmitter {
     }
   }
 
-  /**
-   * Selection "intelligente" dans allChoices :
-   * - evite prevId
-   * - evite les N derniers (historyWindow)
-   * - si possible : privilegie les jamais vus
-   * - sinon : ponderation LRU (plus c’est ancien, plus c’est probable)
-   */
-  private pickWithHistory(
-    allChoices: number[],
-    history: number[],
-    historyWindow: number,
-    prevId: number | null
-  ): number | null {
-    if (!allChoices.length) return null;
-
-    // 1) Construire l'ensemble des interdits (prev + N derniers)
-    const banned = new Set<number>();
-    if (prevId != null) banned.add(prevId);
-
-    const recent = history.slice(-historyWindow);
-    for (const id of recent) banned.add(id);
-
-    let pool = allChoices.filter((id) => !banned.has(id));
-
-    // 2) Si on a tout banni, on retombe sur "juste pas prevId"
-    if (!pool.length) {
-      pool = allChoices.filter((id) => id !== prevId);
-      if (!pool.length) {
-        // 1 seul choix possible -> on le prend
-        return allChoices[0];
-      }
-    }
-
-    // 3) Priorite aux jamais vus
-    const neverSeen = pool.filter((id) => !history.includes(id));
-    if (neverSeen.length) {
-      const idx = this.randomInt(neverSeen.length);
-      return neverSeen[idx];
-    }
-
-    // 4) Ponderation LRU : plus c'est ancien dans l'historique, plus le poids est grand
-    const weights = pool.map((id) => {
-      const lastIndex = history.lastIndexOf(id);
-      if (lastIndex === -1) return 1;
-      const distance = history.length - lastIndex; // 1 = dernier, 2 = avant-dernier, etc.
-      return distance > 0 ? distance : 1;
-    });
-
-    const total = weights.reduce((a, b) => a + b, 0);
-    let r = this.randomInt(total);
-
-    for (let i = 0; i < pool.length; i++) {
-      r -= weights[i];
-      if (r < 0) return pool[i];
-    }
-
-    return pool[pool.length - 1];
-  }
-
   async rerollSkin() {
     if (!this.skins.length) return;
 
@@ -289,7 +305,7 @@ export class SkinsService extends EventEmitter {
     const skinIds = pool.map((s) => s.id);
     const history = this.skinHistoryByChampion.get(this.currentChampion) ?? [];
 
-    const pickedSkinId = this.pickWithHistory(
+    const pickedSkinId = RandomSelector.pickWithHistory(
       skinIds,
       history,
       this.SKIN_HISTORY_WINDOW,
@@ -308,7 +324,7 @@ export class SkinsService extends EventEmitter {
     const variantId =
       variantChoices.length === 1
         ? variantChoices[0]
-        : variantChoices[this.randomInt(variantChoices.length)];
+        : variantChoices[RandomSelector.randomInt(variantChoices.length)];
 
     const applied = await this.applySkin(variantId);
     if (!applied) return;
@@ -346,7 +362,7 @@ export class SkinsService extends EventEmitter {
 
     const history = this.chromaHistoryBySkin.get(skin.id) ?? [];
 
-    const pickedId = this.pickWithHistory(
+    const pickedId = RandomSelector.pickWithHistory(
       allChoices,
       history,
       this.CHROMA_HISTORY_WINDOW,
@@ -376,9 +392,12 @@ export class SkinsService extends EventEmitter {
 
     const champ = await this.fetchCurrentChampion();
 
-    // witch fast-poll selon champ present (Champ Select) ou non
-    if (champ) this.enableManualFastPoll();
-    else this.disableManualFastPoll();
+    // switch Realtime selon champ present (Champ Select) ou non
+    if (champ) {
+        this.setupRealtimeUpdates();
+    } else {
+        this.teardownRealtimeUpdates();
+    }
 
     if (champ && champ !== this.currentChampion) {
       this.currentChampion = champ;
@@ -396,7 +415,14 @@ export class SkinsService extends EventEmitter {
       await this.refreshSkinsAndMaybeApply();
     }
 
-    await this.updateManualSelection();
+    // On fait quand même un check manuel de temps en temps via loopTick (2.5s)
+    // Mais le gros du travail est fait par le WebSocket ou le fallback
+    if (this.fallbackPoller) {
+        // Si on est en fallback, on laisse le fallback tourner
+    } else {
+        // Si on est en WebSocket, on verifie juste la coherence de temps en temps
+        await this.updateManualSelection();
+    }
   }
 
   private async fetchSummonerId() {
@@ -424,12 +450,10 @@ export class SkinsService extends EventEmitter {
         });
       }
     } catch (error: any) {
-      // FIX: Silence radio si le client est en train de démarrer
       if (error.code === "ECONNREFUSED") {
         logger.debug("[Skins] API Summoner non prete (ECONNREFUSED)");
         return;
       }
-
       logger.error("[Skins] Erreur lors de la recuperation du summoner", error);
       this.summonerId = null;
       this.summonerName = "";
@@ -518,7 +542,6 @@ export class SkinsService extends EventEmitter {
         });
       }
 
-      // Emit using the previous cache so the change detector can compare arrays.
       this.emitSkinsIfChanged(owned);
 
       if (
@@ -534,7 +557,7 @@ export class SkinsService extends EventEmitter {
         const history =
           this.skinHistoryByChampion.get(this.currentChampion) ?? [];
 
-        const pickedSkinId = this.pickWithHistory(
+        const pickedSkinId = RandomSelector.pickWithHistory(
           skinIds,
           history,
           this.SKIN_HISTORY_WINDOW,
@@ -552,7 +575,7 @@ export class SkinsService extends EventEmitter {
         const finalId =
           variantChoices.length === 1
             ? variantChoices[0]
-            : variantChoices[this.randomInt(variantChoices.length)];
+            : variantChoices[RandomSelector.randomInt(variantChoices.length)];
 
         const applied = await this.applySkin(finalId);
         if (!applied) return;
@@ -577,7 +600,6 @@ export class SkinsService extends EventEmitter {
         this.lastAppliedChampion = this.currentChampion;
       }
     } catch (error: any) {
-      // FIX: Silence radio si le client est en train de démarrer
       if (error.code === "ECONNREFUSED") {
         return;
       }
@@ -594,8 +616,7 @@ export class SkinsService extends EventEmitter {
     const { protocol, port, password } = this.creds;
     const url = `${protocol}://127.0.0.1:${port}/lol-champ-select/v1/session/my-selection`;
     const auth = Buffer.from(`riot:${password}`).toString("base64");
-    // OPTIMISTIC UPDATE : On dit tout de suite a l'app "c'est bon"
-    // pour eviter que l'interface ne revienne en arriere en attendant le LCU
+    // OPTIMISTIC UPDATE
     this.selectedSkinId = skinId;
     this.emit("selection", this.getSelection());
     try {
@@ -608,21 +629,55 @@ export class SkinsService extends EventEmitter {
         body: JSON.stringify({ selectedSkinId: skinId }),
       });
       if (!res.ok) {
-        // Si ça echoue vraiment, le prochain tick() corrigera l'erreur
         logger.error(
           `[Skins] echec application du skin ${skinId} (status ${res.status})`
         );
         return false;
       }
       logger.info(`[Skins] Skin applique avec succes: ${skinId}`);
-      // On force une lecture immediate pour confirmer
       void this.updateManualSelection();
       return true;
     } catch (error) {
       logger.error("[Skins] Erreur lors de l'application du skin", error);
       return false;
     }
-    return false; // Default to failure if we somehow drop through the try/catch.
+  }
+
+  // Called via WebSocket event or Polling
+  private async handleChampSelectUpdate(sessionData: ChampSelectSession) {
+      // 1. Check Locked state
+      await this.processSessionData(sessionData);
+      
+      // 2. Fetch my-selection for Skin info (not always present in main session event)
+      await this.updateManualSelection(); 
+  }
+
+  private processSessionData(sessionData: ChampSelectSession | null) {
+      if (!sessionData || !Array.isArray(sessionData.actions)) return;
+
+      const cellId = sessionData.localPlayerCellId;
+      let locked = false;
+
+      if (typeof cellId === "number") {
+        for (const group of sessionData.actions) {
+          for (const action of group) {
+            if (
+              action.type === "pick" &&
+              action.actorCellId === cellId &&
+              typeof action.completed === "boolean"
+            ) {
+              locked = action.completed;
+              break;
+            }
+          }
+          if (locked) break;
+        }
+      }
+
+      if (locked !== this.championLocked) {
+        this.championLocked = locked;
+        this.emit("selection", this.getSelection());
+      }
   }
 
   private async updateManualSelection() {
@@ -633,7 +688,6 @@ export class SkinsService extends EventEmitter {
     const auth = Buffer.from(`riot:${password}`).toString("base64");
 
     try {
-      // On recupere a la fois la selection et la session champ select
       const [selectionData, sessionData] = await Promise.all([
         fetch(`${base}/lol-champ-select/v1/session/my-selection`, {
           headers: { Authorization: `Basic ${auth}` },
@@ -647,34 +701,8 @@ export class SkinsService extends EventEmitter {
         ),
       ]);
 
-      // --- 1) Calcul du flag "locked" ---
-      let lockedChanged = false;
-
-      if (sessionData && Array.isArray(sessionData.actions)) {
-        const cellId = sessionData.localPlayerCellId;
-        let locked = false;
-
-        if (typeof cellId === "number") {
-          for (const group of sessionData.actions) {
-            for (const action of group) {
-              if (
-                action.type === "pick" &&
-                action.actorCellId === cellId &&
-                typeof action.completed === "boolean"
-              ) {
-                locked = action.completed;
-                break;
-              }
-            }
-            if (locked) break;
-          }
-        }
-
-        if (locked !== this.championLocked) {
-          this.championLocked = locked;
-          lockedChanged = true;
-        }
-      }
+      // --- 1) Lock state (Backup check) ---
+      this.processSessionData(sessionData);
 
       // --- 2) Recalcul complet skin/chroma a partir de selectedSkinId ---
       const selId = selectionData.selectedSkinId ?? 0;
@@ -714,10 +742,6 @@ export class SkinsService extends EventEmitter {
       if (selectionChanged) {
         this.selectedSkinId = newSkinId;
         this.selectedChromaId = newChromaId;
-      }
-
-      // --- 3) On notifie le renderer si quelque chose a change ---
-      if (selectionChanged || lockedChanged) {
         this.emit("selection", this.getSelection());
       }
     } catch {

@@ -149,19 +149,19 @@ export function RoomsPage() {
     window.setTimeout(() => setCopied(false), 1200);
   };
 
-  // Calcul et envoi des skins possédés (Owned Options)
+  // Calcul et envoi des skins possedes (Owned Options)
   useEffect(() => {
-    // Conditions strictes pour éviter les calculs inutiles
+    // Conditions strictes pour eviter les calculs inutiles
     if (!room) return;
     if (!isConnected) return;
 
-    // On ne le fait que si on a sélectionné un champion
+    // On ne le fait que si on a selectionne un champion
     if (!selection.championId || selection.championId === 0) return;
 
-    // On ne le fait que si on a chargé la liste des skins
+    // On ne le fait que si on a charge la liste des skins
     if (!skins || skins.length === 0) return;
 
-    // Flag pour annuler si le composant est démonté pendant le calcul (async)
+    // Flag pour annuler si le composant est demonte pendant le calcul (async)
     let isMounted = true;
 
     async function computeAndSend() {
@@ -169,7 +169,7 @@ export function RoomsPage() {
       const options: GroupSkinOption[] = [];
 
       for (const s of skins) {
-        // Optimisation : On ne traite que les skins du champion actuel pour éviter d'envoyer 1000 items
+        // Optimisation : On ne traite que les skins du champion actuel pour eviter d'envoyer 1000 items
         if (s.championId !== selection.championId) continue;
 
         // 1. Skin de base (sans chroma)
@@ -224,7 +224,7 @@ export function RoomsPage() {
       isMounted = false;
     };
 
-    // Dépendances CRITIQUES : on relance si le champion change ou si on vient de rejoindre
+    // Dependances CRITIQUES : on relance si le champion change ou si on vient de rejoindre
   }, [room?.id, selection.championId, skins]);
 
   // Determine active room color for local player

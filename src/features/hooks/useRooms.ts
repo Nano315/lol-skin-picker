@@ -9,9 +9,9 @@ export function useRooms(selection: Selection) {
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Abonnement aux mises à jour de la room
+  // Abonnement aux mises a jour de la room
   useEffect(() => {
-    // Fonction de callback pour mettre à jour l'état local
+    // Fonction de callback pour mettre a jour l'etat local
     const onRoomUpdate = (nextRoom: RoomState | null) => {
       setRoom(nextRoom);
       setJoined(roomsClient.isJoined());
@@ -20,7 +20,7 @@ export function useRooms(selection: Selection) {
     // On s'abonne
     const unsubscribe = roomsClient.subscribe(onRoomUpdate);
 
-    // Si le client est déjà connecté (cas du Hot Reload ou navigation), on reconnecte le socket
+    // Si le client est deja connecte (cas du Hot Reload ou navigation), on reconnecte le socket
     if (roomsClient.isJoined()) {
       roomsClient.connect();
     }
@@ -28,7 +28,7 @@ export function useRooms(selection: Selection) {
     return unsubscribe;
   }, []);
 
-  // Gestion des Combos (Réception de l'ordre du serveur)
+  // Gestion des Combos (Reception de l'ordre du serveur)
   useEffect(() => {
     const unsubCombo = roomsClient.onGroupCombo(async (payload) => {
       if (payload.type === "sameColor") {
@@ -37,7 +37,7 @@ export function useRooms(selection: Selection) {
         );
 
         if (myPick) {
-          // Si un chroma est défini, on le prend, sinon le skin de base
+          // Si un chroma est defini, on le prend, sinon le skin de base
           const idToApply =
             myPick.chromaId && myPick.chromaId > 0
               ? myPick.chromaId
@@ -61,7 +61,7 @@ export function useRooms(selection: Selection) {
     try {
       await roomsClient.createRoom(name);
 
-      // L'état sera mis à jour via le subscribe ci-dessus
+      // L'etat sera mis a jour via le subscribe ci-dessus
       roomsClient.connect();
       roomsClient.sendSelection(selection);
       setError(null);
@@ -88,7 +88,7 @@ export function useRooms(selection: Selection) {
     setRoom(null);
   }
 
-  // Synchronisation de la sélection (Champion/Skin actuel)
+  // Synchronisation de la selection (Champion/Skin actuel)
   useEffect(() => {
     if (joined) {
       roomsClient.sendSelection(selection);

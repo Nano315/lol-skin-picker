@@ -39,7 +39,7 @@ export class GameflowService extends EventEmitter {
         this.emit("phase", txt);
       }
     } catch (error: any) {
-      // FIX: On ignore les erreurs de connexion au démarrage (le client démarre)
+      // FIX: On ignore les erreurs de connexion au demarrage (le client demarre)
       if (error.code === "ECONNREFUSED") {
         logger.debug("[Gameflow] En attente de l'API du client...");
         return;

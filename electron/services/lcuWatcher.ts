@@ -88,23 +88,26 @@ export class LcuWatcher extends EventEmitter {
 
   private async getLcuCommandLine(): Promise<string | null> {
     try {
-      // wmic process where "name='LeagueClientUx.exe'" get commandline
-      const { stdout } = await execAsync(
-        "wmic process where \"name='LeagueClientUx.exe'\" get commandline"
-      );
+      // Utilisation de PowerShell et Get-CimInstance pour remplacer wmic
+      // Get-CimInstance est la methode moderne recommandee sur Windows
+      const command = `powershell -NoProfile -NonInteractive -Command "Get-CimInstance Win32_Process -Filter \\"Name = 'LeagueClientUx.exe'\\" | Select-Object -ExpandProperty CommandLine"`;
       
-      const lines = stdout.trim().split("\n");
-      // La premiere ligne est l'en-tete "CommandLine", la deuxieme (ou suivante non vide) est la valeur
-      // On cherche une ligne qui contient "LeagueClientUx.exe" et les arguments
+      const { stdout } = await execAsync(command);
+      
+      // La sortie peut contenir plusieurs lignes si plusieurs processus (rare pour LoL mais possible)
+      // Ou simplement la ligne de commande
+      const lines = stdout.trim().split(/\r?\n/);
+      
       for (const line of lines) {
         const trimmed = line.trim();
+        // On verifie que c'est bien le bon process et qu'il a les arguments cles
         if (trimmed && trimmed.includes("LeagueClientUx.exe") && trimmed.includes("--app-port")) {
           return trimmed;
         }
       }
       return null;
     } catch (e) {
-      // Si le processus n'existe pas, wmic peut renvoyer une erreur ou juste vide
+      // Si le processus n'existe pas, ou erreur d'execution
       return null;
     }
   }

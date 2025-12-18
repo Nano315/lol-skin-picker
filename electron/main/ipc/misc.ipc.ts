@@ -3,7 +3,15 @@ import path from "node:path";
 import { loadSettings, saveSettings } from "../settings";
 
 export function registerMiscIpc() {
-  ipcMain.handle("open-external", (_e, url: string) => shell.openExternal(url));
+  ipcMain.handle("open-external", (_e, url: string) => {
+    // SECURITY: Whitelist de protocole stricte (HTTPS uniquement)
+    if (!url.startsWith("https://")) {
+      console.warn(`[Security] Tentative d'ouverture d'une URL non securisee bloquee : ${url}`);
+      return;
+    }
+    // TODO: Ajouter une whitelist de domaines si necessaire (ex: riotgames.com)
+    return shell.openExternal(url);
+  });
 
   ipcMain.handle("open-logs-folder", async () => {
     const logFolder = path.join(app.getPath("userData"), "logs");
