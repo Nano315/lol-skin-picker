@@ -45,8 +45,6 @@ async function createWindowWithPrefs() {
   // positionnement restaure
   const settings = await loadSettings();
   const displays = screen.getAllDisplays();
-  const width = 900,
-    height = 645;
 
   const targetDisplay =
     displays.find((d) => d.id === settings.displayId) ??
@@ -54,8 +52,19 @@ async function createWindowWithPrefs() {
     screen.getPrimaryDisplay();
 
   const w = await createMainWindow();
-  const { x, y } = centerInDisplay(targetDisplay, width, height);
-  w.setBounds({ x, y, width, height });
+
+  // On deplace la fenetre sur l'ecran cible avant qu'elle ne s'affiche
+  // (pour que le maximize se fasse sur le bon ecran)
+  const { x, y } = targetDisplay.bounds;
+  w.setPosition(x, y);
+
+  // On force le maximize mnt (avant le ready-to-show qui le fera aussi, double sureté)
+  // et SURTOUT on ne reset pas les bounds a 900x645
+  if (!w.isVisible()) {
+     // w.maximize() ici pourrait être prématuré si ready-to-show n'a pas fire,
+     // mais mainWindow.ts s'occupe du maximize au ready-to-show.
+     // L'important est de NE PAS appeler setBounds avec une taille fixe ici.
+  }
 
   Menu.setApplicationMenu(null);
   setupTray(getMainWindow);
@@ -89,7 +98,12 @@ function wireDomainEvents() {
 
       // On affiche la fenetre au demarrage (sauf si une game est deja en cours,
       // ce qui sera corrige une fraction de seconde plus tard par l'event 'phase')
-      getMainWindow()?.show();
+      const w = getMainWindow();
+      if (w) {
+          if (w.isMinimized()) w.restore();
+          w.show();
+          w.maximize(); // Force maximize au démarrage connecté
+      }
     } else {
       // Le client s'est ferme : on arrete tout et on cache l'app
       gameflow.stop();
@@ -119,6 +133,7 @@ function wireDomainEvents() {
       if (!win.isVisible() && lcu.isConnected()) {
         logger.info("[App] Fin de partie / Lobby : Reaffichage de la fenetre");
         win.show();
+        win.maximize(); // Force maximize au retour de game
       }
     }
   });
@@ -134,8 +149,9 @@ if (!gotTheLock) {
     const win = getMainWindow();
     if (win) {
       if (win.isMinimized()) win.restore();
-      if (!win.isVisible()) win.show();
+      win.show();
       win.focus();
+      win.maximize(); // UX Request: Force maximize on restore
     }
   });
 

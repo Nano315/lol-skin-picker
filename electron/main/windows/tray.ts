@@ -67,11 +67,15 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
   const toggleWindow = () => {
     const w = getWin();
     if (!w) return;
-    if (w.isVisible()) {
+    if (w.isVisible() && w.isFocused()) {
+      // Si visible et au premier plan, on cache
       w.hide();
     } else {
+      // Sinon on montre, restaure et maximize
+      if (w.isMinimized()) w.restore();
       w.show();
       w.focus();
+      w.maximize();
     }
   };
 
