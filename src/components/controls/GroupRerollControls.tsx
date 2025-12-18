@@ -47,18 +47,37 @@ export function GroupRerollControls({
     setSelectedKey(makeKey(colors[0]));
   }, [colors, selectedKey]);
 
-  if (!isOwner) return null;
+  const [suggestedKey, setSuggestedKey] = useState<string | null>(null);
 
-  // 1. On retire la restriction stricte sur la phase
-  // if (phase !== "ChampSelect") return null;
+  // If not owner, we show the suggestion strip instead of controls
+  if (isOwner) {
+    if (!colors.length) return null;
 
-  // 2. On garde la restriction sur le lock si necessaire, mais on peut etre plus souple
-  // Si on veut pre-visualiser, on peut retirer cette ligne.
-  // Pour l'instant, on la garde car le reroll n'a de sens que si tout le monde a lock.
-  // if (!selectionLocked) return null;
-
-  // 3. Si pas de synergies, on n'affiche rien (c'est le coeur du composant)
-  if (!colors.length) return null;
+    return (
+      <div className="group-reroll-wrapper">
+        <div className="group-reroll-label">Suggest a Synergy</div>
+        <div className="suggestion-strip">
+          {colors.map((c) => {
+            const key = makeKey(c);
+            const isActive = key === suggestedKey;
+            
+            return (
+              <button
+                key={key}
+                className={`suggestion-orb ${isActive ? "suggestion-orb--active" : ""}`}
+                style={{ "--orb-color": c.color } as React.CSSProperties}
+                onClick={() => setSuggestedKey(isActive ? null : key)}
+                title={`${c.combinationCount} combinations`}
+              >
+                <div className="suggestion-orb-inner" />
+                {isActive && <div className="suggestion-orb-ring" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   // 4. Si tout le monde n'est pas pret, on affiche un message d'attente au lieu de rien
   if (!allReady) {
@@ -66,7 +85,7 @@ export function GroupRerollControls({
       <div className="group-reroll-wrapper">
         <div className="group-reroll-label">Group Reroll</div>
         <div className="group-reroll-waiting">
-          En attente des autres joueurs...
+          Waiting for members...
         </div>
       </div>
     );
