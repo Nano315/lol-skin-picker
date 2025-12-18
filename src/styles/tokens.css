@@ -4,11 +4,23 @@
 :root {
   --bg-color: #09090b;
   --panel-color: rgba(26, 27, 31, 0.6);
-  --panel-border: rgba(255, 255, 255, 0.08);
+  --panel-border: rgba(255, 255, 255, 0.08); /* Legacy, prefer glass-border */
+  
+  /* New Glass System */
+  --glass-surface: rgba(20, 20, 25, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shine: rgba(255, 255, 255, 0.05); /* Top lighting */
+  --glass-highlight: rgba(255, 255, 255, 0.15);
+  
+  --primary-glow: rgba(139, 92, 246, 0.5);
   --text-color: #f8fafc;
   --muted-color: #9ca3af;
   --accent: #8b5cf6;
   --accent-strong: #a855f7;
+  
   --glass-shadow: 0 20px 70px rgba(0, 0, 0, 0.55);
+  --input-inner-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  
+  --active-scale: 0.96;
   --card-gap: 24px;
 }

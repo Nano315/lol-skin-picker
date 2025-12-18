@@ -1,41 +1,90 @@
-/* -------- reroll wrapper (sous l’image) -------- */
+/* -------- Reroll Area -------- */
 .reroll-wrapper {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  padding: 8px 0;
 }
 
-/* ---- style commun aux 2 boutons ---- */
+/* ---- High-End Tactile Glass Button ---- */
 .reroll-btn {
-  border: 1px solid var(--panel-border);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(14, 165, 233, 0.08));
-  padding: 0;
+  position: relative;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  border: 1px solid var(--glass-border);
+  border-top-color: var(--glass-highlight); /* Light catching visual */
+  border-radius: 16px;
+  padding: 0; 
   cursor: pointer;
-  border-radius: 14px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease,
-    background 0.18s ease;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 
+    0 10px 30px -10px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03), /* Inner Ring */
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);   /* Top lighting highlight */
+  
+  /* Backdrop blur for true glass feel */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
+
+.reroll-btn::before {
+  /* Glow spread */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    var(--primary-glow) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .reroll-btn:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 
+    0 15px 35px -5px rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(139, 92, 246, 0.2), /* Subtle hue glow */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
+
+.reroll-btn:hover::before {
+  opacity: 0.15;
+}
+
 .reroll-btn:active {
-  transform: translateY(0);
-  opacity: 1;
+  transform: scale(var(--active-scale)) translateY(0);
+  box-shadow: 
+    0 5px 15px -5px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2); /* Inner shadow on press */
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* ---- conteneur gradient ---- */
+/* ---- Updated Text Container (Nested) ---- */
 .reroll-text {
-  padding: 14px 20px;
-  border-radius: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 1; /* Above the ::before glow */
+  padding: 16px 24px;
   background: transparent;
+  border: none;
+  /* Reset legacy constraints */
+  border-top: none; 
 }
 
-/* texte plus visible */
+/* Enhance text visibility */
 .reroll-text .text-content {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
