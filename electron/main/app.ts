@@ -34,12 +34,6 @@ const lcu = new LcuWatcher();
 const gameflow = new GameflowService();
 const skins = new SkinsService();
 
-function centerInDisplay(d: Electron.Display, width: number, height: number) {
-  const wa = d.workArea;
-  const x = Math.floor(wa.x + (wa.width - width) / 2);
-  const y = Math.floor(wa.y + (wa.height - height) / 2);
-  return { x, y };
-}
 
 async function createWindowWithPrefs() {
   // positionnement restaure

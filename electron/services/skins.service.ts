@@ -131,7 +131,7 @@ export class SkinsService extends EventEmitter {
   private connectWebSocket() {
     if (this.ws || !this.creds) return;
 
-    const { protocol, port, password } = this.creds;
+    const { port, password } = this.creds;
     // LCU WebSocket URL: wss://127.0.0.1:PORT
     const wsUrl = `wss://127.0.0.1:${port}`;
     const auth = Buffer.from(`riot:${password}`).toString("base64");
