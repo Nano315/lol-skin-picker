@@ -50,7 +50,7 @@ export function GroupRerollControls({
   const [suggestedKey, setSuggestedKey] = useState<string | null>(null);
 
   // If not owner, we show the suggestion strip instead of controls
-  if (isOwner) {
+  if (!isOwner) {
     if (!colors.length) return null;
 
     return (
