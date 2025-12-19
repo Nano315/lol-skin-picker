@@ -115,7 +115,7 @@ export function RoomsPage() {
 
   const canShowRerollControls =
     !!room &&
-    isOwner &&
+    // Removed isOwner check so members can see the suggestions
     phase === "ChampSelect" &&
     selection.locked &&
     allReady &&
@@ -369,31 +369,33 @@ export function RoomsPage() {
 
 
             <section className="card rooms-actions-card">
-              {isOwner && (
-                <div className="rooms-actions-group">
-                  <div className="card-header rooms-card-header">
-                    <div>
-                      <p className="eyebrow">ACTIONS</p>
-                      <h2 className="card-title">Group Reroll</h2>
-                    </div>
-                  </div>
-
-                  <div className="rooms-actions-body">
-                    {canShowRerollControls && room ? (
-                      <GroupRerollControls
-                        room={room}
-                        phase={phase}
-                        isOwner={isOwner}
-                        selectionLocked={selection.locked}
-                      />
-                    ) : (
-                      <p className="muted rooms-helper-text">
-                        Waiting for champion lock-in...
-                      </p>
-                    )}
+              <div className="rooms-actions-group">
+                <div className="card-header rooms-card-header">
+                  <div>
+                    <p className="eyebrow">{isOwner ? "ACTIONS" : "SYNERGY"}</p>
+                    <h2 className="card-title">
+                      {isOwner ? "Group Reroll" : "Theme Suggestions"}
+                    </h2>
                   </div>
                 </div>
-              )}
+
+                <div className="rooms-actions-body">
+                  {canShowRerollControls && room ? (
+                    <GroupRerollControls
+                      room={room}
+                      phase={phase}
+                      isOwner={isOwner || false}
+                      selectionLocked={selection.locked}
+                    />
+                  ) : (
+                    <p className="muted rooms-helper-text">
+                      {isOwner
+                        ? "Waiting for everyone to lock in..."
+                        : "Waiting for group synergy..."}
+                    </p>
+                  )}
+                </div>
+              </div>
               <div className="card-header rooms-card-header">
                 <div>
                   <h2 className="card-title">Personal Reroll</h2>
