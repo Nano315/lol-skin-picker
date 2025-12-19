@@ -1,6 +1,6 @@
 import Header from "@/components/layout/Header";
 import SkinPreview from "@/components/skin/SkinPreview";
-import RerollControls from "@/components/controls/RerollControls";
+import ControlBar from "@/components/controls/ControlBar";
 
 import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
@@ -106,7 +106,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <RerollControls
+              <ControlBar
                 phase={phase}
                 selection={selection}
                 skins={skins}

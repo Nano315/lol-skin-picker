@@ -8,13 +8,12 @@ import { useGameflow } from "@/features/hooks/useGameflow";
 import { RoomMemberCard } from "@/components/RoomMemberCard";
 import { useSummonerName } from "@/features/hooks/useSummonerName";
 import type { RoomMember } from "@/features/roomsClient";
-import { GroupRerollControls } from "@/components/controls/GroupRerollControls";
+import ControlBar from "@/components/controls/ControlBar";
 import { api } from "@/features/api";
 import { roomsClient } from "@/features/roomsClient";
 import { useOwnedSkins } from "@/features/hooks/useOwnedSkins";
 import type { GroupSkinOption } from "@/features/roomsClient";
 import { computeChromaColor } from "@/features/chromaColor";
-import RerollControls from "@/components/controls/RerollControls";
 
 export function RoomsPage() {
   const { status, iconId } = useConnection();
@@ -112,14 +111,6 @@ export function RoomsPage() {
     if (!room) return false;
     return (room.synergy?.colors ?? []).some((c) => c.combinationCount > 0);
   }, [room]);
-
-  const canShowRerollControls =
-    !!room &&
-    // Removed isOwner check so members can see the suggestions
-    phase === "ChampSelect" &&
-    selection.locked &&
-    allReady &&
-    hasSynergy;
 
   const handleCopyCode = () => {
     if (!room?.code) return;
@@ -369,46 +360,22 @@ export function RoomsPage() {
 
 
             <section className="card rooms-actions-card">
-              <div className="rooms-actions-group">
-                <div className="card-header rooms-card-header">
-                  <div>
-                    <p className="eyebrow">{isOwner ? "ACTIONS" : "SYNERGY"}</p>
-                    <h2 className="card-title">
-                      {isOwner ? "Group Reroll" : "Theme Suggestions"}
-                    </h2>
-                  </div>
-                </div>
-
-                <div className="rooms-actions-body">
-                  {canShowRerollControls && room ? (
-                    <GroupRerollControls
-                      room={room}
-                      phase={phase}
-                      isOwner={isOwner || false}
-                      selectionLocked={selection.locked}
-                    />
-                  ) : (
-                    <p className="muted rooms-helper-text">
-                      {isOwner
-                        ? "Waiting for everyone to lock in..."
-                        : "Waiting for group synergy..."}
-                    </p>
-                  )}
-                </div>
-              </div>
               <div className="card-header rooms-card-header">
                 <div>
-                  <h2 className="card-title">Personal Reroll</h2>
+                  <p className="eyebrow">{isOwner ? "COMMAND" : "ACTIONS"}</p>
+                  <h2 className="card-title">Room Controls</h2>
                 </div>
               </div>
               <div className="rooms-actions-body">
-                <RerollControls
+                <ControlBar
                   phase={phase}
                   selection={selection}
                   skins={skins}
+                  onChanged={() => api.getSelection().then(setSelection)}
+                  room={room ?? undefined}
+                  isOwner={isOwner || false}
                   activeRoomColor={activeRoomColor}
                   skinOptions={skinOptions}
-                  onChanged={() => api.getSelection().then(setSelection)}
                 />
               </div>
             </section>
