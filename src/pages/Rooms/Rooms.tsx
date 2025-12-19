@@ -102,16 +102,6 @@ export function RoomsPage() {
     return unsubscribe;
   }, [room, summonerName]);
 
-  const allReady = useMemo(() => {
-    if (!room?.members.length) return false;
-    return room.members.every((m) => m.championId !== 0);
-  }, [room?.members]);
-
-  const hasSynergy = useMemo(() => {
-    if (!room) return false;
-    return (room.synergy?.colors ?? []).some((c) => c.combinationCount > 0);
-  }, [room]);
-
   const handleCopyCode = () => {
     if (!room?.code) return;
 
