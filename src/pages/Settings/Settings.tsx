@@ -126,7 +126,7 @@ export default function Settings() {
                   <p className="eyebrow">ABOUT</p>
                   <h2 className="card-title">Skin Picker</h2>
                 </div>
-                <span className="version-pill">v6.7.1</span>
+                <span className="version-pill">v6.8.0</span>
               </div>
 
               <div className="about-body">
