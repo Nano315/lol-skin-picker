@@ -181,3 +181,13 @@
   justify-content: center;
   padding: 0.5rem 0;
 }
+
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.pulse {
+  animation: pulse 1.5s infinite ease-in-out;
+}

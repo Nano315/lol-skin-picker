@@ -12,3 +12,5 @@ export type OwnedSkin = {
   chromas: { id: number; name: string }[];
   championId: number;
 };
+
+export type ConnectionStatus = "unknown" | "connected" | "disconnected";

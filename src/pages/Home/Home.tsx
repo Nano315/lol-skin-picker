@@ -108,6 +108,7 @@ export default function Home() {
 
               <ControlBar
                 phase={phase}
+                status={status}
                 selection={selection}
                 skins={skins}
                 onChanged={() => api.getSelection().then(setSelection)}

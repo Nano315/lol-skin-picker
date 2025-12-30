@@ -130,6 +130,8 @@ export function RoomsPage() {
     window.setTimeout(() => setCopied(false), 1200);
   };
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
   // Calcul et envoi des skins possedes (Owned Options)
   useEffect(() => {
     // Conditions strictes pour eviter les calculs inutiles
@@ -146,55 +148,68 @@ export function RoomsPage() {
     let isMounted = true;
 
     async function computeAndSend() {
+      if (!isMounted) return;
+      
+      // Start syncing visual state
+      setIsSyncing(true);
       console.log("[Rooms] Computing skin colors for synergy...");
+      
       const options: GroupSkinOption[] = [];
 
-      for (const s of skins) {
-        // Optimisation : On ne traite que les skins du champion actuel pour eviter d'envoyer 1000 items
-        if (s.championId !== selection.championId) continue;
-
-        // 1. Skin de base (sans chroma)
-        const baseColor = await computeChromaColor({
-          championId: selection.championId,
-          skinId: s.id,
-          chromaId: 0,
-        });
-
-        if (!isMounted) return;
-
-        options.push({
-          skinId: s.id,
-          chromaId: 0,
-          auraColor: baseColor,
-        });
-
-        // 2. Chromas
-        for (const c of s.chromas) {
-          const chromaColor = await computeChromaColor({
+      try {
+        for (const s of skins) {
+          // Optimisation : On ne traite que les skins du champion actuel pour eviter d'envoyer 1000 items
+          if (s.championId !== selection.championId) continue;
+  
+          // 1. Skin de base (sans chroma)
+          const baseColor = await computeChromaColor({
             championId: selection.championId,
             skinId: s.id,
-            chromaId: c.id,
+            chromaId: 0,
           });
-
+  
           if (!isMounted) return;
-
+  
           options.push({
             skinId: s.id,
-            chromaId: c.id,
-            auraColor: chromaColor,
+            chromaId: 0,
+            auraColor: baseColor,
           });
+  
+          // 2. Chromas
+          for (const c of s.chromas) {
+            const chromaColor = await computeChromaColor({
+              championId: selection.championId,
+              skinId: s.id,
+              chromaId: c.id,
+            });
+  
+            if (!isMounted) return;
+  
+            options.push({
+              skinId: s.id,
+              chromaId: c.id,
+              auraColor: chromaColor,
+            });
+          }
         }
-      }
-
-      if (isMounted) {
-        setSkinOptions(options); // Store locally
-        if (options.length > 0) {
-          console.log(`[Rooms] Sending ${options.length} options to server.`);
-          roomsClient.sendOwnedOptions({
-            championId: selection.championId,
-            championAlias: selection.championAlias,
-            options,
-          });
+  
+        if (isMounted) {
+          setSkinOptions(options); // Store locally
+          if (options.length > 0) {
+            console.log(`[Rooms] Sending ${options.length} options to server.`);
+            roomsClient.sendOwnedOptions({
+              championId: selection.championId,
+              championAlias: selection.championAlias,
+              options,
+            });
+          }
+        }
+      } finally {
+        // Stop syncing visual state (with a small safety delay for UX smoothness if it was too fast?)
+        // For now, immediate is fine, or maybe a small timeout if needed.
+        if (isMounted) {
+           setIsSyncing(false);
         }
       }
     }
@@ -359,6 +374,7 @@ export function RoomsPage() {
               <div className="rooms-actions-body">
                 <ControlBar
                   phase={phase}
+                  status={status}
                   selection={selection}
                   skins={skins}
                   onChanged={() => api.getSelection().then(setSelection)}
@@ -366,6 +382,7 @@ export function RoomsPage() {
                   isOwner={isOwner || false}
                   activeRoomColor={activeRoomColor}
                   skinOptions={skinOptions}
+                  isSyncing={isSyncing}
                 />
               </div>
             </section>
