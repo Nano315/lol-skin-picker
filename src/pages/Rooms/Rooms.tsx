@@ -20,7 +20,7 @@ export function RoomsPage() {
   const phase = useGameflow();
   const [selection, setSelection] = useSelection();
   const skins = useOwnedSkins();
-  const { room, joined, error, create, join, leave } = useRooms(selection);
+  const { room, joined, error, create, join, leave, suggestColor, suggestedColorsMap } = useRooms(selection);
   const [code, setCode] = useState("");
 
   const [skinOptions, setSkinOptions] = useState<GroupSkinOption[]>([]);
@@ -353,13 +353,47 @@ export function RoomsPage() {
               </div>
 
               <div className="rooms-members-row">
-                {orderedSlots.map(({ member, slotIndex }) => (
-                  <RoomMemberCard
-                    key={member?.id ?? `empty-${slotIndex}`}
-                    member={member ?? undefined}
-                    slotIndex={slotIndex}
-                  />
-                ))}
+                {orderedSlots.map(({ member, slotIndex }) => {
+                  const suggestionId = member ? suggestedColorsMap[member.id] : undefined;
+
+                  const handleApplySuggestion = () => {
+                     if (!suggestionId || !room) return;
+                     // We need to find the COLOR associated with this chroma to apply it to the group
+                     // BUT, the server expects a color string for "sameColor" type.
+                     // We have to reverse-lookup the color from the chromaId.
+                     // This is tricky because we only have the chromaId.
+                     
+                     // Option 1: Re-compute color locally.
+                     // We need the championId/skinId/chromaId combo.
+                     // member has this info, except we replace member.chromaId with suggestionId.
+                     if (!member) return;
+                     
+                     // We need to async compute color then call requestGroupReroll
+                     // Let's do it inline or better, extract a helper.
+                     // For now simple inline:
+                     (async () => {
+                        const color = await computeChromaColor({
+                           championId: member.championId,
+                           skinId: member.skinId,
+                           chromaId: suggestionId
+                        });
+                        
+                        if (color) {
+                           roomsClient.requestGroupReroll({ type: "sameColor", color });
+                        }
+                     })();
+                  };
+
+                  return (
+                    <RoomMemberCard
+                      key={member?.id ?? `empty-${slotIndex}`}
+                      member={member ?? undefined}
+                      slotIndex={slotIndex}
+                      suggestedChromaId={isOwner ? suggestionId : undefined}
+                      onApplySuggestion={isOwner && suggestionId ? handleApplySuggestion : undefined}
+                    />
+                  );
+                })}
               </div>
             </section>
 
@@ -383,6 +417,7 @@ export function RoomsPage() {
                   activeRoomColor={activeRoomColor}
                   skinOptions={skinOptions}
                   isSyncing={isSyncing}
+                  suggestColor={suggestColor}
                 />
               </div>
             </section>

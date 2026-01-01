@@ -27,6 +27,7 @@ type ControlBarProps = {
   activeRoomColor?: string; // The color currently "suggested" or active for the room
   skinOptions?: GroupSkinOption[]; // The current user's skin options that match colors
   isSyncing?: boolean;
+  suggestColor?: (skinId: number, chromaId: number) => void;
 };
 
 export default function ControlBar({
@@ -39,7 +40,8 @@ export default function ControlBar({
   isOwner = false,
   activeRoomColor,
   skinOptions,
-  isSyncing = false
+  isSyncing = false,
+  suggestColor,
 }: ControlBarProps) {
   // --- Derived State ---
   const notInChampSelect = phase !== "ChampSelect";
@@ -229,18 +231,44 @@ export default function ControlBar({
       )}
       
       {/* 2. Suggestion Strip (Member Only) */}
-      {!isOwner && room && synergyColors.length > 0 && (
+      {isOwner && room && synergyColors.length > 0 && !notInChampSelect && selection.locked === true && (
         <div className={styles.commanderStrip} style={stripStyle}>
           <div className={styles.stripLabel}>Suggestions</div>
           <div className={styles.suggestionStrip}>
-            {synergyColors.map((c) => (
-              <div
+            {synergyColors.map((c) => {
+              // Find matching skin/chroma for this color to suggest
+              // Use logic similar to getSynergyCandidates but specific for suggestion
+              const handleSuggest = () => {
+                if (!suggestColor) return;
+                
+                // Prioritize skinOptions
+                let candidate = undefined;
+                if (skinOptions && skinOptions.length > 0) {
+                   candidate = skinOptions.find(opt => opt.auraColor === c.color);
+                } 
+                
+                if (!candidate) {
+                   // Fallback logic could go here but it's complex without helper.
+                   // For now, rely on skinOptions as it should be populated if synced.
+                   console.warn("No candidate found for suggestion color", c.color);
+                   return;
+                }
+
+                suggestColor(candidate.skinId, candidate.chromaId);
+                // Visual feedback could be added here
+              };
+
+              return (
+                <button
                 key={c.color}
-                className={`${styles.colorOption} ${isSyncing ? styles.pulse : ""}`}
-                style={{ "--opt-color": c.color, cursor: 'default' } as React.CSSProperties}
-                title={`${c.combinationCount} combinations`}
+                className={`${styles.colorOption} ${isSyncing ? styles.pulse : ""} ${styles.suggestionButton}`}
+                style={{ "--opt-color": c.color, cursor: 'pointer' } as React.CSSProperties}
+                title={`Suggest this color (${c.combinationCount} matches)`}
+                onClick={handleSuggest}
+                disabled={isSyncing}
               />
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -56,6 +56,20 @@ export function useRooms(selection: Selection) {
     return () => unsubCombo();
   }, []);
 
+  // Suggestions (Reception)
+  const [suggestedColorsMap, setSuggestedColorsMap] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    // Only owner needs to listen really, but let's listen if joined to be safe or if we change roles
+    const unsubscribe = roomsClient.onColorSuggestionReceived(({ memberId, chromaId }) => {
+      setSuggestedColorsMap((prev) => ({
+        ...prev,
+        [memberId]: chromaId,
+      }));
+    });
+    return unsubscribe;
+  }, []);
+
   // Actions
   async function create(name: string) {
     try {
@@ -101,5 +115,14 @@ export function useRooms(selection: Selection) {
     selection.championAlias,
   ]);
 
-  return { room, joined, error, create, join, leave };
+  return { 
+    room, 
+    joined, 
+    error, 
+    create, 
+    join, 
+    leave,
+    suggestColor: roomsClient.suggestColor.bind(roomsClient),
+    suggestedColorsMap 
+  };
 }

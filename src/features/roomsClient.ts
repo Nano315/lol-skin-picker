@@ -71,6 +71,7 @@ class RoomsClient {
   private listeners = new Set<(room: RoomState | null) => void>();
 
   private comboListeners = new Set<(payload: GroupComboPayload) => void>();
+  private suggestionListeners = new Set<(payload: { memberId: string; chromaId: number }) => void>();
 
   // ---- helpers de state global ----
   private emitRoom(room: RoomState | null) {
@@ -102,6 +103,17 @@ class RoomsClient {
     this.comboListeners.add(listener);
     return () => {
       this.comboListeners.delete(listener);
+    };
+  }
+
+  onColorSuggestionReceived(listener: (payload: { memberId: string; chromaId: number }) => void): () => void {
+    // Note: We need to bind this to socket `on` event if not already done globally
+    // But since we want to support multiple listeners possibly or just one, let's stick to the pattern.
+    // However, I need to register the socket listener in connect() too!
+    // Let's create a Set for suggestion listeners similar to comboListeners.
+    this.suggestionListeners.add(listener);
+    return () => {
+      this.suggestionListeners.delete(listener);
     };
   }
 
@@ -193,6 +205,11 @@ class RoomsClient {
       for (const l of this.comboListeners) l(payload);
     });
 
+    this.socket.on("color-suggestion-received", (payload: { memberId: string; chromaId: number }) => {
+      log.info("[roomsClient] Received color suggestion", payload);
+      for (const l of this.suggestionListeners) l(payload);
+    });
+
     this.socket.on("room-closed", (payload: { reason?: string }) => {
       log.warn("[roomsClient] room closed", payload);
       this.roomId = null;
@@ -250,6 +267,16 @@ class RoomsClient {
       memberId: this.memberId,
       type: payload.type,
       color: payload.color,
+    });
+  }
+
+  suggestColor(skinId: number, chromaId: number) {
+    if (!this.socket || !this.roomId || !this.memberId) return;
+    this.socket.emit("suggest-color", {
+      roomId: this.roomId,
+      memberId: this.memberId,
+      skinId,
+      chromaId,
     });
   }
 }

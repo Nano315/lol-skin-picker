@@ -7,9 +7,16 @@ type Props = {
   member?: RoomMember;
   /** 0..4 => slot1..slot5 */
   slotIndex: number;
+  suggestedChromaId?: number;
+  onApplySuggestion?: () => void;
 };
 
-export function RoomMemberCard({ member, slotIndex }: Props) {
+export function RoomMemberCard({ 
+  member, 
+  slotIndex,
+  suggestedChromaId,
+  onApplySuggestion,
+}: Props) {
   const isOccupied = !!member;
 
   // Valeurs "safe" pour les hooks & calculs
@@ -23,6 +30,15 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
     championId,
     skinId,
     chromaId,
+    championAlias,
+    locked: false,
+  });
+
+  // Calculate suggestion color if present
+  const suggestionColor = useChromaColor({
+    championId,
+    skinId,
+    chromaId: suggestedChromaId ?? 0,
     championAlias,
     locked: false,
   });
@@ -55,6 +71,7 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
         backgroundColor: chromaColor ?? undefined,
         transition: "background-color 0.5s ease, border-color 0.5s ease",
         borderColor: chromaColor ? "rgba(255,255,255,0.2)" : undefined,
+        position: 'relative'
       }}
     >
       <div className="room-member-skin">
@@ -70,6 +87,34 @@ export function RoomMemberCard({ member, slotIndex }: Props) {
         <div className="room-member-name">{member!.name}</div>
       ) : (
         <div className="room-member-placeholder">Empty slot</div>
+      )}
+
+      {/* Suggestion Badge (Owner only) */}
+      {suggestedChromaId && onApplySuggestion && suggestionColor && (
+        <button
+          className="suggestion-badge"
+          onClick={(e) => {
+            e.stopPropagation();
+            onApplySuggestion();
+          }}
+          title="Click to accept suggestion"
+          style={{
+            position: 'absolute',
+            top: -10,
+            right: -10,
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            backgroundColor: suggestionColor,
+            border: '2px solid white',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+            cursor: 'pointer',
+            zIndex: 10,
+            animation: 'pulse 2s infinite'
+          }}
+        >
+           {/* Maybe a small icon inside? */}
+        </button>
       )}
     </div>
   );
