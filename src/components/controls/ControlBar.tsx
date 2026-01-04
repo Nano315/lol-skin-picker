@@ -231,7 +231,7 @@ export default function ControlBar({
       )}
       
       {/* 2. Suggestion Strip (Member Only) */}
-      {isOwner && room && synergyColors.length > 0 && !notInChampSelect && selection.locked === true && (
+      {!isOwner && room && synergyColors.length > 0 && !notInChampSelect && selection.locked === true && (
         <div className={styles.commanderStrip} style={stripStyle}>
           <div className={styles.stripLabel}>Suggestions</div>
           <div className={styles.suggestionStrip}>
