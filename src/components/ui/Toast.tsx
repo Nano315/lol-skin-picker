@@ -22,6 +22,14 @@ export function Toast({ id, type, message, duration = 5000, onDismiss }: ToastPr
   const [isExiting, setIsExiting] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
+  const handleDismiss = useCallback(() => {
+    setIsExiting(true);
+    // Wait for exit animation to complete
+    setTimeout(() => {
+      onDismiss(id);
+    }, 300);
+  }, [id, onDismiss]);
+
   useEffect(() => {
     if (isPaused || duration <= 0) return;
 
@@ -31,14 +39,6 @@ export function Toast({ id, type, message, duration = 5000, onDismiss }: ToastPr
 
     return () => clearTimeout(timer);
   }, [duration, isPaused, handleDismiss]);
-
-  const handleDismiss = useCallback(() => {
-    setIsExiting(true);
-    // Wait for exit animation to complete
-    setTimeout(() => {
-      onDismiss(id);
-    }, 300);
-  }, [id, onDismiss]);
 
   return (
     <div
