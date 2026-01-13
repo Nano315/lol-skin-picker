@@ -1,7 +1,7 @@
 // src/app/RoomsClientConnector.tsx
 import { useEffect } from 'react';
 import { roomsClient } from '@/features/roomsClient';
-import { useToast } from '@/components/ui';
+import { useToast } from '@/features/hooks/useToast';
 
 /**
  * A non-visual component responsible for connecting the roomsClient

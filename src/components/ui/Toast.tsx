@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import "./Toast.css";
 
 export type ToastType = "success" | "error" | "info" | "warning";
@@ -30,15 +30,15 @@ export function Toast({ id, type, message, duration = 5000, onDismiss }: ToastPr
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [duration, isPaused]);
+  }, [duration, isPaused, handleDismiss]);
 
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     setIsExiting(true);
     // Wait for exit animation to complete
     setTimeout(() => {
       onDismiss(id);
     }, 300);
-  };
+  }, [id, onDismiss]);
 
   return (
     <div

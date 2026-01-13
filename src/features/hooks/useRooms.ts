@@ -1,13 +1,23 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { roomsClient, type RoomState } from "../roomsClient";
 import { api } from "../api";
 import type { AppError, Selection } from "../types";
+
+// Error codes that are fatal and require leaving the room
+const FATAL_ERROR_CODES = ["ROOM_NOT_FOUND", "MEMBER_NOT_FOUND"];
+
+// Error codes that can be retried
+const RETRYABLE_ERROR_CODES = ["NETWORK_ERROR", "INTERNAL_ERROR"];
 
 export function useRooms(selection: Selection) {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  // Store last action for retry
+  const lastActionRef = useRef<{ type: "create" | "join"; args: string[] } | null>(null);
 
   // Subscribe to room updates & errors
   useEffect(() => {
@@ -74,10 +84,12 @@ export function useRooms(selection: Selection) {
   const create = useCallback(async (name: string) => {
     setIsLoading(true);
     setError(null);
+    lastActionRef.current = { type: "create", args: [name] };
     try {
       await roomsClient.createRoom(name);
       roomsClient.connect();
       roomsClient.sendSelection(selection);
+      lastActionRef.current = null; // Clear on success
     } catch (e) {
       // Error is already handled by the onError listener & toast callback
       // We just need to stop the loading state
@@ -89,10 +101,12 @@ export function useRooms(selection: Selection) {
   const join = useCallback(async (code: string, name: string) => {
     setIsLoading(true);
     setError(null);
+    lastActionRef.current = { type: "join", args: [code, name] };
     try {
       await roomsClient.joinRoom(code, name);
       roomsClient.connect();
       roomsClient.sendSelection(selection);
+      lastActionRef.current = null; // Clear on success
     } catch (e) {
        // Error is already handled by the onError listener & toast callback
     } finally {
@@ -105,7 +119,41 @@ export function useRooms(selection: Selection) {
     setJoined(false);
     setRoom(null);
     setError(null);
+    lastActionRef.current = null;
   }, []);
+
+  // Retry last failed action
+  const retry = useCallback(async () => {
+    const lastAction = lastActionRef.current;
+    if (!lastAction) return;
+
+    setIsRetrying(true);
+    setError(null);
+
+    try {
+      if (lastAction.type === "create") {
+        await roomsClient.createRoom(lastAction.args[0]);
+        roomsClient.connect();
+        roomsClient.sendSelection(selection);
+        lastActionRef.current = null;
+      } else if (lastAction.type === "join") {
+        await roomsClient.joinRoom(lastAction.args[0], lastAction.args[1]);
+        roomsClient.connect();
+        roomsClient.sendSelection(selection);
+        lastActionRef.current = null;
+      }
+    } catch (e) {
+      // Error handled by listener
+    } finally {
+      setIsRetrying(false);
+    }
+  }, [selection]);
+
+  // Check if current error is retryable
+  const canRetry = error ? RETRYABLE_ERROR_CODES.includes(error.code) && lastActionRef.current !== null : false;
+
+  // Check if current error is fatal (requires going back home)
+  const isFatalError = error ? FATAL_ERROR_CODES.includes(error.code) : false;
 
   // Sync selection with server
   useEffect(() => {
@@ -114,15 +162,19 @@ export function useRooms(selection: Selection) {
     }
   }, [joined, selection]);
 
-  return { 
-    room, 
-    joined, 
-    error, 
+  return {
+    room,
+    joined,
+    error,
     isLoading,
-    create, 
-    join, 
+    isRetrying,
+    canRetry,
+    isFatalError,
+    create,
+    join,
     leave,
+    retry,
     suggestColor: roomsClient.suggestColor.bind(roomsClient),
-    suggestedColorsMap 
+    suggestedColorsMap
   };
 }

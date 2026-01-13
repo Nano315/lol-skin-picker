@@ -630,3 +630,84 @@
   margin-bottom: 14px;
 }
 
+.rooms-error-block {
+  grid-column: span 12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(77, 27, 27, 0.5);
+  border: 1px solid rgba(255, 76, 76, 0.3);
+  margin-bottom: 14px;
+}
+
+.rooms-error-block .rooms-error-message {
+  margin-bottom: 0;
+}
+
+.rooms-retry-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rooms-retry-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.rooms-retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Connection indicator retry button */
+.connection-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.connection-indicator i {
+  font-size: 1.1rem;
+}
+
+.connection-indicator__retry-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.connection-indicator__retry-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.connection-indicator__retry-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+

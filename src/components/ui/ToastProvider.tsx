@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { Toast, type ToastType } from "./Toast";
+import { ToastContext } from "@/features/hooks/useToast";
 import "./Toast.css";
 
 interface ToastItem {
@@ -8,14 +9,6 @@ interface ToastItem {
   message: string;
   duration: number;
 }
-
-interface ToastContextValue {
-  showToast: (options: { type: ToastType; message: string; duration?: number }) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null);
-
-const MAX_VISIBLE_TOASTS = 3;
 
 let toastId = 0;
 
@@ -41,7 +34,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Only show the first MAX_VISIBLE_TOASTS, rest are queued
-  const visibleToasts = toasts.slice(0, MAX_VISIBLE_TOASTS);
+  const visibleToasts = toasts.slice(0, 3);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -60,21 +53,4 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext.Provider>
   );
-}
-
-/**
- * Hook to show toast notifications.
- * Must be used within a ToastProvider.
- *
- * @example
- * const { showToast } = useToast();
- * showToast({ type: 'success', message: 'Room created!' });
- * showToast({ type: 'error', message: 'Connection lost', duration: 8000 });
- */
-export function useToast(): ToastContextValue {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
-  }
-  return context;
 }

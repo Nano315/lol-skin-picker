@@ -2,6 +2,7 @@
 import { useSelection } from "@/features/hooks/useSelection";
 import { useRooms } from "@/features/hooks/useRooms";
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
@@ -16,14 +17,48 @@ import type { GroupSkinOption } from "@/features/roomsClient";
 import { computeChromaColor } from "@/features/chromaColor";
 import { findMemberBySummonerName } from "@/features/utils/summonerUtils";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
+import { useToast } from "@/features/hooks/useToast";
 
 export function RoomsPage() {
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   const { status, iconId } = useConnection();
   const phase = useGameflow();
   const [selection, setSelection] = useSelection();
   const skins = useOwnedSkins();
-  const { room, joined, error, isLoading, create, join, leave, suggestColor, suggestedColorsMap } = useRooms(selection);
+  const {
+    room,
+    joined,
+    error,
+    isLoading,
+    isRetrying,
+    canRetry,
+    isFatalError,
+    create,
+    join,
+    leave,
+    retry,
+    suggestColor,
+    suggestedColorsMap
+  } = useRooms(selection);
   const [code, setCode] = useState("");
+
+  // Handle fatal errors - redirect to home
+  useEffect(() => {
+    if (isFatalError && joined) {
+      showToast({
+        type: "error",
+        message: "Room closed. Redirecting to home...",
+        duration: 3000,
+      });
+      leave();
+      // Small delay to show toast before redirecting
+      const timeout = setTimeout(() => {
+        navigate("/");
+      }, 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [isFatalError, joined, leave, navigate, showToast]);
 
   const [skinOptions, setSkinOptions] = useState<GroupSkinOption[]>([]);
 
@@ -124,7 +159,7 @@ export function RoomsPage() {
 
   // Calcul et envoi des skins possedes (Owned Options)
   useEffect(() => {
-    if (!room || !isConnected || !selection.championId || !skins?.length) return;
+    if (!joined || !isConnected || !selection.championId || !skins?.length) return;
 
     let isMounted = true;
 
@@ -168,7 +203,7 @@ export function RoomsPage() {
 
     computeAndSend();
     return () => { isMounted = false; };
-  }, [room, selection.championId, selection.championAlias, isConnected, skins]);
+  }, [joined, selection.championId, selection.championAlias, isConnected, skins]);
 
   const activeRoomColor = useMemo(() => {
     if (!room?.synergy?.colors || !skinOptions.length) return undefined;
@@ -186,7 +221,12 @@ export function RoomsPage() {
         <Header status={status} phase={phase} iconId={iconId} />
         <main className="main">
           <div className="page-shell rooms-shell">
-            <ConnectionStatusIndicator error={error} isConnected={isConnected} />
+            <ConnectionStatusIndicator
+              error={error}
+              isConnected={isConnected}
+              isRetrying={isRetrying}
+              onRetry={canRetry ? retry : undefined}
+            />
             <div className="bento-grid rooms-bento">
               {!isConnected && (
                 <p className="rooms-warning">
@@ -200,7 +240,20 @@ export function RoomsPage() {
                 </p>
               )}
 
-              {error && error.code !== 'NETWORK_ERROR' && <p className="rooms-error-message">{error.message}</p>}
+              {error && error.code !== 'NETWORK_ERROR' && (
+                <div className="rooms-error-block">
+                  <p className="rooms-error-message">{error.message}</p>
+                  {canRetry && (
+                    <button
+                      className="rooms-retry-btn"
+                      onClick={retry}
+                      disabled={isRetrying}
+                    >
+                      {isRetrying ? "Retrying..." : "Retry"}
+                    </button>
+                  )}
+                </div>
+              )}
 
               <section className="card rooms-cta-card">
                 <div className="rooms-card-header card-header">
@@ -268,7 +321,12 @@ export function RoomsPage() {
       <Header status={status} phase={phase} iconId={iconId} />
       <main className="main">
         <div className="page-shell rooms-shell">
-           <ConnectionStatusIndicator error={error} isConnected={isConnected} />
+          <ConnectionStatusIndicator
+            error={error}
+            isConnected={isConnected}
+            isRetrying={isRetrying}
+            onRetry={canRetry ? retry : undefined}
+          />
           <div className="bento-grid rooms-bento">
             <section className="card rooms-squad-card">
               <div className="card-header rooms-card-header">

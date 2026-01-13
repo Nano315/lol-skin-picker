@@ -67,6 +67,7 @@ class RoomsClient {
   private socket: Socket | null = null;
   private roomId: string | null = null;
   private memberId: string | null = null;
+  private isLeaving = false;
 
   private room: RoomState | null = null;
   private listeners = new Set<(room: RoomState | null) => void>();
@@ -223,6 +224,7 @@ class RoomsClient {
     }
     if (this.socket) return;
 
+    this.isLeaving = false; // Reset flag on new connection
     this.socket = io(ROOMS_SERVER_URL, { autoConnect: true });
 
     this.socket.on("connect", () => {
@@ -238,7 +240,9 @@ class RoomsClient {
 
     this.socket.on("disconnect", (reason) => {
       log.warn("[roomsClient] Socket.io disconnected", { reason });
+      if (!this.isLeaving) {
        this.emitError({ code: 'NETWORK_ERROR', message: 'Socket disconnected' });
+      }
     });
 
     this.socket.on("connect_error", (error) => {
@@ -283,6 +287,7 @@ class RoomsClient {
   leaveRoom() {
     try {
       if (this.socket && this.roomId && this.memberId) {
+        this.isLeaving = true;
         this.socket.emit("leave-room", {
           roomId: this.roomId,
           memberId: this.memberId,

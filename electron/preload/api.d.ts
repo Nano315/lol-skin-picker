@@ -67,10 +67,10 @@ declare global {
     api: Window["lcu"];
 
     log: {
-      info: (...args: any[]) => Promise<void>;
-      warn: (...args: any[]) => Promise<void>;
-      error: (...args: any[]) => Promise<void>;
-      debug: (...args: any[]) => Promise<void>;
+      info: (...args: unknown[]) => Promise<void>;
+      warn: (...args: unknown[]) => Promise<void>;
+      error: (...args: unknown[]) => Promise<void>;
+      debug: (...args: unknown[]) => Promise<void>;
     };
   }
 }

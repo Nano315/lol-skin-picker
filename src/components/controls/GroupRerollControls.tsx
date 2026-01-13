@@ -7,9 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 type Props = {
   room: RoomState;
-  phase: string;
   isOwner: boolean;
-  selectionLocked: boolean;
 };
 
 function makeKey(c: ColorSynergy) {
@@ -18,9 +16,7 @@ function makeKey(c: ColorSynergy) {
 
 export function GroupRerollControls({
   room,
-  phase: _phase,
   isOwner,
-  selectionLocked: _selectionLocked,
 }: Props) {
   const colors = (room.synergy?.colors ?? []).filter(
     (c) => c.combinationCount > 0
