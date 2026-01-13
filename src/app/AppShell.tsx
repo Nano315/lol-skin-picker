@@ -2,6 +2,7 @@ import { RouterProvider } from "react-router-dom";
 import { router } from "./routes";
 import { useSyncPrefsWithBackend } from "@/features/hooks/useSyncPrefsWithBackend";
 import MascotsLayer from "@/components/overlays/MascotsLayer";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 
 import { usePrefs } from "@/features/hooks/usePrefs";
 import { useEffect } from "react";
@@ -85,5 +86,12 @@ export default function AppShell() {
       return () => window.removeEventListener("pref-changed", localHandler as EventListener);
   }, []);
 
-  return (<div><RouterProvider router={router}/><MascotsLayer/></div>);
+  return (
+    <ToastProvider>
+      <div>
+        <RouterProvider router={router} />
+        <MascotsLayer />
+      </div>
+    </ToastProvider>
+  );
 }
