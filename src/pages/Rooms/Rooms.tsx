@@ -14,6 +14,7 @@ import { roomsClient } from "@/features/roomsClient";
 import { useOwnedSkins } from "@/features/hooks/useOwnedSkins";
 import type { GroupSkinOption } from "@/features/roomsClient";
 import { computeChromaColor } from "@/features/chromaColor";
+import { findMemberBySummonerName } from "@/features/utils/summonerUtils";
 
 export function RoomsPage() {
   const { status, iconId } = useConnection();
@@ -44,14 +45,8 @@ export function RoomsPage() {
       }));
     }
 
-    const normalizedSummoner = summonerName?.toLowerCase().trim() ?? null;
-
     const selfMember: RoomMember =
-      normalizedSummoner != null
-        ? members.find(
-          (m) => m.name.toLowerCase().trim() === normalizedSummoner
-        ) ?? members[0]
-        : members[0];
+      findMemberBySummonerName(members, summonerName) ?? members[0];
 
     const others = members.filter((m) => m !== selfMember);
 
@@ -74,10 +69,7 @@ export function RoomsPage() {
     !!room &&
     !!summonerName &&
     (() => {
-      const normalized = summonerName.toLowerCase().trim();
-      const self = room.members.find(
-        (m) => m.name.toLowerCase().trim() === normalized
-      );
+      const self = findMemberBySummonerName(room.members, summonerName);
       return !!self && room.ownerId === self.id;
     })();
 
@@ -85,10 +77,7 @@ export function RoomsPage() {
   useEffect(() => {
     if (!room || !summonerName) return;
 
-    const normalized = summonerName.toLowerCase().trim();
-    const self = room.members.find(
-      (m) => m.name.toLowerCase().trim() === normalized
-    );
+    const self = findMemberBySummonerName(room.members, summonerName);
     if (!self) return;
 
     const unsubscribe = roomsClient.onGroupCombo((payload) => {
