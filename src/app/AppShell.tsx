@@ -3,6 +3,7 @@ import { router } from "./routes";
 import { useSyncPrefsWithBackend } from "@/features/hooks/useSyncPrefsWithBackend";
 import MascotsLayer from "@/components/overlays/MascotsLayer";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import { RoomsClientConnector } from "./RoomsClientConnector";
 
 import { usePrefs } from "@/features/hooks/usePrefs";
 import { useEffect } from "react";
@@ -88,6 +89,7 @@ export default function AppShell() {
 
   return (
     <ToastProvider>
+      <RoomsClientConnector />
       <div>
         <RouterProvider router={router} />
         <MascotsLayer />

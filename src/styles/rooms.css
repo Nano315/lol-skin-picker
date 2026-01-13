@@ -600,3 +600,33 @@
   100% { transform: scale(1.4); opacity: 0; }
 }
 
+.connection-indicator {
+  grid-column: span 12;
+  padding: 10px 16px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 500;
+  margin-bottom: 14px;
+  background: var(--panel-color);
+  border: 1px solid var(--panel-border);
+}
+
+.connection-indicator.error {
+  background: #4d1b1b;
+  border-color: #ff4c4c;
+  color: #ffc5c5;
+}
+
+.connection-indicator.warning {
+  background: #4d3d1b;
+  border-color: #ffc84c;
+  color: #ffe9c5;
+}
+
+.rooms-error-message {
+  grid-column: span 12;
+  text-align: center;
+  color: #ffc5c5;
+  margin-bottom: 14px;
+}
+

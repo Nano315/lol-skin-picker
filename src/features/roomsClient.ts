@@ -1,6 +1,7 @@
 // src/features/roomsClient.ts
 import { io, Socket } from "socket.io-client";
-import type { Selection } from "./types";
+import type { AppError, Selection, Toast } from "./types";
+import { errorMessages } from "./utils/errorMessages";
 
 const ROOMS_SERVER_URL = import.meta.env.VITE_ROOMS_SERVER_URL;
 const log = window.log;
@@ -69,6 +70,8 @@ class RoomsClient {
 
   private room: RoomState | null = null;
   private listeners = new Set<(room: RoomState | null) => void>();
+  private errorListeners = new Set<(error: AppError) => void>();
+  private toastCallback?: (toast: Toast) => void;
 
   private comboListeners = new Set<(payload: GroupComboPayload) => void>();
   private suggestionListeners = new Set<(payload: { memberId: string; senderName: string; skinId: number; chromaId: number }) => void>();
@@ -79,12 +82,33 @@ class RoomsClient {
     for (const l of this.listeners) l(room);
   }
 
+  private emitError(error: AppError) {
+    for (const l of this.errorListeners) l(error);
+    if (this.toastCallback) {
+      this.toastCallback({
+        type: 'error',
+        message: errorMessages[error.code] || error.message,
+      });
+    }
+  }
+
   subscribe(listener: (room: RoomState | null) => void): () => void {
     this.listeners.add(listener);
     listener(this.room); // etat actuel immediat
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  onError(listener: (error: AppError) => void): () => void {
+    this.errorListeners.add(listener);
+    return () => {
+      this.errorListeners.delete(listener);
+    };
+  }
+
+  setToastCallback(callback: (toast: Toast) => void) {
+    this.toastCallback = callback;
   }
 
   getCurrentRoom() {
@@ -107,10 +131,6 @@ class RoomsClient {
   }
 
   onColorSuggestionReceived(listener: (payload: { memberId: string; senderName: string; skinId: number; chromaId: number }) => void): () => void {
-    // Note: We need to bind this to socket `on` event if not already done globally
-    // But since we want to support multiple listeners possibly or just one, let's stick to the pattern.
-    // However, I need to register the socket listener in connect() too!
-    // Let's create a Set for suggestion listeners similar to comboListeners.
     this.suggestionListeners.add(listener);
     return () => {
       this.suggestionListeners.delete(listener);
@@ -119,53 +139,81 @@ class RoomsClient {
 
   // ---- REST : create / join ----
   async createRoom(name: string): Promise<{ room: RoomState }> {
-    const res = await fetch(`${ROOMS_SERVER_URL}/rooms`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
+    try {
+      const res = await fetch(`${ROOMS_SERVER_URL}/rooms`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
 
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      const msg = data?.error ?? "Failed to create room";
-      log.error("[roomsClient] Failed to create room", { status: res.status, msg });
-      throw new Error(msg);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const error: AppError = {
+          code: data?.code || "INTERNAL_ERROR",
+          message: data?.error || "Failed to create room",
+        };
+        log.error("[roomsClient] Failed to create room", { status: res.status, msg: error.message });
+        throw error;
+      }
+
+      this.roomId = data.roomId;
+      this.memberId = data.memberId;
+      const room = data.room as RoomState;
+      this.emitRoom(room);
+      log.info("[roomsClient] Room created and joined", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+      });
+      return { room };
+    } catch (err: unknown) {
+      const error: AppError = (err && typeof err === 'object' && 'code' in err) 
+        ? err as AppError 
+        : {
+            code: "NETWORK_ERROR",
+            message: "Network error while creating room",
+          };
+      this.emitError(error);
+      throw error;
     }
-
-    this.roomId = data.roomId;
-    this.memberId = data.memberId;
-    const room = data.room as RoomState;
-    this.emitRoom(room);
-    log.info("[roomsClient] Room created and joined", {
-      roomId: this.roomId,
-      memberId: this.memberId,
-    });
-    return { room };
   }
 
   async joinRoom(code: string, name: string): Promise<{ room: RoomState }> {
-    const res = await fetch(`${ROOMS_SERVER_URL}/rooms/join`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, name }),
-    });
+    try {
+      const res = await fetch(`${ROOMS_SERVER_URL}/rooms/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, name }),
+      });
 
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      const msg = data?.error ?? "Failed to join room";
-      log.error("[roomsClient] Failed to join room", { status: res.status, msg });
-      throw new Error(msg);
+      const data = await res.json().catch(() => null);
+       if (!res.ok) {
+        const error: AppError = {
+          code: data?.code || "INTERNAL_ERROR",
+          message: data?.error || "Failed to join room",
+        };
+        log.error("[roomsClient] Failed to join room", { status: res.status, msg: error.message });
+        throw error;
+      }
+
+      this.roomId = data.roomId;
+      this.memberId = data.memberId;
+      const room = data.room as RoomState;
+      this.emitRoom(room);
+      log.info("[roomsClient] Joined room", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+      });
+      return { room };
+    } catch (err: unknown) {
+      const error: AppError = (err && typeof err === 'object' && 'code' in err) 
+        ? err as AppError 
+        : {
+            code: "NETWORK_ERROR",
+            message: "Network error while joining room",
+          };
+      this.emitError(error);
+      throw error;
     }
-
-    this.roomId = data.roomId;
-    this.memberId = data.memberId;
-    const room = data.room as RoomState;
-    this.emitRoom(room);
-    log.info("[roomsClient] Joined room", {
-      roomId: this.roomId,
-      memberId: this.memberId,
-    });
-    return { room };
   }
 
   // ---- WebSocket ----
@@ -190,10 +238,21 @@ class RoomsClient {
 
     this.socket.on("disconnect", (reason) => {
       log.warn("[roomsClient] Socket.io disconnected", { reason });
+       this.emitError({ code: 'NETWORK_ERROR', message: 'Socket disconnected' });
     });
 
     this.socket.on("connect_error", (error) => {
       log.error("[roomsClient] Socket.io connection error", error);
+      this.emitError({ code: 'NETWORK_ERROR', message: 'Socket connection failed' });
+    });
+
+    this.socket.on("error", (error: { code: string; message: string }) => {
+      log.error("[roomsClient] Received server error", error);
+      const appError: AppError = {
+        code: error.code || "INTERNAL_ERROR",
+        message: error.message,
+      };
+      this.emitError(appError);
     });
 
     this.socket.on("room-state", (room: RoomState) => {
@@ -212,72 +271,93 @@ class RoomsClient {
 
     this.socket.on("room-closed", (payload: { reason?: string }) => {
       log.warn("[roomsClient] room closed", payload);
+      this.emitError({ code: 'ROOM_NOT_FOUND', message: 'The room was closed.' });
       this.roomId = null;
       this.memberId = null;
       this.emitRoom(null);
-      // On coupe le socket pour eviter les reconnections inutiles
       this.socket?.disconnect();
       this.socket = null;
     });
   }
 
   leaveRoom() {
-    if (this.socket && this.roomId && this.memberId) {
-      this.socket.emit("leave-room", {
-        roomId: this.roomId,
-        memberId: this.memberId,
-      });
-      this.socket.disconnect();
+    try {
+      if (this.socket && this.roomId && this.memberId) {
+        this.socket.emit("leave-room", {
+          roomId: this.roomId,
+          memberId: this.memberId,
+        });
+        this.socket.disconnect();
+      }
+    } catch (err) {
+      log.error('[roomsClient] Error leaving room', err);
+    } finally {
+      this.socket = null;
+      this.roomId = null;
+      this.memberId = null;
+      this.emitRoom(null);
+      log.info("[roomsClient] Left room", { reason: "manual" });
     }
-    this.socket = null;
-    this.roomId = null;
-    this.memberId = null;
-    this.emitRoom(null);
-    log.info("[roomsClient] Left room", { reason: "manual" });
   }
 
   sendSelection(selection: Selection) {
-    if (!this.socket || !this.roomId || !this.memberId) return;
-    this.socket.emit("update-selection", {
-      roomId: this.roomId,
-      memberId: this.memberId,
-      championId: selection.championId,
-      championAlias: selection.championAlias,
-      skinId: selection.skinId,
-      chromaId: selection.chromaId,
-    });
+    try {
+      if (!this.socket || !this.roomId || !this.memberId) return;
+      this.socket.emit("update-selection", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+        championId: selection.championId,
+        championAlias: selection.championAlias,
+        skinId: selection.skinId,
+        chromaId: selection.chromaId,
+      });
+    } catch (err) {
+      log.error('[roomsClient] Error sending selection', err);
+    }
   }
 
   /** Envoi de TOUTES les options skin/chroma pour le champion lock. */
   sendOwnedOptions(payload: OwnedOptionsPayload) {
-    if (!this.socket || !this.roomId || !this.memberId) return;
-    this.socket.emit("owned-options", {
-      roomId: this.roomId,
-      memberId: this.memberId,
-      championId: payload.championId,
-      championAlias: payload.championAlias,
-      options: payload.options,
-    });
+    try {
+      if (!this.socket || !this.roomId || !this.memberId) return;
+      this.socket.emit("owned-options", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+        championId: payload.championId,
+        championAlias: payload.championAlias,
+        options: payload.options,
+      });
+    } catch (err) {
+      log.error('[roomsClient] Error sending owned options', err);
+    }
   }
 
   requestGroupReroll(payload: { type: "sameColor"; color: string }) {
-    if (!this.socket || !this.roomId || !this.memberId) return;
-    this.socket.emit("request-group-reroll", {
-      roomId: this.roomId,
-      memberId: this.memberId,
-      type: payload.type,
-      color: payload.color,
-    });
+    try {
+      if (!this.socket || !this.roomId || !this.memberId) return;
+      this.socket.emit("request-group-reroll", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+        type: payload.type,
+        color: payload.color,
+      });
+    } catch (err) {
+      log.error('[roomsClient] Error requesting group reroll', err);
+    }
   }
 
   suggestColor(skinId: number, chromaId: number) {
-    if (!this.socket || !this.roomId || !this.memberId) return;
-    this.socket.emit("suggest-color", {
-      roomId: this.roomId,
-      memberId: this.memberId,
-      skinId,
-      chromaId,
-    });
+    try {
+      if (!this.socket || !this.roomId || !this.memberId) return;
+      this.socket.emit("suggest-color", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+        skinId,
+        chromaId,
+      });
+    } catch (err) {
+      log.error('[roomsClient] Error suggesting color', err);
+    }
   }
 }
 

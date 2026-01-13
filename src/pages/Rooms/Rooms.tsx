@@ -15,13 +15,14 @@ import { useOwnedSkins } from "@/features/hooks/useOwnedSkins";
 import type { GroupSkinOption } from "@/features/roomsClient";
 import { computeChromaColor } from "@/features/chromaColor";
 import { findMemberBySummonerName } from "@/features/utils/summonerUtils";
+import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
 
 export function RoomsPage() {
   const { status, iconId } = useConnection();
   const phase = useGameflow();
   const [selection, setSelection] = useSelection();
   const skins = useOwnedSkins();
-  const { room, joined, error, create, join, leave, suggestColor, suggestedColorsMap } = useRooms(selection);
+  const { room, joined, error, isLoading, create, join, leave, suggestColor, suggestedColorsMap } = useRooms(selection);
   const [code, setCode] = useState("");
 
   const [skinOptions, setSkinOptions] = useState<GroupSkinOption[]>([]);
@@ -123,68 +124,34 @@ export function RoomsPage() {
 
   // Calcul et envoi des skins possedes (Owned Options)
   useEffect(() => {
-    // Conditions strictes pour eviter les calculs inutiles
-    if (!room) return;
-    if (!isConnected) return;
+    if (!room || !isConnected || !selection.championId || !skins?.length) return;
 
-    // On ne le fait que si on a selectionne un champion
-    if (!selection.championId || selection.championId === 0) return;
-
-    // On ne le fait que si on a charge la liste des skins
-    if (!skins || skins.length === 0) return;
-
-    // Flag pour annuler si le composant est demonte pendant le calcul (async)
     let isMounted = true;
 
     async function computeAndSend() {
       if (!isMounted) return;
       
-      // Start syncing visual state
       setIsSyncing(true);
       console.log("[Rooms] Computing skin colors for synergy...");
       
       const options: GroupSkinOption[] = [];
-
       try {
         for (const s of skins) {
-          // Optimisation : On ne traite que les skins du champion actuel pour eviter d'envoyer 1000 items
           if (s.championId !== selection.championId) continue;
   
-          // 1. Skin de base (sans chroma)
-          const baseColor = await computeChromaColor({
-            championId: selection.championId,
-            skinId: s.id,
-            chromaId: 0,
-          });
-  
+          const baseColor = await computeChromaColor({ championId: selection.championId, skinId: s.id, chromaId: 0 });
           if (!isMounted) return;
+          options.push({ skinId: s.id, chromaId: 0, auraColor: baseColor });
   
-          options.push({
-            skinId: s.id,
-            chromaId: 0,
-            auraColor: baseColor,
-          });
-  
-          // 2. Chromas
           for (const c of s.chromas) {
-            const chromaColor = await computeChromaColor({
-              championId: selection.championId,
-              skinId: s.id,
-              chromaId: c.id,
-            });
-  
+            const chromaColor = await computeChromaColor({ championId: selection.championId, skinId: s.id, chromaId: c.id });
             if (!isMounted) return;
-  
-            options.push({
-              skinId: s.id,
-              chromaId: c.id,
-              auraColor: chromaColor,
-            });
+            options.push({ skinId: s.id, chromaId: c.id, auraColor: chromaColor });
           }
         }
   
         if (isMounted) {
-          setSkinOptions(options); // Store locally
+          setSkinOptions(options);
           if (options.length > 0) {
             console.log(`[Rooms] Sending ${options.length} options to server.`);
             roomsClient.sendOwnedOptions({
@@ -195,35 +162,18 @@ export function RoomsPage() {
           }
         }
       } finally {
-        // Stop syncing visual state (with a small safety delay for UX smoothness if it was too fast?)
-        // For now, immediate is fine, or maybe a small timeout if needed.
-        if (isMounted) {
-           setIsSyncing(false);
-        }
+        if (isMounted) setIsSyncing(false);
       }
     }
 
     computeAndSend();
+    return () => { isMounted = false; };
+  }, [room, selection.championId, selection.championAlias, isConnected, skins]);
 
-    return () => {
-      isMounted = false;
-    };
-
-    // Dependances CRITIQUES : on relance si le champion change ou si on vient de rejoindre
-  }, [room?.id, selection.championId, skins]);
-
-  // Determine active room color for local player
   const activeRoomColor = useMemo(() => {
     if (!room?.synergy?.colors || !skinOptions.length) return undefined;
-
-    // Find current selection color
-    const currentOption = skinOptions.find(o =>
-      o.skinId === selection.skinId &&
-      o.chromaId === selection.chromaId
-    );
-
+    const currentOption = skinOptions.find(o => o.skinId === selection.skinId && o.chromaId === selection.chromaId);
     if (!currentOption?.auraColor) return undefined;
-    // Check if this color is a synergy color
     const synergy = room.synergy.colors.find(c => c.color === currentOption.auraColor);
     return synergy ? synergy.color : undefined;
   }, [room, skinOptions, selection.skinId, selection.chromaId]);
@@ -236,6 +186,7 @@ export function RoomsPage() {
         <Header status={status} phase={phase} iconId={iconId} />
         <main className="main">
           <div className="page-shell rooms-shell">
+            <ConnectionStatusIndicator error={error} isConnected={isConnected} />
             <div className="bento-grid rooms-bento">
               {!isConnected && (
                 <p className="rooms-warning">
@@ -249,7 +200,7 @@ export function RoomsPage() {
                 </p>
               )}
 
-              {error && <p style={{ color: "tomato" }}>{error}</p>}
+              {error && error.code !== 'NETWORK_ERROR' && <p className="rooms-error-message">{error.message}</p>}
 
               <section className="card rooms-cta-card">
                 <div className="rooms-card-header card-header">
@@ -266,9 +217,9 @@ export function RoomsPage() {
                 <button
                   className="rooms-primary-btn"
                   onClick={() => summonerName && create(summonerName)}
-                  disabled={!canUseRooms}
+                  disabled={!canUseRooms || isLoading}
                 >
-                  Create room
+                  {isLoading ? 'Creating...' : 'Create room'}
                 </button>
               </section>
 
@@ -290,15 +241,16 @@ export function RoomsPage() {
                     placeholder="Room code (e.g. ABC123)"
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    disabled={isLoading}
                   />
                   <button
                     className="rooms-primary-btn"
                     onClick={() =>
                       summonerName && join(code.trim(), summonerName)
                     }
-                    disabled={!canUseRooms || !code.trim()}
+                    disabled={!canUseRooms || !code.trim() || isLoading}
                   >
-                    Join room
+                    {isLoading ? 'Joining...' : 'Join room'}
                   </button>
                 </div>
               </section>
@@ -316,6 +268,7 @@ export function RoomsPage() {
       <Header status={status} phase={phase} iconId={iconId} />
       <main className="main">
         <div className="page-shell rooms-shell">
+           <ConnectionStatusIndicator error={error} isConnected={isConnected} />
           <div className="bento-grid rooms-bento">
             <section className="card rooms-squad-card">
               <div className="card-header rooms-card-header">
@@ -346,30 +299,14 @@ export function RoomsPage() {
                   const suggestionId = member ? suggestedColorsMap[member.id] : undefined;
 
                   const handleApplySuggestion = () => {
-                     if (!suggestionId || !room) return;
-                     // We need to find the COLOR associated with this chroma to apply it to the group
-                     // BUT, the server expects a color string for "sameColor" type.
-                     // We have to reverse-lookup the color from the chromaId.
-                     // This is tricky because we only have the chromaId.
-                     
-                     // Option 1: Re-compute color locally.
-                     // We need the championId/skinId/chromaId combo.
-                     // member has this info, except we replace member.chromaId with suggestionId.
-                     if (!member) return;
-                     
-                     // We need to async compute color then call requestGroupReroll
-                     // Let's do it inline or better, extract a helper.
-                     // For now simple inline:
+                     if (!suggestionId || !room || !member) return;
                      (async () => {
                         const color = await computeChromaColor({
                            championId: member.championId,
                            skinId: member.skinId,
                            chromaId: suggestionId
                         });
-                        
-                        if (color) {
-                           roomsClient.requestGroupReroll({ type: "sameColor", color });
-                        }
+                        if (color) roomsClient.requestGroupReroll({ type: "sameColor", color });
                      })();
                   };
 

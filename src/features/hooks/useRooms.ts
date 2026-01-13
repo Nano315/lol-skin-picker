@@ -1,34 +1,41 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { roomsClient, type RoomState } from "../roomsClient";
 import { api } from "../api";
-import type { Selection } from "../types";
+import type { AppError, Selection } from "../types";
 
-// On retire ownedSkins des arguments pour casser la boucle
 export function useRooms(selection: Selection) {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [joined, setJoined] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AppError | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Abonnement aux mises a jour de la room
+  // Subscribe to room updates & errors
   useEffect(() => {
-    // Fonction de callback pour mettre a jour l'etat local
     const onRoomUpdate = (nextRoom: RoomState | null) => {
       setRoom(nextRoom);
       setJoined(roomsClient.isJoined());
+      if (nextRoom) setError(null); // Clear error on successful update
     };
 
-    // On s'abonne
-    const unsubscribe = roomsClient.subscribe(onRoomUpdate);
+    const onErrorUpdate = (newError: AppError) => {
+      setError(newError);
+      setIsLoading(false); // Stop loading on error
+    };
 
-    // Si le client est deja connecte (cas du Hot Reload ou navigation), on reconnecte le socket
+    const unsubscribeRoom = roomsClient.subscribe(onRoomUpdate);
+    const unsubscribeError = roomsClient.onError(onErrorUpdate);
+
     if (roomsClient.isJoined()) {
       roomsClient.connect();
     }
 
-    return unsubscribe;
+    return () => {
+      unsubscribeRoom();
+      unsubscribeError();
+    };
   }, []);
 
-  // Gestion des Combos (Reception de l'ordre du serveur)
+  // Handle combos from the server
   useEffect(() => {
     const unsubCombo = roomsClient.onGroupCombo(async (payload) => {
       if (payload.type === "sameColor") {
@@ -37,30 +44,23 @@ export function useRooms(selection: Selection) {
         );
 
         if (myPick) {
-          // Si un chroma est defini, on le prend, sinon le skin de base
-          const idToApply =
-            myPick.chromaId && myPick.chromaId > 0
-              ? myPick.chromaId
-              : myPick.skinId;
-
+          const idToApply = myPick.chromaId > 0 ? myPick.chromaId : myPick.skinId;
           try {
             await api.applySkinId(idToApply);
             console.log(`[Sync] Applied skin/chroma ID: ${idToApply}`);
           } catch (err) {
             console.error("[Sync] Failed to apply skin", err);
+             // Optionally show a toast here for failure
           }
         }
       }
     });
-
     return () => unsubCombo();
   }, []);
 
-  // Suggestions (Reception)
+  // Handle color suggestions
   const [suggestedColorsMap, setSuggestedColorsMap] = useState<Record<string, number>>({});
-
   useEffect(() => {
-    // Only owner needs to listen really, but let's listen if joined to be safe or if we change roles
     const unsubscribe = roomsClient.onColorSuggestionReceived(({ memberId, chromaId }) => {
       setSuggestedColorsMap((prev) => ({
         ...prev,
@@ -71,54 +71,54 @@ export function useRooms(selection: Selection) {
   }, []);
 
   // Actions
-  async function create(name: string) {
+  const create = useCallback(async (name: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
       await roomsClient.createRoom(name);
-
-      // L'etat sera mis a jour via le subscribe ci-dessus
       roomsClient.connect();
       roomsClient.sendSelection(selection);
-      setError(null);
-    } catch (e: any) {
-      setError(e?.message ?? String(e));
+    } catch (e) {
+      // Error is already handled by the onError listener & toast callback
+      // We just need to stop the loading state
+    } finally {
+      setIsLoading(false);
     }
-  }
+  }, [selection]);
 
-  async function join(code: string, name: string) {
+  const join = useCallback(async (code: string, name: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
       await roomsClient.joinRoom(code, name);
-
       roomsClient.connect();
       roomsClient.sendSelection(selection);
-      setError(null);
-    } catch (e: any) {
-      setError(e?.message ?? String(e));
+    } catch (e) {
+       // Error is already handled by the onError listener & toast callback
+    } finally {
+      setIsLoading(false);
     }
-  }
+  }, [selection]);
 
-  function leave() {
+  const leave = useCallback(() => {
     roomsClient.leaveRoom();
     setJoined(false);
     setRoom(null);
-  }
+    setError(null);
+  }, []);
 
-  // Synchronisation de la selection (Champion/Skin actuel)
+  // Sync selection with server
   useEffect(() => {
     if (joined) {
       roomsClient.sendSelection(selection);
     }
-  }, [
-    joined,
-    selection.championId,
-    selection.skinId,
-    selection.chromaId,
-    selection.championAlias,
-  ]);
+  }, [joined, selection]);
 
   return { 
     room, 
     joined, 
     error, 
+    isLoading,
     create, 
     join, 
     leave,
