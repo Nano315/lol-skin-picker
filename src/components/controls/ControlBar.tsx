@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import styles from "./ControlBar.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { 
-  faDice, 
-  faPalette, 
+import {
+  faDice,
+  faPalette,
   faUsers,
   faWandMagicSparkles,
   faSpinner,
@@ -13,6 +13,7 @@ import { api } from "@/features/api";
 import { roomsClient } from "@/features/roomsClient";
 import type { OwnedSkin, Selection, ConnectionStatus } from "@/features/types";
 import type { RoomState, GroupSkinOption } from "@/features/roomsClient";
+import { ColorSuggestionButton } from "./ColorSuggestionButton";
 
 type ControlBarProps = {
   // Application State
@@ -27,7 +28,7 @@ type ControlBarProps = {
   activeRoomColor?: string; // The color currently "suggested" or active for the room
   skinOptions?: GroupSkinOption[]; // The current user's skin options that match colors
   isSyncing?: boolean;
-  suggestColor?: (skinId: number, chromaId: number) => void;
+  suggestColor?: (skinId: number, chromaId: number) => Promise<{ success: boolean; error?: string }>;
 };
 
 export default function ControlBar({
@@ -68,23 +69,44 @@ export default function ControlBar({
   const synergyColors = (room?.synergy?.colors ?? []).filter(
     (c) => c.combinationCount > 0
   );
-  // Local state for the "selected" color to sync (for Owner)
-  const [selectedSynergyColor, setSelectedSynergyColor] = useState<string | null>(null);
-  
-  // Auto-select first color if none selected
-  useEffect(() => {
-    if (!selectedSynergyColor && synergyColors.length > 0) {
-      setSelectedSynergyColor(synergyColors[0].color);
-    }
-  }, [synergyColors, selectedSynergyColor]);
+  // Local state for tracking which color is currently syncing (for Owner feedback)
+  const [syncingColor, setSyncingColor] = useState<string | null>(null);
+  // Track if sync was successful for brief success animation
+  const [syncSuccessColor, setSyncSuccessColor] = useState<string | null>(null);
 
-  const handleGroupSync = () => {
-    if (!selectedSynergyColor) return;
+  // Handle immediate sync when owner clicks a color
+  const handleImmediateSync = (color: string) => {
+    if (syncingColor || isSyncing) return; // Already syncing
+    setSyncingColor(color);
     roomsClient.requestGroupReroll({
       type: "sameColor",
-      color: selectedSynergyColor,
+      color,
     });
+    // Timeout safety: reset state if no response after 5 seconds
+    setTimeout(() => {
+      setSyncingColor((current) => {
+        if (current === color) {
+          window.log?.warn('[ControlBar] Sync timeout for color', color);
+          return null;
+        }
+        return current;
+      });
+    }, 5000);
   };
+
+  // Reset sync state when parent isSyncing changes
+  // When isSyncing goes true→false, the sync completed - show success animation
+  useEffect(() => {
+    if (!isSyncing && syncingColor) {
+      // Sync completed - show success animation
+      const completedColor = syncingColor;
+      setSyncingColor(null);
+      setSyncSuccessColor(completedColor);
+      // Clear success animation after 1.5 seconds
+      const timer = setTimeout(() => setSyncSuccessColor(null), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isSyncing, syncingColor]);
 
   // --- Smart Action Logic (Synergy Button) ---
   
@@ -201,74 +223,50 @@ export default function ControlBar({
 
   return (
     <div className={styles.container}>
-      {/* 1. Commander Strip (Owner Only) */}
+      {/* 1. Commander Strip (Owner Only) - Immediate sync on click */}
       {isOwner && room && synergyColors.length > 0 && selection.locked === true && (
         <div className={styles.commanderStrip} style={stripStyle}>
-          <div className={styles.stripLabel}>Team Command</div>
+          <div className={styles.stripLabel}>Team Sync</div>
           <div className={styles.colorSelector}>
-            {synergyColors.map((c) => (
-              <button
-                key={c.color}
-                className={`${styles.colorOption} ${selectedSynergyColor === c.color ? styles.active : ""} ${isSyncing ? styles.pulse : ""}`}
-                style={{ "--opt-color": c.color } as React.CSSProperties}
-                onClick={() => setSelectedSynergyColor(c.color)}
-                title={`${c.combinationCount} combinations`}
-                disabled={isSyncing}
-              >
-                <div className={styles.colorCount}>{c.combinationCount}</div>
-              </button>
-            ))}
+            {synergyColors.map((c) => {
+              const isThisSyncing = syncingColor === c.color;
+              const isThisSuccess = syncSuccessColor === c.color;
+              return (
+                <button
+                  key={c.color}
+                  className={`${styles.colorOption} ${styles.ownerSyncButton} ${isThisSyncing ? styles.ownerSyncing : ""} ${isThisSuccess ? styles.ownerSyncSuccess : ""}`}
+                  style={{ "--opt-color": c.color } as React.CSSProperties}
+                  onClick={() => handleImmediateSync(c.color)}
+                  title={`Cliquez pour synchroniser l'équipe sur cette couleur (${c.combinationCount} combinaisons)`}
+                  disabled={!!syncingColor || isSyncing}
+                  aria-label={`Synchroniser l'équipe sur ${c.color}`}
+                >
+                  {isThisSyncing ? (
+                    <FontAwesomeIcon icon={faSpinner} spin className={styles.syncSpinner} />
+                  ) : (
+                    <div className={styles.colorCount}>{c.combinationCount}</div>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <button 
-            className={styles.syncButton} 
-            onClick={handleGroupSync}
-            disabled={!selectedSynergyColor || isSyncing}
-          >
-            <FontAwesomeIcon icon={faUsers} />
-            <span>Sync Team to Color</span>
-          </button>
         </div>
       )}
       
       {/* 2. Suggestion Strip (Member Only) */}
-      {!isOwner && room && synergyColors.length > 0 && !notInChampSelect && selection.locked === true && (
+      {!isOwner && room && synergyColors.length > 0 && !notInChampSelect && selection.locked === true && suggestColor && (
         <div className={styles.commanderStrip} style={stripStyle}>
           <div className={styles.stripLabel}>Suggestions</div>
           <div className={styles.suggestionStrip}>
-            {synergyColors.map((c) => {
-              // Find matching skin/chroma for this color to suggest
-              // Use logic similar to getSynergyCandidates but specific for suggestion
-              const handleSuggest = () => {
-                if (!suggestColor) return;
-                
-                // Prioritize skinOptions
-                let candidate = undefined;
-                if (skinOptions && skinOptions.length > 0) {
-                   candidate = skinOptions.find(opt => opt.auraColor === c.color);
-                } 
-                
-                if (!candidate) {
-                   // Fallback logic could go here but it's complex without helper.
-                   // For now, rely on skinOptions as it should be populated if synced.
-                   console.warn("No candidate found for suggestion color", c.color);
-                   return;
-                }
-
-                suggestColor(candidate.skinId, candidate.chromaId);
-                // Visual feedback could be added here
-              };
-
-              return (
-                <button
-                key={c.color}
-                className={`${styles.colorOption} ${isSyncing ? styles.pulse : ""} ${styles.suggestionButton}`}
-                style={{ "--opt-color": c.color, cursor: 'pointer' } as React.CSSProperties}
-                title={`Suggest this color (${c.combinationCount} matches)`}
-                onClick={handleSuggest}
+            {synergyColors.map((synergy) => (
+              <ColorSuggestionButton
+                key={synergy.color}
+                synergy={synergy}
+                skinOptions={skinOptions || []}
+                suggestColor={suggestColor}
                 disabled={isSyncing}
               />
-              );
-            })}
+            ))}
           </div>
         </div>
       )}

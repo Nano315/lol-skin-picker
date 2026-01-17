@@ -369,18 +369,57 @@ class RoomsClient {
     }
   }
 
-  suggestColor(skinId: number, chromaId: number) {
-    try {
-      if (!this.socket || !this.roomId || !this.memberId) return;
-      this.socket.emit("suggest-color", {
-        roomId: this.roomId,
-        memberId: this.memberId,
-        skinId,
-        chromaId,
-      });
-    } catch (err) {
-      log.error('[roomsClient] Error suggesting color', err);
+  /**
+   * Suggests a color to the room owner.
+   * Returns a promise that resolves on success or rejects on failure.
+   */
+  async suggestColor(skinId: number, chromaId: number): Promise<{ success: boolean; error?: string }> {
+    // Validate preconditions
+    if (!this.socket) {
+      log.warn('[roomsClient] suggestColor failed: socket not connected');
+      return { success: false, error: 'Socket not connected' };
     }
+    if (!this.roomId) {
+      log.warn('[roomsClient] suggestColor failed: not in a room');
+      return { success: false, error: 'Not in a room' };
+    }
+    if (!this.memberId) {
+      log.warn('[roomsClient] suggestColor failed: no member ID');
+      return { success: false, error: 'No member ID' };
+    }
+    if (!this.socket.connected) {
+      log.warn('[roomsClient] suggestColor failed: socket disconnected');
+      return { success: false, error: 'Socket disconnected' };
+    }
+
+    log.info('[roomsClient] Sending color suggestion', { roomId: this.roomId, memberId: this.memberId, skinId, chromaId });
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        log.warn('[roomsClient] suggestColor timeout - no acknowledgment received');
+        resolve({ success: false, error: 'Request timed out' });
+      }, 5000);
+
+      this.socket!.emit(
+        "suggest-color",
+        {
+          roomId: this.roomId,
+          memberId: this.memberId,
+          skinId,
+          chromaId,
+        },
+        (response: { success: boolean; error?: string }) => {
+          clearTimeout(timeout);
+          if (response?.success) {
+            log.info('[roomsClient] Color suggestion acknowledged by server');
+            resolve({ success: true });
+          } else {
+            log.warn('[roomsClient] Color suggestion failed', response?.error);
+            resolve({ success: false, error: response?.error || 'Unknown error' });
+          }
+        }
+      );
+    });
   }
 }
 
