@@ -1,3 +1,5 @@
+[![Tests](https://github.com/Nano315/lol-skin-picker/actions/workflows/test.yml/badge.svg)](https://github.com/Nano315/lol-skin-picker/actions/workflows/test.yml)
+
 # LoL Skin Picker
 
 A tiny, modern Electron + React app that auto-picks and rerolls League of Legends skins (and chromas) during Champ Select. It seamlessly talks to the local LoL Client (LCU) and orchestrates multiplayer skin synchronization.
