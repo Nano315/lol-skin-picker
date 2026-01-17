@@ -68,13 +68,13 @@ export function useRooms(selection: Selection) {
     return () => unsubCombo();
   }, []);
 
-  // Handle color suggestions
-  const [suggestedColorsMap, setSuggestedColorsMap] = useState<Record<string, number>>({});
+  // Handle color suggestions - store both skinId and chromaId
+  const [suggestedColorsMap, setSuggestedColorsMap] = useState<Record<string, { skinId: number; chromaId: number }>>({});
   useEffect(() => {
-    const unsubscribe = roomsClient.onColorSuggestionReceived(({ memberId, chromaId }) => {
+    const unsubscribe = roomsClient.onColorSuggestionReceived(({ memberId, skinId, chromaId }) => {
       setSuggestedColorsMap((prev) => ({
         ...prev,
-        [memberId]: chromaId,
+        [memberId]: { skinId, chromaId },
       }));
     });
     return unsubscribe;

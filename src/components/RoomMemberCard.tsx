@@ -7,13 +7,15 @@ type Props = {
   member?: RoomMember;
   /** 0..4 => slot1..slot5 */
   slotIndex: number;
+  suggestedSkinId?: number;
   suggestedChromaId?: number;
   onApplySuggestion?: () => void;
 };
 
-export function RoomMemberCard({ 
-  member, 
+export function RoomMemberCard({
+  member,
   slotIndex,
+  suggestedSkinId,
   suggestedChromaId,
   onApplySuggestion,
 }: Props) {
@@ -34,10 +36,10 @@ export function RoomMemberCard({
     locked: false,
   });
 
-  // Calculate suggestion color if present
+  // Calculate suggestion color if present - use suggested skinId, not member's current skin
   const suggestionColor = useChromaColor({
     championId,
-    skinId,
+    skinId: suggestedSkinId ?? skinId,
     chromaId: suggestedChromaId ?? 0,
     championAlias,
     locked: false,

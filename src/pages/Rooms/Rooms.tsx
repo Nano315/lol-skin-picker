@@ -354,15 +354,15 @@ export function RoomsPage() {
 
               <div className="rooms-members-row">
                 {orderedSlots.map(({ member, slotIndex }) => {
-                  const suggestionId = member ? suggestedColorsMap[member.id] : undefined;
+                  const suggestion = member ? suggestedColorsMap[member.id] : undefined;
 
                   const handleApplySuggestion = () => {
-                     if (!suggestionId || !room || !member) return;
+                     if (!suggestion || !room || !member) return;
                      (async () => {
                         const color = await computeChromaColor({
                            championId: member.championId,
-                           skinId: member.skinId,
-                           chromaId: suggestionId
+                           skinId: suggestion.skinId,
+                           chromaId: suggestion.chromaId
                         });
                         if (color) roomsClient.requestGroupReroll({ type: "sameColor", color });
                      })();
@@ -373,8 +373,9 @@ export function RoomsPage() {
                       key={member?.id ?? `empty-${slotIndex}`}
                       member={member ?? undefined}
                       slotIndex={slotIndex}
-                      suggestedChromaId={isOwner ? suggestionId : undefined}
-                      onApplySuggestion={isOwner && suggestionId ? handleApplySuggestion : undefined}
+                      suggestedSkinId={isOwner && suggestion ? suggestion.skinId : undefined}
+                      suggestedChromaId={isOwner && suggestion ? suggestion.chromaId : undefined}
+                      onApplySuggestion={isOwner && suggestion ? handleApplySuggestion : undefined}
                     />
                   );
                 })}
