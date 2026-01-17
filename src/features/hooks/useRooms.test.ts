@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useRooms } from './useRooms';
-import { roomsClient } from '../roomsClient';
+import { roomsClient, type RoomState } from '../roomsClient';
 import { vi } from 'vitest';
 
 // Mock the roomsClient module
@@ -19,9 +19,12 @@ vi.mock('../roomsClient', () => ({
     suggestColor: vi.fn(),
     getMemberId: vi.fn(),
   },
+  // We need to export the type for casting
+  RoomState: vi.fn(),
 }));
 
-const mockSelection = { championId: 1, skinId: 1001, chromaId: 0 };
+const mockSelection = { championId: 1, skinId: 1001, chromaId: 0, championAlias: 'MockChampion', locked: false };
+const newRoomState: RoomState = { id: 'room-123', code: 'ABCDEF', members: [], ownerId: 'owner-1' };
 
 describe('useRooms', () => {
   beforeEach(() => {
@@ -54,7 +57,7 @@ describe('useRooms', () => {
     const { result } = renderHook(() => useRooms(mockSelection));
 
     // Mock the createRoom API call
-    vi.mocked(roomsClient.createRoom).mockResolvedValue(undefined);
+    vi.mocked(roomsClient.createRoom).mockResolvedValue({ room: newRoomState });
 
     // Check initial state
     expect(result.current.isLoading).toBe(false);
@@ -68,7 +71,6 @@ describe('useRooms', () => {
     expect(result.current.isLoading).toBe(false);
 
     // Now, simulate the server sending a room update
-    const newRoomState = { id: 'room-123', code: 'ABCDEF', members: [], ownerId: 'owner-1' };
     act(() => {
         onRoomUpdate(newRoomState);
     });
@@ -84,7 +86,7 @@ describe('useRooms', () => {
     });
 
     const { result } = renderHook(() => useRooms(mockSelection));
-    vi.mocked(roomsClient.joinRoom).mockResolvedValue(undefined);
+    vi.mocked(roomsClient.joinRoom).mockResolvedValue({ room: newRoomState });
 
     expect(result.current.isLoading).toBe(false);
 
@@ -95,12 +97,12 @@ describe('useRooms', () => {
     expect(roomsClient.joinRoom).toHaveBeenCalledWith('CODE12', 'TestPlayer');
     expect(result.current.isLoading).toBe(false);
 
-    const newRoomState = { id: 'room-456', code: 'CODE12', members: [], ownerId: 'owner-2' };
+    const updatedRoomState = { id: 'room-456', code: 'CODE12', members: [], ownerId: 'owner-2' };
     act(() => {
-        onRoomUpdate(newRoomState);
+        onRoomUpdate(updatedRoomState);
     });
 
-    expect(result.current.room).toEqual(newRoomState);
+    expect(result.current.room).toEqual(updatedRoomState);
   });
 
   it('should cleanup subscriptions on unmount', () => {

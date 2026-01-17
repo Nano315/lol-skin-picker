@@ -73,7 +73,7 @@ describe('suggestColor', () => {
 
   describe('successful suggestion', () => {
     it('should emit suggest-color event with correct payload', async () => {
-      const mockEmit = vi.fn((event, payload, callback) => {
+      const mockEmit = vi.fn((_event, _payload, callback) => {
         if (callback) callback({ success: true });
       });
       const mockSocket = { connected: true, emit: mockEmit };
@@ -98,7 +98,7 @@ describe('suggestColor', () => {
     });
 
     it('should handle server acknowledgment success', async () => {
-      const mockEmit = vi.fn((event, payload, callback) => {
+      const mockEmit = vi.fn((_event, _payload, callback) => {
         if (callback) callback({ success: true });
       });
       const mockSocket = { connected: true, emit: mockEmit };
@@ -116,7 +116,7 @@ describe('suggestColor', () => {
 
   describe('error handling', () => {
     it('should handle server acknowledgment failure', async () => {
-      const mockEmit = vi.fn((event, payload, callback) => {
+      const mockEmit = vi.fn((_event, _payload, callback) => {
         if (callback) callback({ success: false, error: 'Room not found' });
       });
       const mockSocket = { connected: true, emit: mockEmit };

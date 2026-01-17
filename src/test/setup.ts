@@ -6,7 +6,6 @@ import { mockLcu } from './mocks/lcu';
 window.lcu = mockLcu;
 
 // Mock window.log for roomsClient
-// @ts-expect-error: Mocking global log object for tests
 window.log = {
   info: vi.fn(),
   warn: vi.fn(),
