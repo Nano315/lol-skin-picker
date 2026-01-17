@@ -6,6 +6,9 @@ import { errorMessages } from "./utils/errorMessages";
 const ROOMS_SERVER_URL = import.meta.env.VITE_ROOMS_SERVER_URL;
 const log = window.log;
 
+// Socket.io Event Versioning
+const CLIENT_VERSION = 2;
+
 if (!ROOMS_SERVER_URL) {
   log.warn("[roomsClient] No ROOMS_SERVER_URL configured, requests will fail.");
 }
@@ -25,6 +28,7 @@ export type GroupComboPick = {
 };
 
 export type GroupComboPayload = {
+  version?: number; // v2+ includes version
   type: "sameColor";
   color: string;
   picks: GroupComboPick[];
@@ -41,6 +45,7 @@ export type RoomMember = {
 };
 
 export type RoomState = {
+  version?: number; // v2+ includes version
   id: string;
   code: string;
   ownerId: string;
@@ -75,6 +80,7 @@ class RoomsClient {
   private toastCallback?: (toast: Toast) => void;
 
   private comboListeners = new Set<(payload: GroupComboPayload) => void>();
+  // Normalized suggestion payload (handles both v1 senderName and v2 memberName)
   private suggestionListeners = new Set<(payload: { memberId: string; senderName: string; skinId: number; chromaId: number }) => void>();
 
   // ---- helpers de state global ----
@@ -225,7 +231,12 @@ class RoomsClient {
     if (this.socket) return;
 
     this.isLeaving = false; // Reset flag on new connection
-    this.socket = io(ROOMS_SERVER_URL, { autoConnect: true });
+    this.socket = io(ROOMS_SERVER_URL, {
+      autoConnect: true,
+      query: {
+        clientVersion: String(CLIENT_VERSION),
+      },
+    });
 
     this.socket.on("connect", () => {
       log.info("[roomsClient] Socket.io connected", {
@@ -268,8 +279,15 @@ class RoomsClient {
       for (const l of this.comboListeners) l(payload);
     });
 
-    this.socket.on("color-suggestion-received", (payload: { memberId: string; senderName: string; skinId: number; chromaId: number }) => {
-      log.info("[roomsClient] Received color suggestion", payload);
+    this.socket.on("color-suggestion-received", (rawPayload: { version?: number; memberId: string; senderName?: string; memberName?: string; skinId: number; chromaId: number }) => {
+      // Normalize payload: v2 uses memberName, v1 uses senderName
+      const payload = {
+        memberId: rawPayload.memberId,
+        senderName: rawPayload.memberName ?? rawPayload.senderName ?? "Unknown",
+        skinId: rawPayload.skinId,
+        chromaId: rawPayload.chromaId,
+      };
+      log.info("[roomsClient] Received color suggestion", { ...payload, version: rawPayload.version });
       for (const l of this.suggestionListeners) l(payload);
     });
 
