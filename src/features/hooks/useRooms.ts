@@ -6,6 +6,7 @@ import type { AppError, Selection } from "../types";
 export type GroupComboNotification = {
   color: string;
   timestamp: number;
+  sourceMemberId?: string;
 };
 
 // Error codes that are fatal and require leaving the room
@@ -61,6 +62,7 @@ export function useRooms(selection: Selection) {
         setLastGroupCombo({
           color: payload.color,
           timestamp: Date.now(),
+          sourceMemberId: payload.sourceMemberId,
         });
 
         // Clear suggested colors since a combo was applied

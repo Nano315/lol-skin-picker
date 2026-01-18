@@ -32,6 +32,7 @@ export type GroupComboPayload = {
   type: "sameColor";
   color: string;
   picks: GroupComboPick[];
+  sourceMemberId?: string;
 };
 
 export type RoomMember = {
@@ -355,7 +356,7 @@ class RoomsClient {
     }
   }
 
-  requestGroupReroll(payload: { type: "sameColor"; color: string }) {
+  requestGroupReroll(payload: { type: "sameColor"; color: string; sourceMemberId?: string }) {
     try {
       if (!this.socket || !this.roomId || !this.memberId) return;
       this.socket.emit("request-group-reroll", {
@@ -363,6 +364,7 @@ class RoomsClient {
         memberId: this.memberId,
         type: payload.type,
         color: payload.color,
+        sourceMemberId: payload.sourceMemberId,
       });
     } catch (err) {
       log.error('[roomsClient] Error requesting group reroll', err);

@@ -102,9 +102,14 @@ export function RoomsPage() {
   // Show toast and flash when group combo is applied
   useEffect(() => {
     if (lastGroupCombo) {
+      const currentMemberId = roomsClient.getMemberId();
+      const isMySuggestion = lastGroupCombo.sourceMemberId === currentMemberId;
+
       showToast({
-        type: "info",
-        message: `Team syncing on color!`,
+        type: isMySuggestion ? "success" : "info",
+        message: isMySuggestion
+          ? "Ta suggestion a été acceptée!"
+          : "Team syncing on color!",
         duration: 3000,
       });
       setShowSyncFlash(lastGroupCombo.color);
@@ -469,7 +474,7 @@ export function RoomsPage() {
                            skinId: suggestion.skinId,
                            chromaId: suggestion.chromaId
                         });
-                        if (color) roomsClient.requestGroupReroll({ type: "sameColor", color });
+                        if (color) roomsClient.requestGroupReroll({ type: "sameColor", color, sourceMemberId: member.id });
                      })();
                   };
 
