@@ -197,6 +197,13 @@ describe('SyncFlashOverlay', () => {
     const overlay = container.firstChild as HTMLElement;
     expect(overlay).toHaveStyle({ position: 'fixed' });
   });
+
+  it('should have reduced initial opacity (0.15) for subtle effect', () => {
+    const { container } = render(<SyncFlashOverlay color="#ff5555" />);
+    const overlay = container.firstChild as HTMLElement;
+    // Initial opacity should be 0.15 (reduced from 0.4)
+    expect(overlay.style.opacity).toBe('0.15');
+  });
 });
 
 describe('ConfettiOverlay', () => {

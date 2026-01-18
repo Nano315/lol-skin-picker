@@ -7,7 +7,7 @@ type SyncFlashOverlayProps = {
 };
 
 export function SyncFlashOverlay({ color, onComplete }: SyncFlashOverlayProps) {
-  const [opacity, setOpacity] = useState(0.4);
+  const [opacity, setOpacity] = useState(0.15);
 
   useEffect(() => {
     // Fade out animation

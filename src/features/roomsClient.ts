@@ -41,7 +41,7 @@ export type RoomMember = {
   championAlias: string;
   skinId: number;
   chromaId: number;
-  ready?: boolean;
+  isReady?: boolean;
 };
 
 export type RoomState = {

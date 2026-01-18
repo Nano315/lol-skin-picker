@@ -183,6 +183,11 @@ export function useRooms(selection: Selection) {
     setLastGroupCombo(null);
   }, []);
 
+  // Clear all pending suggestions
+  const clearSuggestions = useCallback(() => {
+    setSuggestedColorsMap({});
+  }, []);
+
   return {
     room,
     joined,
@@ -197,6 +202,7 @@ export function useRooms(selection: Selection) {
     retry,
     suggestColor: roomsClient.suggestColor.bind(roomsClient),
     suggestedColorsMap,
+    clearSuggestions,
     lastGroupCombo,
     clearGroupCombo,
   };

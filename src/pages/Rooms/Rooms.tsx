@@ -1,7 +1,7 @@
 // src/pages/Rooms/Rooms.tsx
 import { useSelection } from "@/features/hooks/useSelection";
 import { useRooms } from "@/features/hooks/useRooms";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { useConnection } from "@/features/hooks/useConnection";
@@ -42,6 +42,7 @@ export function RoomsPage() {
     retry,
     suggestColor,
     suggestedColorsMap,
+    clearSuggestions,
     lastGroupCombo,
     clearGroupCombo,
   } = useRooms(selection);
@@ -65,6 +66,35 @@ export function RoomsPage() {
   }, [isFatalError, joined, leave, navigate, showToast]);
 
   const [skinOptions, setSkinOptions] = useState<GroupSkinOption[]>([]);
+
+  // Track previous phase to detect when leaving ChampSelect
+  const prevPhaseRef = useRef(phase);
+  useEffect(() => {
+    // Clear suggestions when phase changes from ChampSelect to something else
+    if (prevPhaseRef.current === 'ChampSelect' && phase !== 'ChampSelect') {
+      clearSuggestions();
+    }
+    prevPhaseRef.current = phase;
+  }, [phase, clearSuggestions]);
+
+  // Track previous room members to clear suggestions when someone leaves
+  const prevMemberIdsRef = useRef<string[]>([]);
+  useEffect(() => {
+    const currentMemberIds = room?.members.map(m => m.id) ?? [];
+    const prevMemberIds = prevMemberIdsRef.current;
+
+    // Check if any member left
+    const leftMembers = prevMemberIds.filter(id => !currentMemberIds.includes(id));
+    if (leftMembers.length > 0 && Object.keys(suggestedColorsMap).length > 0) {
+      // Clear suggestions from members who left
+      const hasLeftMemberSuggestion = leftMembers.some(id => suggestedColorsMap[id]);
+      if (hasLeftMemberSuggestion) {
+        clearSuggestions();
+      }
+    }
+
+    prevMemberIdsRef.current = currentMemberIds;
+  }, [room?.members, suggestedColorsMap, clearSuggestions]);
 
   // State for sync flash overlay
   const [showSyncFlash, setShowSyncFlash] = useState<string | null>(null);

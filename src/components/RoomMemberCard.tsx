@@ -88,7 +88,35 @@ export function RoomMemberCard({
       </div>
 
       {isOccupied ? (
-        <div className="room-member-name">{member!.name}</div>
+        <div
+          className="room-member-name-wrapper"
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <span className="room-member-name">{member!.name}</span>
+          <div
+            className="sync-status-badge"
+            title={member!.isReady ? "Synced" : "Waiting for sync"}
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: '50%',
+              backgroundColor: member!.isReady ? 'rgba(34, 197, 94, 0.9)' : 'rgba(100, 100, 100, 0.7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 9,
+              color: 'white',
+              flexShrink: 0,
+            }}
+          >
+            <FontAwesomeIcon icon={member!.isReady ? faCheck : faClock} />
+          </div>
+        </div>
       ) : (
         <div className="room-member-placeholder">Empty slot</div>
       )}
@@ -119,31 +147,6 @@ export function RoomMemberCard({
         >
            {/* Maybe a small icon inside? */}
         </button>
-      )}
-
-      {/* Sync Status Badge */}
-      {isOccupied && (
-        <div
-          className="sync-status-badge"
-          title={member!.ready ? "Synced" : "Waiting for sync"}
-          style={{
-            position: 'absolute',
-            bottom: 4,
-            right: 4,
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            backgroundColor: member!.ready ? 'rgba(34, 197, 94, 0.9)' : 'rgba(100, 100, 100, 0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 10,
-            color: 'white',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-          }}
-        >
-          <FontAwesomeIcon icon={member!.ready ? faCheck : faClock} />
-        </div>
       )}
     </div>
   );
