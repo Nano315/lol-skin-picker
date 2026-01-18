@@ -1,0 +1,50 @@
+/* ConnectionStatus.module.css */
+.container {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  cursor: default;
+  transition: background-color 0.2s ease;
+}
+
+.container:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.icon {
+  font-size: 8px;
+}
+
+.label {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+
+/* State-specific styles */
+.connected .icon {
+  color: #4ade80;
+}
+
+.connecting .icon,
+.reconnecting .icon {
+  color: #fbbf24;
+}
+
+.disconnected .icon {
+  color: #f87171;
+}
+
+/* Pulse animation for connecting states */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.connecting .icon,
+.reconnecting .icon {
+  animation: pulse 1.5s ease-in-out infinite;
+}

@@ -1,7 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { roomsClient, type RoomState } from "../roomsClient";
+import { roomsClient, type RoomState, type GroupComboPayload } from "../roomsClient";
 import { api } from "../api";
 import type { AppError, Selection } from "../types";
+
+export type GroupComboNotification = {
+  color: string;
+  timestamp: number;
+};
 
 // Error codes that are fatal and require leaving the room
 const FATAL_ERROR_CODES = ["ROOM_NOT_FOUND", "MEMBER_NOT_FOUND"];
@@ -18,6 +23,9 @@ export function useRooms(selection: Selection) {
 
   // Store last action for retry
   const lastActionRef = useRef<{ type: "create" | "join"; args: string[] } | null>(null);
+
+  // Group combo notification state
+  const [lastGroupCombo, setLastGroupCombo] = useState<GroupComboNotification | null>(null);
 
   // Subscribe to room updates & errors
   useEffect(() => {
@@ -47,8 +55,17 @@ export function useRooms(selection: Selection) {
 
   // Handle combos from the server
   useEffect(() => {
-    const unsubCombo = roomsClient.onGroupCombo(async (payload) => {
+    const unsubCombo = roomsClient.onGroupCombo(async (payload: GroupComboPayload) => {
       if (payload.type === "sameColor") {
+        // Notify about the group combo
+        setLastGroupCombo({
+          color: payload.color,
+          timestamp: Date.now(),
+        });
+
+        // Clear suggested colors since a combo was applied
+        setSuggestedColorsMap({});
+
         const myPick = payload.picks.find(
           (p) => p.memberId === roomsClient.getMemberId()
         );
@@ -60,7 +77,6 @@ export function useRooms(selection: Selection) {
             console.log(`[Sync] Applied skin/chroma ID: ${idToApply}`);
           } catch (err) {
             console.error("[Sync] Failed to apply skin", err);
-             // Optionally show a toast here for failure
           }
         }
       }
@@ -162,6 +178,11 @@ export function useRooms(selection: Selection) {
     }
   }, [joined, selection]);
 
+  // Clear lastGroupCombo after a short delay (for notification display)
+  const clearGroupCombo = useCallback(() => {
+    setLastGroupCombo(null);
+  }, []);
+
   return {
     room,
     joined,
@@ -175,6 +196,8 @@ export function useRooms(selection: Selection) {
     leave,
     retry,
     suggestColor: roomsClient.suggestColor.bind(roomsClient),
-    suggestedColorsMap
+    suggestedColorsMap,
+    lastGroupCombo,
+    clearGroupCombo,
   };
 }

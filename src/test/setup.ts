@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { mockLcu } from './mocks/lcu';
 
 // Mock LCU API for Electron context

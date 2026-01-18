@@ -1,6 +1,8 @@
 // src/components/RoomMemberCard.tsx
 import { useChromaColor } from "@/features/hooks/useChromaColor";
 import type { RoomMember } from "@/features/roomsClient";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheck, faClock } from "@fortawesome/free-solid-svg-icons";
 import fallbackSkin from "/fallback-skin.png?url";
 
 type Props = {
@@ -117,6 +119,31 @@ export function RoomMemberCard({
         >
            {/* Maybe a small icon inside? */}
         </button>
+      )}
+
+      {/* Sync Status Badge */}
+      {isOccupied && (
+        <div
+          className="sync-status-badge"
+          title={member!.ready ? "Synced" : "Waiting for sync"}
+          style={{
+            position: 'absolute',
+            bottom: 4,
+            right: 4,
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            backgroundColor: member!.ready ? 'rgba(34, 197, 94, 0.9)' : 'rgba(100, 100, 100, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 10,
+            color: 'white',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          }}
+        >
+          <FontAwesomeIcon icon={member!.ready ? faCheck : faClock} />
+        </div>
       )}
     </div>
   );

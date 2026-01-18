@@ -15,8 +15,10 @@ import { roomsClient } from "@/features/roomsClient";
 import { useOwnedSkins } from "@/features/hooks/useOwnedSkins";
 import type { GroupSkinOption } from "@/features/roomsClient";
 import { computeChromaColor } from "@/features/chromaColor";
+import { colorCache } from "@/features/utils/colorCache";
 import { findMemberBySummonerName } from "@/features/utils/summonerUtils";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
+import { SyncProgressBar, SyncFlashOverlay } from "@/components/ui";
 import { useToast } from "@/features/hooks/useToast";
 
 export function RoomsPage() {
@@ -39,7 +41,9 @@ export function RoomsPage() {
     leave,
     retry,
     suggestColor,
-    suggestedColorsMap
+    suggestedColorsMap,
+    lastGroupCombo,
+    clearGroupCombo,
   } = useRooms(selection);
   const [code, setCode] = useState("");
 
@@ -61,6 +65,22 @@ export function RoomsPage() {
   }, [isFatalError, joined, leave, navigate, showToast]);
 
   const [skinOptions, setSkinOptions] = useState<GroupSkinOption[]>([]);
+
+  // State for sync flash overlay
+  const [showSyncFlash, setShowSyncFlash] = useState<string | null>(null);
+
+  // Show toast and flash when group combo is applied
+  useEffect(() => {
+    if (lastGroupCombo) {
+      showToast({
+        type: "info",
+        message: `Team syncing on color!`,
+        duration: 3000,
+      });
+      setShowSyncFlash(lastGroupCombo.color);
+      clearGroupCombo();
+    }
+  }, [lastGroupCombo, showToast, clearGroupCombo]);
 
   const isConnected = status === "connected";
   const summonerName = useSummonerName(status);
@@ -156,53 +176,108 @@ export function RoomsPage() {
   };
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
 
-  // Calcul et envoi des skins possedes (Owned Options)
+  // Calcul et envoi des skins possedes (Owned Options) - Parallelized with cache
   useEffect(() => {
     if (!joined || !isConnected || !selection.championId || !skins?.length) return;
 
     let isMounted = true;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    async function computeOptionWithCache(
+      championId: number,
+      skinId: number,
+      chromaId: number
+    ): Promise<GroupSkinOption | null> {
+      // Check cache first
+      const cached = colorCache.get(championId, skinId, chromaId);
+      if (cached) {
+        return { skinId, chromaId, auraColor: cached };
+      }
+
+      // Compute and cache
+      const color = await computeChromaColor({ championId, skinId, chromaId });
+      if (color) {
+        colorCache.set(championId, skinId, chromaId, color);
+        return { skinId, chromaId, auraColor: color };
+      }
+
+      return { skinId, chromaId, auraColor: null };
+    }
 
     async function computeAndSend() {
       if (!isMounted) return;
-      
+
       setIsSyncing(true);
-      console.log("[Rooms] Computing skin colors for synergy...");
-      
-      const options: GroupSkinOption[] = [];
+      setSyncProgress(0);
+      console.time('[Rooms] Sync duration');
+      console.log("[Rooms] Computing skin colors for synergy (parallel)...");
+
       try {
+        // Build list of all computations needed
+        const computations: Array<{ skinId: number; chromaId: number }> = [];
         for (const s of skins) {
           if (s.championId !== selection.championId) continue;
-  
-          const baseColor = await computeChromaColor({ championId: selection.championId, skinId: s.id, chromaId: 0 });
-          if (!isMounted) return;
-          options.push({ skinId: s.id, chromaId: 0, auraColor: baseColor });
-  
+          // Base skin (chromaId = 0)
+          computations.push({ skinId: s.id, chromaId: 0 });
+          // Chromas
           for (const c of s.chromas) {
-            const chromaColor = await computeChromaColor({ championId: selection.championId, skinId: s.id, chromaId: c.id });
-            if (!isMounted) return;
-            options.push({ skinId: s.id, chromaId: c.id, auraColor: chromaColor });
+            computations.push({ skinId: s.id, chromaId: c.id });
           }
         }
-  
-        if (isMounted) {
-          setSkinOptions(options);
-          if (options.length > 0) {
-            console.log(`[Rooms] Sending ${options.length} options to server.`);
-            roomsClient.sendOwnedOptions({
-              championId: selection.championId,
-              championAlias: selection.championAlias,
-              options,
-            });
+
+        if (computations.length === 0) {
+          setSkinOptions([]);
+          return;
+        }
+
+        console.log(`[Rooms] Processing ${computations.length} skin/chroma combinations...`);
+        let completed = 0;
+
+        // Process all computations in parallel
+        const promises = computations.map(async ({ skinId, chromaId }) => {
+          const result = await computeOptionWithCache(selection.championId, skinId, chromaId);
+          completed++;
+          if (isMounted) {
+            setSyncProgress(Math.round((completed / computations.length) * 100));
           }
+          return result;
+        });
+
+        const results = await Promise.allSettled(promises);
+        if (!isMounted) return;
+
+        const options = results
+          .filter((r): r is PromiseFulfilledResult<GroupSkinOption | null> => r.status === 'fulfilled')
+          .map(r => r.value)
+          .filter((opt): opt is GroupSkinOption => opt !== null);
+
+        setSkinOptions(options);
+        if (options.length > 0) {
+          console.log(`[Rooms] Sending ${options.length} options to server.`);
+          roomsClient.sendOwnedOptions({
+            championId: selection.championId,
+            championAlias: selection.championAlias,
+            options,
+          });
         }
       } finally {
-        if (isMounted) setIsSyncing(false);
+        console.timeEnd('[Rooms] Sync duration');
+        if (isMounted) {
+          setIsSyncing(false);
+          setSyncProgress(100);
+        }
       }
     }
 
-    computeAndSend();
-    return () => { isMounted = false; };
+    // Debounce to avoid multiple rapid computations
+    debounceTimer = setTimeout(computeAndSend, 300);
+
+    return () => {
+      isMounted = false;
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
   }, [joined, selection.championId, selection.championAlias, isConnected, skins]);
 
   const activeRoomColor = useMemo(() => {
@@ -391,6 +466,9 @@ export function RoomsPage() {
                 </div>
               </div>
               <div className="rooms-actions-body">
+                {isSyncing && (
+                  <SyncProgressBar progress={syncProgress} label="Computing synergies..." />
+                )}
                 <ControlBar
                   phase={phase}
                   status={status}
@@ -402,6 +480,7 @@ export function RoomsPage() {
                   activeRoomColor={activeRoomColor}
                   skinOptions={skinOptions}
                   isSyncing={isSyncing}
+                  syncProgress={syncProgress}
                   suggestColor={suggestColor}
                 />
               </div>
@@ -409,6 +488,14 @@ export function RoomsPage() {
           </div>
         </div>
       </main>
+
+      {/* Sync Flash Overlay */}
+      {showSyncFlash && (
+        <SyncFlashOverlay
+          color={showSyncFlash}
+          onComplete={() => setShowSyncFlash(null)}
+        />
+      )}
     </div>
   );
 }

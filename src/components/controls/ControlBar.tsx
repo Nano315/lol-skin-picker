@@ -27,6 +27,7 @@ type ControlBarProps = {
   activeRoomColor?: string; // The color currently "suggested" or active for the room
   skinOptions?: GroupSkinOption[]; // The current user's skin options that match colors
   isSyncing?: boolean;
+  syncProgress?: number; // 0-100 progress percentage
   suggestColor?: (skinId: number, chromaId: number) => Promise<{ success: boolean; error?: string }>;
 };
 
@@ -41,6 +42,7 @@ export default function ControlBar({
   activeRoomColor,
   skinOptions,
   isSyncing = false,
+  syncProgress = 0,
   suggestColor,
 }: ControlBarProps) {
   // --- Derived State ---
@@ -210,7 +212,7 @@ export default function ControlBar({
      // The prompt says: Si !selection.locked => "Lock in your champion to sync"
     statusMessage = "Lock in your champion to sync";
   } else if (isSyncing) {
-    statusMessage = "Computing synergies...";
+    statusMessage = syncProgress > 0 ? `Computing synergies... ${syncProgress}%` : "Computing synergies...";
     statusIcon = <FontAwesomeIcon icon={faSpinner} spin />;
   }
 
