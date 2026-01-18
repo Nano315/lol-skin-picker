@@ -11,7 +11,7 @@ import { logger } from "../logger";
 
 import { createMainWindow, getMainWindow } from "./windows/mainWindow";
 import { registerAllIpc } from "./ipc";
-import { setupTray, updaterHooks } from "./windows/tray";
+import { setupTray, updaterHooks, getAutoUpdater } from "./windows/tray";
 import { loadSettings, saveSettings } from "./settings";
 import path from "node:path";
 
@@ -33,6 +33,9 @@ logger.info("[App] Initialisation de l'application");
 const lcu = new LcuWatcher();
 const gameflow = new GameflowService();
 const skins = new SkinsService();
+
+// AUTO-UPDATE: Interval reference for cleanup on quit
+let updateCheckInterval: NodeJS.Timeout | null = null;
 
 
 async function createWindowWithPrefs() {
@@ -158,7 +161,31 @@ if (!gotTheLock) {
     await createWindowWithPrefs();
 
     lcu.start();
+
+    // AUTO-UPDATE: Check 10s after startup (AC: 1)
+    setTimeout(() => {
+      logger.info("[Updater] Auto-check at startup");
+      getAutoUpdater()?.checkForUpdates().catch((err) => {
+        console.error("[Updater] Startup check failed:", err);
+      });
+    }, 10000);
+
+    // AUTO-UPDATE: Check every 4 hours (AC: 2)
+    updateCheckInterval = setInterval(() => {
+      logger.info("[Updater] Periodic check (4h interval)");
+      getAutoUpdater()?.checkForUpdates().catch((err) => {
+        console.error("[Updater] Periodic check failed:", err);
+      });
+    }, 14400000); // 4 hours in ms
   });
 }
+
+// AUTO-UPDATE: Cleanup interval on quit
+app.on("before-quit", () => {
+  if (updateCheckInterval) {
+    clearInterval(updateCheckInterval);
+    updateCheckInterval = null;
+  }
+});
 
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());

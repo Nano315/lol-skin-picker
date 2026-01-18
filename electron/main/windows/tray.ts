@@ -161,22 +161,30 @@ export function updaterHooks() {
     });
 
     au.on("update-downloaded", (info: UpdateDownloadedEvent) => {
-      if (manualUpdateRequested) {
-        manualUpdateRequested = false;
-        dialog
+      // Reset manual flag if it was set
+      manualUpdateRequested = false;
+
+      // ALWAYS show dialog when update is ready (AC: 3, 4)
+      // User can choose to install now or later
+      console.log(`[Updater] Update downloaded: v${info.version}`);
+      dialog
         .showMessageBox({
           type: "question",
           buttons: ["Install and Restart", "Later"],
           defaultId: 0,
           cancelId: 1,
           message: "Update ready",
-          detail: `Version ${info.version} has been downloaded.`,
+          detail: `Version ${info.version} has been downloaded.\n\nClick "Install and Restart" to update now, or "Later" to install on next restart.`,
         })
-          .then(({ response }) => {
-            if (response === 0) au.quitAndInstall();
-          });
-      } else {
-        console.log("[Updater] downloaded – will install on quit");
-      }
+        .then(({ response }) => {
+          if (response === 0) {
+            au.quitAndInstall();
+          } else {
+            console.log("[Updater] User chose 'Later' – will install on quit");
+          }
+        });
     });
   }
+
+// Export getAutoUpdater for use in app.ts (auto-update checks)
+export { getAutoUpdater };

@@ -48,7 +48,7 @@ describe('useRooms', () => {
 
   it('should call roomsClient.createRoom and update loading state', async () => {
     // We need to capture the callback passed to subscribe, so set up the mock before rendering
-    let onRoomUpdate: (nextRoom: any) => void = () => {}; // Initialize to avoid TS errors
+    let onRoomUpdate: (nextRoom: RoomState) => void = () => {}; // Initialize to avoid TS errors
     vi.mocked(roomsClient.subscribe).mockImplementation((callback) => {
         onRoomUpdate = callback;
         return () => {}; // Return an unsubscribe function
@@ -79,7 +79,7 @@ describe('useRooms', () => {
   });
 
   it('should call roomsClient.joinRoom and update loading state', async () => {
-    let onRoomUpdate: (nextRoom: any) => void = () => {};
+    let onRoomUpdate: (nextRoom: RoomState) => void = () => {};
     vi.mocked(roomsClient.subscribe).mockImplementation((callback) => {
         onRoomUpdate = callback;
         return () => {};
