@@ -90,32 +90,36 @@ export function RoomMemberCard({
       {isOccupied ? (
         <div
           className="room-member-name-wrapper"
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: 6,
-          }}
+          style={{ textAlign: 'center' }}
         >
-          <span className="room-member-name">{member!.name}</span>
-          <div
-            className="sync-status-badge"
-            title={member!.isReady ? "Synced" : "Waiting for sync"}
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: '50%',
-              backgroundColor: member!.isReady ? 'rgba(34, 197, 94, 0.9)' : 'rgba(100, 100, 100, 0.7)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 9,
-              color: 'white',
-              flexShrink: 0,
-            }}
+          <span
+            className="room-member-name"
+            style={{ position: 'relative', display: 'inline-block' }}
           >
-            <FontAwesomeIcon icon={member!.isReady ? faCheck : faClock} />
-          </div>
+            {member!.name}
+            <div
+              className="sync-status-badge"
+              title={member!.isReady ? "Synced" : "Waiting for sync"}
+              style={{
+                position: 'absolute',
+                left: '100%',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                marginLeft: 6,
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                backgroundColor: member!.isReady ? 'rgba(34, 197, 94, 0.9)' : 'rgba(100, 100, 100, 0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 9,
+                color: 'white',
+              }}
+            >
+              <FontAwesomeIcon icon={member!.isReady ? faCheck : faClock} />
+            </div>
+          </span>
         </div>
       ) : (
         <div className="room-member-placeholder">Empty slot</div>
