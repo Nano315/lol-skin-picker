@@ -3,6 +3,7 @@ import OptionsPanel from "@/components/controls/OptionsPanel";
 import ContactButton from "@/components/ContactButton";
 
 import { usePrefs } from "@/features/hooks/usePrefs";
+import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
 import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
 import { useEffect, useState } from "react";
@@ -13,6 +14,7 @@ export default function Settings() {
   const phase = useGameflow();
 
   const { save, read } = usePrefs();
+  const { enabled: telemetryEnabled, setConsent: setTelemetryEnabled, loading: telemetryLoading } = useTelemetryConsent();
   const [includeDefault, setIncludeDefault] = useState(true);
   const [autoRoll, setAutoRoll] = useState(true);
   const [performanceMode, setPerformanceMode] = useState(false);
@@ -90,6 +92,47 @@ export default function Settings() {
                 setHistorySize={setHistorySize}
                 savePref={save}
               />
+            </section>
+
+            <section className="card settings-card">
+              <div className="card-header">
+                <div>
+                  <p className="eyebrow">PRIVACY</p>
+                  <h2 className="card-title">Telemetry & Analytics</h2>
+                </div>
+              </div>
+              <div className="options-group">
+                <div className="option-row">
+                  <div className="option-info">
+                    <span className="option-label">Enable telemetry</span>
+                    <span className="option-desc">
+                      Help improve SkinPicker by sharing anonymous usage data.
+                    </span>
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={telemetryEnabled}
+                      disabled={telemetryLoading}
+                      onChange={(e) => setTelemetryEnabled(e.target.checked)}
+                    />
+                    <span className="track">
+                      <span className="thumb" />
+                    </span>
+                  </label>
+                </div>
+                <div className="option-row" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+                  <details className="telemetry-details">
+                    <summary>What data is collected?</summary>
+                    <ul className="telemetry-list">
+                      <li>Anonymous crash reports (to fix bugs)</li>
+                      <li>Features used (reroll, rooms, etc.)</li>
+                      <li>App version and operating system</li>
+                    </ul>
+                    <p className="telemetry-never"><strong>Never collected:</strong> Summoner name, owned skins, game data.</p>
+                  </details>
+                </div>
+              </div>
             </section>
 
             <section className="card settings-card">

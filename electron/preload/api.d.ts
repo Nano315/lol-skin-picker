@@ -101,6 +101,11 @@ declare global {
         skinIds: number[],
         priority: "favorite" | "deprioritized" | null
       ) => Promise<void>;
+
+      // Telemetry
+      getTelemetryConsent: () => Promise<boolean>;
+      setTelemetryConsent: (enabled: boolean) => Promise<boolean>;
+      isFirstLaunch: () => Promise<boolean>;
     };
 
     api: Window["lcu"];

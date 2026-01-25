@@ -83,3 +83,9 @@ export const api = {
   bulkSetPriority: (championId: number, skinIds: number[], priority: "favorite" | "deprioritized" | null) =>
     lcu.bulkSetPriority(championId, skinIds, priority),
 };
+
+// Telemetry exports
+export const getTelemetryConsent = () => window.lcu.getTelemetryConsent();
+export const setTelemetryConsent = (enabled: boolean) =>
+  window.lcu.setTelemetryConsent(enabled);
+export const isFirstLaunch = () => window.lcu.isFirstLaunch();

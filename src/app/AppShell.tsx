@@ -4,13 +4,25 @@ import { useSyncPrefsWithBackend } from "@/features/hooks/useSyncPrefsWithBacken
 import MascotsLayer from "@/components/overlays/MascotsLayer";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { RoomsClientConnector } from "./RoomsClientConnector";
+import { TelemetryConsentModal } from "@/components/TelemetryConsentModal";
+import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
+import { isFirstLaunch } from "@/features/api";
 
 import { usePrefs } from "@/features/hooks/usePrefs";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function AppShell() {
   useSyncPrefsWithBackend();
   const { read } = usePrefs();
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const { setConsent } = useTelemetryConsent();
+
+  // Check for first launch to show telemetry consent modal
+  useEffect(() => {
+    isFirstLaunch().then((isFirst) => {
+      if (isFirst) setShowConsentModal(true);
+    });
+  }, []);
 
   useEffect(() => {
     // On mount, check if performance mode is enabled
@@ -89,6 +101,18 @@ export default function AppShell() {
 
   return (
     <ToastProvider>
+      {showConsentModal && (
+        <TelemetryConsentModal
+          onAccept={() => {
+            setConsent(true);
+            setShowConsentModal(false);
+          }}
+          onDecline={() => {
+            setConsent(false);
+            setShowConsentModal(false);
+          }}
+        />
+      )}
       <RoomsClientConnector />
       <div>
         <RouterProvider router={router} />

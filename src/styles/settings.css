@@ -93,3 +93,37 @@
   display: flex;
   justify-content: flex-end;
 }
+
+/* Telemetry details */
+.telemetry-details {
+  width: 100%;
+  font-size: 0.9rem;
+  color: var(--muted-color);
+}
+
+.telemetry-details summary {
+  cursor: pointer;
+  color: #e4e7ef;
+  font-weight: 500;
+  padding: 8px 0;
+}
+
+.telemetry-details summary:hover {
+  color: var(--accent);
+}
+
+.telemetry-list {
+  margin: 12px 0;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.telemetry-list li {
+  margin-bottom: 4px;
+}
+
+.telemetry-never {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+}

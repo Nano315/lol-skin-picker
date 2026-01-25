@@ -115,6 +115,12 @@ const api = {
     ipcRenderer.invoke("clear-priorities", championId),
   bulkSetPriority: (championId: number, skinIds: number[], priority: "favorite" | "deprioritized" | null) =>
     ipcRenderer.invoke("bulk-set-priority", championId, skinIds, priority),
+
+  /* Telemetry */
+  getTelemetryConsent: () => ipcRenderer.invoke("telemetry:getConsent"),
+  setTelemetryConsent: (enabled: boolean) =>
+    ipcRenderer.invoke("telemetry:setConsent", enabled),
+  isFirstLaunch: () => ipcRenderer.invoke("telemetry:isFirstLaunch"),
 };
 
 contextBridge.exposeInMainWorld("lcu", api);
