@@ -21,6 +21,7 @@ interface EventData {
 async function isTrackingEnabled(): Promise<boolean> {
   // Skip if environment variables not configured
   if (!UMAMI_URL || !WEBSITE_ID) {
+    console.debug("[Analytics] Missing UMAMI_URL or WEBSITE_ID");
     return false;
   }
 
@@ -32,21 +33,41 @@ async function isTrackingEnabled(): Promise<boolean> {
 }
 
 export async function trackEvent(name: EventName, data?: EventData): Promise<void> {
-  if (!(await isTrackingEnabled())) return;
+  if (!(await isTrackingEnabled())) {
+    console.debug("[Analytics] Tracking disabled, skipping event:", name);
+    return;
+  }
 
   try {
-    await fetch(`${UMAMI_URL}/api/send`, {
+    // Umami API format - must include required fields for Electron apps
+    const payload = {
+      website: WEBSITE_ID,
+      hostname: "skinpicker.app",
+      language: navigator.language || "en",
+      screen: `${window.screen.width}x${window.screen.height}`,
+      url: "/",
+      title: "SkinPicker",
+      name,
+      data: sanitizeData(data),
+    };
+
+    console.debug("[Analytics] Sending event:", name, payload);
+
+    const response = await fetch(`${UMAMI_URL}/api/send`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "SkinPicker Desktop App",
+      },
       body: JSON.stringify({
-        payload: {
-          website: WEBSITE_ID,
-          name,
-          data: sanitizeData(data),
-        },
         type: "event",
+        payload,
       }),
     });
+
+    if (!response.ok) {
+      console.debug("[Analytics] Event response not ok:", response.status);
+    }
   } catch (error) {
     // Silent fail - analytics should never break the app
     console.debug("[Analytics] Event failed:", error);
