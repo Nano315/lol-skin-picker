@@ -17,6 +17,8 @@ export default function Settings() {
   const [autoRoll, setAutoRoll] = useState(true);
   const [performanceMode, setPerformanceMode] = useState(false);
   const [openAtLogin, setOpenAtLogin] = useState(false);
+  const [historyEnabled, setHistoryEnabled] = useState(true);
+  const [historySize, setHistorySize] = useState(5);
 
   useEffect(() => {
     Promise.all([
@@ -24,7 +26,8 @@ export default function Settings() {
       api.getAutoRoll(),
       api.getPerformanceMode(),
       api.getOpenAtLogin(),
-    ]).then(([incSrv, autoSrv, perfSrv, openAtLoginSrv]) => {
+      api.getHistorySettings(),
+    ]).then(([incSrv, autoSrv, perfSrv, openAtLoginSrv, historySrv]) => {
       const incPref = read("includeDefault");
       const autoPref = read("autoRoll");
       const perfPref = read("performanceMode");
@@ -33,6 +36,8 @@ export default function Settings() {
       setAutoRoll(autoPref ?? autoSrv);
       setPerformanceMode(perfPref ?? perfSrv);
       setOpenAtLogin(openAtLoginSrv);
+      setHistoryEnabled(historySrv.historyEnabled);
+      setHistorySize(historySrv.historySize);
 
       if (incPref !== null && incPref !== incSrv) {
         void api.setIncludeDefault(incPref).catch(() => {});
@@ -79,6 +84,10 @@ export default function Settings() {
                 }}
                 openAtLogin={openAtLogin}
                 setOpenAtLogin={setOpenAtLogin}
+                historyEnabled={historyEnabled}
+                setHistoryEnabled={setHistoryEnabled}
+                historySize={historySize}
+                setHistorySize={setHistorySize}
                 savePref={save}
               />
             </section>

@@ -6,6 +6,13 @@ import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
 import { logger } from "../logger";
 import { RandomSelector } from "../utils/RandomSelector";
 import WebSocket from "ws";
+import {
+  loadHistory,
+  getHistorySettings,
+  addSkinToHistory,
+  addChromaToHistory,
+  type HistoryEntry,
+} from "../main/history";
 
 /* ---- reponses API ---- */
 interface SummonerRes {
@@ -79,14 +86,13 @@ export class SkinsService extends EventEmitter {
 
   private championLocked = false;
 
-  // Memoire glissante & historique
-  private readonly SKIN_HISTORY_WINDOW = 3; // N derniers skins a eviter
-  private readonly CHROMA_HISTORY_WINDOW = 2; // N derniers chromas a eviter
+  // History settings (loaded from persistence)
+  private historySize = 5; // Default, will be loaded from persistence
+  private historyEnabled = true; // Default, will be loaded from persistence
+  private readonly CHROMA_HISTORY_WINDOW = 2; // Chromas use smaller window
 
-  // Par champion → derniers skins joues
+  // In-memory cache (synced with persistence)
   private skinHistoryByChampion = new Map<number, number[]>();
-
-  // Par skin → dernieres variantes (skin nu + chromas)
   private chromaHistoryBySkin = new Map<number, number[]>();
 
   setCreds(creds: LockCreds) {
@@ -96,9 +102,59 @@ export class SkinsService extends EventEmitter {
     this.lastAppliedChampion = 0;
   }
 
+  /**
+   * Initialize history from persistence
+   */
+  async initHistory() {
+    try {
+      const settings = await getHistorySettings();
+      this.historySize = settings.historySize;
+      this.historyEnabled = settings.historyEnabled;
+
+      // Load persisted history into memory cache
+      const data = await loadHistory();
+      this.skinHistoryByChampion.clear();
+      this.chromaHistoryBySkin.clear();
+
+      for (const [champId, entries] of Object.entries(data.skinHistory)) {
+        const skinIds = (entries as HistoryEntry[]).map((e) => e.skinId);
+        this.skinHistoryByChampion.set(Number(champId), skinIds);
+      }
+
+      for (const [skinId, chromaIds] of Object.entries(data.chromaHistory)) {
+        this.chromaHistoryBySkin.set(Number(skinId), chromaIds as number[]);
+      }
+
+      logger.info("[Skins] History loaded", {
+        historySize: this.historySize,
+        historyEnabled: this.historyEnabled,
+        champions: this.skinHistoryByChampion.size,
+      });
+    } catch (err) {
+      logger.warn("[Skins] Failed to load history, using defaults", err);
+    }
+  }
+
+  getHistorySize() {
+    return this.historySize;
+  }
+
+  setHistorySize(size: number) {
+    this.historySize = Math.max(1, Math.min(10, size));
+  }
+
+  getHistoryEnabled() {
+    return this.historyEnabled;
+  }
+
+  setHistoryEnabled(enabled: boolean) {
+    this.historyEnabled = enabled;
+  }
+
   // 1. Remplacer setInterval par une boucle recursive pour eviter les chevauchements
-  start() {
+  async start() {
     if (!this.creds || this.poller) return;
+    await this.initHistory();
     this.loopTick();
   }
 
@@ -295,6 +351,35 @@ export class SkinsService extends EventEmitter {
     }
   }
 
+  /** Push skin to history and persist to disk */
+  private async pushSkinHistory(championId: number, skinId: number) {
+    this.pushHistory(
+      this.skinHistoryByChampion,
+      championId,
+      skinId,
+      this.historySize
+    );
+    // Persist to disk
+    const entry: HistoryEntry = {
+      skinId,
+      chromaId: 0,
+      timestamp: Date.now(),
+    };
+    await addSkinToHistory(championId, entry, this.historySize);
+  }
+
+  /** Push chroma to history and persist to disk */
+  private async pushChromaHistory(skinId: number, chromaId: number) {
+    this.pushHistory(
+      this.chromaHistoryBySkin,
+      skinId,
+      chromaId,
+      this.CHROMA_HISTORY_WINDOW
+    );
+    // Persist to disk
+    await addChromaToHistory(skinId, chromaId, this.CHROMA_HISTORY_WINDOW);
+  }
+
   async rerollSkin() {
     if (!this.skins.length) return;
 
@@ -303,12 +388,14 @@ export class SkinsService extends EventEmitter {
       : this.skins.filter((s) => s.id % 1000 !== 0) || this.skins;
 
     const skinIds = pool.map((s) => s.id);
-    const history = this.skinHistoryByChampion.get(this.currentChampion) ?? [];
+    const history = this.historyEnabled
+      ? (this.skinHistoryByChampion.get(this.currentChampion) ?? [])
+      : [];
 
     const pickedSkinId = RandomSelector.pickWithHistory(
       skinIds,
       history,
-      this.SKIN_HISTORY_WINDOW,
+      this.historyEnabled ? this.historySize : 0,
       this.selectedSkinId || null
     );
     if (!pickedSkinId) return;
@@ -332,19 +419,11 @@ export class SkinsService extends EventEmitter {
     this.selectedSkinId = pick.id;
     this.selectedChromaId = variantId !== pick.id ? variantId : 0;
 
-    // Historique skin + chroma
-    this.pushHistory(
-      this.skinHistoryByChampion,
-      this.currentChampion,
-      pick.id,
-      this.SKIN_HISTORY_WINDOW
-    );
-    this.pushHistory(
-      this.chromaHistoryBySkin,
-      pick.id,
-      variantId,
-      this.CHROMA_HISTORY_WINDOW
-    );
+    // Historique skin + chroma (only if history enabled)
+    if (this.historyEnabled) {
+      await this.pushSkinHistory(this.currentChampion, pick.id);
+      await this.pushChromaHistory(pick.id, variantId);
+    }
 
     this.emit("selection", this.getSelection());
     this.lastAppliedChampion = this.currentChampion;
@@ -360,7 +439,9 @@ export class SkinsService extends EventEmitter {
     // ID actuellement actif (base ou chroma)
     const currentId = this.selectedChromaId || skin.id;
 
-    const history = this.chromaHistoryBySkin.get(skin.id) ?? [];
+    const history = this.historyEnabled
+      ? (this.chromaHistoryBySkin.get(skin.id) ?? [])
+      : [];
 
     const pickedId = RandomSelector.pickWithHistory(
       allChoices,
@@ -375,12 +456,9 @@ export class SkinsService extends EventEmitter {
 
     this.selectedChromaId = pickedId === skin.id ? 0 : pickedId;
 
-    this.pushHistory(
-      this.chromaHistoryBySkin,
-      skin.id,
-      pickedId,
-      this.CHROMA_HISTORY_WINDOW
-    );
+    if (this.historyEnabled) {
+      await this.pushChromaHistory(skin.id, pickedId);
+    }
 
     this.emit("selection", this.getSelection());
   }
@@ -554,13 +632,14 @@ export class SkinsService extends EventEmitter {
           : owned.filter((s) => s.id % 1000 !== 0) || owned;
 
         const skinIds = pool.map((s) => s.id);
-        const history =
-          this.skinHistoryByChampion.get(this.currentChampion) ?? [];
+        const history = this.historyEnabled
+          ? (this.skinHistoryByChampion.get(this.currentChampion) ?? [])
+          : [];
 
         const pickedSkinId = RandomSelector.pickWithHistory(
           skinIds,
           history,
-          this.SKIN_HISTORY_WINDOW,
+          this.historyEnabled ? this.historySize : 0,
           this.selectedSkinId || null
         );
         if (!pickedSkinId) return;
@@ -583,18 +662,10 @@ export class SkinsService extends EventEmitter {
         this.selectedSkinId = picked.id;
         this.selectedChromaId = finalId !== picked.id ? finalId : 0;
 
-        this.pushHistory(
-          this.skinHistoryByChampion,
-          this.currentChampion,
-          picked.id,
-          this.SKIN_HISTORY_WINDOW
-        );
-        this.pushHistory(
-          this.chromaHistoryBySkin,
-          picked.id,
-          finalId,
-          this.CHROMA_HISTORY_WINDOW
-        );
+        if (this.historyEnabled) {
+          await this.pushSkinHistory(this.currentChampion, picked.id);
+          await this.pushChromaHistory(picked.id, finalId);
+        }
 
         this.emit("selection", this.getSelection());
         this.lastAppliedChampion = this.currentChampion;

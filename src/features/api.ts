@@ -63,4 +63,13 @@ export const api = {
   // aliases for specific targeting
   setSkin: (id: number) => lcu.applySkinId(id),
   setChroma: (id: number) => lcu.applySkinId(id),
+
+  // history
+  getHistorySettings: () => lcu.getHistorySettings(),
+  setHistorySettings: (settings: { historySize?: number; historyEnabled?: boolean }) =>
+    lcu.setHistorySettings(settings),
+  getRecentHistory: (championId: number) => lcu.getRecentHistory(championId),
+  addToHistory: (championId: number, skinId: number, chromaId: number) =>
+    lcu.addToHistory(championId, skinId, chromaId),
+  clearHistory: (championId?: number) => lcu.clearHistory(championId),
 };

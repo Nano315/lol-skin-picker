@@ -62,6 +62,25 @@ declare global {
       
       getOpenAtLogin: () => Promise<boolean>;
       setOpenAtLogin: (v: boolean) => Promise<void>;
+
+      // History
+      getHistorySettings: () => Promise<{
+        historySize: number;
+        historyEnabled: boolean;
+      }>;
+      setHistorySettings: (settings: {
+        historySize?: number;
+        historyEnabled?: boolean;
+      }) => Promise<void>;
+      getRecentHistory: (championId: number) => Promise<
+        Array<{ skinId: number; chromaId: number; timestamp: number }>
+      >;
+      addToHistory: (
+        championId: number,
+        skinId: number,
+        chromaId: number
+      ) => Promise<void>;
+      clearHistory: (championId?: number) => Promise<void>;
     };
 
     api: Window["lcu"];

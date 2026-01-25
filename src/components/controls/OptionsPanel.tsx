@@ -10,6 +10,10 @@ export default function OptionsPanel({
   setPerformanceMode,
   openAtLogin,
   setOpenAtLogin,
+  historyEnabled,
+  setHistoryEnabled,
+  historySize,
+  setHistorySize,
 }: {
   includeDefault: boolean;
   setIncludeDefault: (v: boolean) => void;
@@ -19,6 +23,10 @@ export default function OptionsPanel({
   setPerformanceMode: (v: boolean) => void;
   openAtLogin: boolean;
   setOpenAtLogin: (v: boolean) => void;
+  historyEnabled: boolean;
+  setHistoryEnabled: (v: boolean) => void;
+  historySize: number;
+  setHistorySize: (v: number) => void;
   savePref: (k: "includeDefault" | "autoRoll" | "performanceMode", v: boolean) => void;
 }) {
   const onIncludeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,6 +58,18 @@ export default function OptionsPanel({
     setOpenAtLogin(v);
     // Pas de savePref ici car c'est gere côte main process via setOpenAtLogin
     void api.setOpenAtLogin(v).catch(() => {});
+  };
+
+  const onHistoryEnabledChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.checked;
+    setHistoryEnabled(v);
+    void api.setHistorySettings({ historyEnabled: v }).catch(() => {});
+  };
+
+  const onHistorySizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const v = Number(e.target.value);
+    setHistorySize(v);
+    void api.setHistorySettings({ historySize: v }).catch(() => {});
   };
 
   return (
@@ -104,6 +124,36 @@ export default function OptionsPanel({
             <span className="thumb" />
           </span>
         </label>
+      </div>
+
+      <div className="option-row">
+        <span className="option-label">Avoid recent skins</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={historyEnabled}
+            onChange={onHistoryEnabledChange}
+          />
+          <span className="track">
+            <span className="thumb" />
+          </span>
+        </label>
+      </div>
+
+      <div className="option-row">
+        <span className="option-label">History size</span>
+        <select
+          className="history-select"
+          value={historySize}
+          onChange={onHistorySizeChange}
+          disabled={!historyEnabled}
+        >
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );

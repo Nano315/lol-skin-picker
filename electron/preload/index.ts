@@ -92,6 +92,17 @@ const api = {
 
   getOpenAtLogin: () => ipcRenderer.invoke("get-open-at-login"),
   setOpenAtLogin: (v: boolean) => ipcRenderer.invoke("set-open-at-login", v),
+
+  /* History */
+  getHistorySettings: () => ipcRenderer.invoke("get-history-settings"),
+  setHistorySettings: (settings: { historySize?: number; historyEnabled?: boolean }) =>
+    ipcRenderer.invoke("set-history-settings", settings),
+  getRecentHistory: (championId: number) =>
+    ipcRenderer.invoke("get-recent-history", championId),
+  addToHistory: (championId: number, skinId: number, chromaId: number) =>
+    ipcRenderer.invoke("add-to-history", championId, skinId, chromaId),
+  clearHistory: (championId?: number) =>
+    ipcRenderer.invoke("clear-history", championId),
 };
 
 contextBridge.exposeInMainWorld("lcu", api);
