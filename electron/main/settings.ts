@@ -22,12 +22,15 @@ export async function loadSettings(): Promise<Settings> {
   }
 }
 
-export async function saveSettings(s: Settings) {
+export async function saveSettings(s: Partial<Settings>) {
   try {
     // Ensure directory exists
     await fs.mkdir(dirname(settingsPath), { recursive: true });
-    await fs.writeFile(settingsPath, JSON.stringify(s, null, 2), "utf-8");
-    log.debug("[settings] Settings saved successfully", s);
+    // Merge with existing settings instead of overwriting
+    const existing = await loadSettings();
+    const merged = { ...existing, ...s };
+    await fs.writeFile(settingsPath, JSON.stringify(merged, null, 2), "utf-8");
+    log.debug("[settings] Settings saved successfully", merged);
   } catch (err) {
     log.error("[settings] Failed to save settings", err);
   }
