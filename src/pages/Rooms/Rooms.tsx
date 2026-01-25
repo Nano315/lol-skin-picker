@@ -20,6 +20,7 @@ import { findMemberBySummonerName } from "@/features/utils/summonerUtils";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
 import { SyncProgressBar, SyncFlashOverlay } from "@/components/ui";
 import { useToast } from "@/features/hooks/useToast";
+import { trackSkinergy } from "@/features/analytics/tracker";
 
 export function RoomsPage() {
   const navigate = useNavigate();
@@ -322,6 +323,17 @@ export function RoomsPage() {
     const synergy = room.synergy.colors.find(c => c.color === currentOption.auraColor);
     return synergy ? synergy.color : undefined;
   }, [room, skinOptions, selection.skinId, selection.chromaId]);
+
+  // Track skinergy matches
+  const prevSynergyCountRef = useRef(0);
+  useEffect(() => {
+    const synergyCount = room?.synergy?.colors?.length ?? 0;
+    // Only track when synergy count increases (new match found)
+    if (synergyCount > 0 && synergyCount > prevSynergyCountRef.current) {
+      trackSkinergy(synergyCount);
+    }
+    prevSynergyCountRef.current = synergyCount;
+  }, [room?.synergy?.colors]);
 
   /* ===================== VUE "PAS ENCORE DANS UNE ROOM" ===================== */
 

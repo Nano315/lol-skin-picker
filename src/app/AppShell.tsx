@@ -7,6 +7,7 @@ import { RoomsClientConnector } from "./RoomsClientConnector";
 import { TelemetryConsentModal } from "@/components/TelemetryConsentModal";
 import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
 import { isFirstLaunch } from "@/features/api";
+import { trackAppLaunch } from "@/features/analytics/tracker";
 
 import { usePrefs } from "@/features/hooks/usePrefs";
 import { useEffect, useState } from "react";
@@ -22,6 +23,11 @@ export default function AppShell() {
     isFirstLaunch().then((isFirst) => {
       if (isFirst) setShowConsentModal(true);
     });
+  }, []);
+
+  // Track app launch
+  useEffect(() => {
+    trackAppLaunch();
   }, []);
 
   useEffect(() => {

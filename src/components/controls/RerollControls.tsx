@@ -3,6 +3,7 @@ import { faPalette, faDice, faArrowsRotate } from "@fortawesome/free-solid-svg-i
 import type { OwnedSkin, Selection } from "@/features/types";
 import { api } from "@/features/api";
 import type { GroupSkinOption } from "@/features/roomsClient";
+import { trackSoloReroll, trackSoloRerollChroma, trackSoloRerollColor } from "@/features/analytics/tracker";
 
 export default function RerollControls({
   phase,
@@ -74,6 +75,7 @@ export default function RerollControls({
         await api.setChroma(matchingChromaId);
       }
       onChanged();
+      trackSoloRerollColor();
     }
   };
 
@@ -85,7 +87,7 @@ export default function RerollControls({
 
       {canReroll && (
         <>
-          <button className="reroll-btn" onClick={() => api.rerollSkin()}>
+          <button className="reroll-btn" onClick={() => { api.rerollSkin(); trackSoloReroll(); }}>
             <GradientText
               className="reroll-text"
               animationSpeed={6}
@@ -99,7 +101,7 @@ export default function RerollControls({
           </button>
 
           {hasChromas && (
-            <button className="reroll-btn" onClick={() => api.rerollChroma()}>
+            <button className="reroll-btn" onClick={() => { api.rerollChroma(); trackSoloRerollChroma(); }}>
               <GradientText
                 className="reroll-text"
                 animationSpeed={6}

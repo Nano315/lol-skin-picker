@@ -2,6 +2,7 @@
 import { io, Socket } from "socket.io-client";
 import type { AppError, Selection, Toast } from "./types";
 import { errorMessages } from "./utils/errorMessages";
+import { trackRoomCreate, trackRoomJoin, trackGroupReroll } from "./analytics/tracker";
 
 const ROOMS_SERVER_URL = import.meta.env.VITE_ROOMS_SERVER_URL;
 const log = window.log;
@@ -172,6 +173,7 @@ class RoomsClient {
         roomId: this.roomId,
         memberId: this.memberId,
       });
+      trackRoomCreate();
       return { room };
     } catch (err: unknown) {
       const error: AppError = (err && typeof err === 'object' && 'code' in err) 
@@ -211,6 +213,7 @@ class RoomsClient {
         roomId: this.roomId,
         memberId: this.memberId,
       });
+      trackRoomJoin();
       return { room };
     } catch (err: unknown) {
       const error: AppError = (err && typeof err === 'object' && 'code' in err) 
@@ -277,6 +280,7 @@ class RoomsClient {
 
     this.socket.on("group-apply-combo", (payload: GroupComboPayload) => {
       log.info("[roomsClient] Received group combo", payload);
+      trackGroupReroll();
       for (const l of this.comboListeners) l(payload);
     });
 
