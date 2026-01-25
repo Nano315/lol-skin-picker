@@ -153,4 +153,172 @@ describe("RandomSelector", () => {
       expect(choices).toContain(result);
     });
   });
+
+  describe("getPriorityWeight", () => {
+    it("should return 3 for favorite", () => {
+      expect(RandomSelector.getPriorityWeight("favorite")).toBe(3);
+    });
+
+    it("should return 0.3 for deprioritized", () => {
+      expect(RandomSelector.getPriorityWeight("deprioritized")).toBe(0.3);
+    });
+
+    it("should return 1 for null (normal)", () => {
+      expect(RandomSelector.getPriorityWeight(null)).toBe(1);
+    });
+  });
+
+  describe("pickWithPriorityAndHistory", () => {
+    it("should return null for empty choices", () => {
+      const result = RandomSelector.pickWithPriorityAndHistory([], {}, [], 3, null);
+      expect(result).toBeNull();
+    });
+
+    it("should return the only choice when single option", () => {
+      const result = RandomSelector.pickWithPriorityAndHistory([100], {}, [], 3, null);
+      expect(result).toBe(100);
+    });
+
+    it("should avoid prevId when possible", () => {
+      const choices = [100, 200, 300];
+      const prevId = 100;
+
+      for (let i = 0; i < 10; i++) {
+        const result = RandomSelector.pickWithPriorityAndHistory(
+          choices,
+          {},
+          [],
+          0,
+          prevId
+        );
+        if (choices.length > 1) {
+          expect(result).not.toBe(prevId);
+        }
+      }
+    });
+
+    it("should exclude recent history items based on historyWindow", () => {
+      const choices = [100, 200, 300, 400, 500];
+      const history = [100, 200, 300];
+      const historyWindow = 2; // Only exclude last 2 (200, 300)
+
+      const result = RandomSelector.pickWithPriorityAndHistory(
+        choices,
+        {},
+        history,
+        historyWindow,
+        null
+      );
+
+      expect(result).not.toBeNull();
+      expect(result).not.toBe(200);
+      expect(result).not.toBe(300);
+    });
+
+    it("should handle priorities with empty history", () => {
+      const choices = [100, 200, 300];
+      const priorities = { 100: "favorite" as const, 300: "deprioritized" as const };
+
+      const result = RandomSelector.pickWithPriorityAndHistory(
+        choices,
+        priorities,
+        [],
+        0,
+        null
+      );
+
+      expect(result).not.toBeNull();
+      expect(choices).toContain(result);
+    });
+
+    it("should fallback to all choices if all are banned", () => {
+      const choices = [100, 200];
+      const history = [100, 200];
+      const historyWindow = 3;
+
+      const result = RandomSelector.pickWithPriorityAndHistory(
+        choices,
+        {},
+        history,
+        historyWindow,
+        100
+      );
+
+      expect(result).not.toBeNull();
+      expect([100, 200]).toContain(result);
+    });
+
+    it("should handle historyWindow of 0 (no exclusion)", () => {
+      const choices = [100, 200, 300];
+      const history = [100, 200, 300];
+      const historyWindow = 0;
+
+      const result = RandomSelector.pickWithPriorityAndHistory(
+        choices,
+        {},
+        history,
+        historyWindow,
+        null
+      );
+
+      expect(result).not.toBeNull();
+      expect(choices).toContain(result);
+    });
+
+    it("should combine priority weights with LRU weights", () => {
+      const choices = [100, 200, 300];
+      const priorities = { 100: "favorite" as const };
+      const history = [100, 200, 300]; // All seen, 100 is oldest
+
+      const result = RandomSelector.pickWithPriorityAndHistory(
+        choices,
+        priorities,
+        history,
+        0,
+        null
+      );
+
+      expect(result).not.toBeNull();
+      expect(choices).toContain(result);
+    });
+
+    it("should handle all skins deprioritized", () => {
+      const choices = [100, 200];
+      const priorities = {
+        100: "deprioritized" as const,
+        200: "deprioritized" as const,
+      };
+
+      const result = RandomSelector.pickWithPriorityAndHistory(
+        choices,
+        priorities,
+        [],
+        0,
+        null
+      );
+
+      expect(result).not.toBeNull();
+      expect(choices).toContain(result);
+    });
+
+    it("should handle mixed priorities correctly", () => {
+      const choices = [100, 200, 300, 400];
+      const priorities = {
+        100: "favorite" as const,
+        200: "deprioritized" as const,
+        // 300 and 400 are normal (null)
+      };
+
+      const result = RandomSelector.pickWithPriorityAndHistory(
+        choices,
+        priorities,
+        [],
+        0,
+        null
+      );
+
+      expect(result).not.toBeNull();
+      expect(choices).toContain(result);
+    });
+  });
 });

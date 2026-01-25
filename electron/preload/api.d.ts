@@ -81,6 +81,26 @@ declare global {
         chromaId: number
       ) => Promise<void>;
       clearHistory: (championId?: number) => Promise<void>;
+
+      // Priority
+      setPriority: (
+        championId: number,
+        skinId: number,
+        priority: "favorite" | "deprioritized" | null
+      ) => Promise<void>;
+      getPriority: (
+        championId: number,
+        skinId: number
+      ) => Promise<"favorite" | "deprioritized" | null>;
+      getAllPriorities: (championId: number) => Promise<{
+        [skinId: number]: "favorite" | "deprioritized" | null;
+      }>;
+      clearPriorities: (championId?: number) => Promise<void>;
+      bulkSetPriority: (
+        championId: number,
+        skinIds: number[],
+        priority: "favorite" | "deprioritized" | null
+      ) => Promise<void>;
     };
 
     api: Window["lcu"];

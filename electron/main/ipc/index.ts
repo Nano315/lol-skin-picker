@@ -8,6 +8,7 @@ import { registerSkinsIpc } from "./skins.ipc";
 import { registerMiscIpc } from "./misc.ipc";
 import { registerLogIpc } from "./log.ipc";
 import { registerHistoryIpc } from "./history.ipc";
+import { registerPriorityIpc } from "./priority.ipc";
 
 export function registerAllIpc(opts: {
   lcu: LcuWatcher;
@@ -21,4 +22,5 @@ export function registerAllIpc(opts: {
   registerMiscIpc();
   registerLogIpc();
   registerHistoryIpc(opts.skins);
+  registerPriorityIpc();
 }

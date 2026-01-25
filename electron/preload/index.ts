@@ -103,6 +103,18 @@ const api = {
     ipcRenderer.invoke("add-to-history", championId, skinId, chromaId),
   clearHistory: (championId?: number) =>
     ipcRenderer.invoke("clear-history", championId),
+
+  /* Priority */
+  setPriority: (championId: number, skinId: number, priority: "favorite" | "deprioritized" | null) =>
+    ipcRenderer.invoke("set-priority", championId, skinId, priority),
+  getPriority: (championId: number, skinId: number) =>
+    ipcRenderer.invoke("get-priority", championId, skinId),
+  getAllPriorities: (championId: number) =>
+    ipcRenderer.invoke("get-all-priorities", championId),
+  clearPriorities: (championId?: number) =>
+    ipcRenderer.invoke("clear-priorities", championId),
+  bulkSetPriority: (championId: number, skinIds: number[], priority: "favorite" | "deprioritized" | null) =>
+    ipcRenderer.invoke("bulk-set-priority", championId, skinIds, priority),
 };
 
 contextBridge.exposeInMainWorld("lcu", api);

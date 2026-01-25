@@ -45,6 +45,14 @@ export default function Header({
             Rooms
           </NavLink>
           <NavLink
+            to="/priority"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
+          >
+            Priority
+          </NavLink>
+          <NavLink
             to="/settings"
             className={({ isActive }) =>
               isActive ? "nav-link active" : "nav-link"

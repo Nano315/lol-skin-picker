@@ -4,7 +4,7 @@ import { EventEmitter } from "node:events";
 import type { LockCreds } from "./lcuWatcher";
 import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
 import { logger } from "../logger";
-import { RandomSelector } from "../utils/RandomSelector";
+import { RandomSelector, type PriorityMap } from "../utils/RandomSelector";
 import WebSocket from "ws";
 import {
   loadHistory,
@@ -13,6 +13,7 @@ import {
   addChromaToHistory,
   type HistoryEntry,
 } from "../main/history";
+import { getAllPriorities } from "../main/priority";
 
 /* ---- reponses API ---- */
 interface SummonerRes {
@@ -392,8 +393,12 @@ export class SkinsService extends EventEmitter {
       ? (this.skinHistoryByChampion.get(this.currentChampion) ?? [])
       : [];
 
-    const pickedSkinId = RandomSelector.pickWithHistory(
+    // Load priorities for this champion
+    const priorities: PriorityMap = await getAllPriorities(this.currentChampion);
+
+    const pickedSkinId = RandomSelector.pickWithPriorityAndHistory(
       skinIds,
+      priorities,
       history,
       this.historyEnabled ? this.historySize : 0,
       this.selectedSkinId || null
@@ -636,8 +641,12 @@ export class SkinsService extends EventEmitter {
           ? (this.skinHistoryByChampion.get(this.currentChampion) ?? [])
           : [];
 
-        const pickedSkinId = RandomSelector.pickWithHistory(
+        // Load priorities for this champion
+        const priorities: PriorityMap = await getAllPriorities(this.currentChampion);
+
+        const pickedSkinId = RandomSelector.pickWithPriorityAndHistory(
           skinIds,
+          priorities,
           history,
           this.historyEnabled ? this.historySize : 0,
           this.selectedSkinId || null

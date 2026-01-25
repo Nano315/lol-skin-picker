@@ -72,4 +72,14 @@ export const api = {
   addToHistory: (championId: number, skinId: number, chromaId: number) =>
     lcu.addToHistory(championId, skinId, chromaId),
   clearHistory: (championId?: number) => lcu.clearHistory(championId),
+
+  // priority
+  setPriority: (championId: number, skinId: number, priority: "favorite" | "deprioritized" | null) =>
+    lcu.setPriority(championId, skinId, priority),
+  getPriority: (championId: number, skinId: number) =>
+    lcu.getPriority(championId, skinId),
+  getAllPriorities: (championId: number) => lcu.getAllPriorities(championId),
+  clearPriorities: (championId?: number) => lcu.clearPriorities(championId),
+  bulkSetPriority: (championId: number, skinIds: number[], priority: "favorite" | "deprioritized" | null) =>
+    lcu.bulkSetPriority(championId, skinIds, priority),
 };
