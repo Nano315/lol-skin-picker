@@ -28,3 +28,10 @@ export type Toast = {
   message: string;
   duration?: number;
 };
+
+// Group history - mirrors backend type (for reference)
+export type ChromaCombination = {
+  color: string;
+  members: Array<{ memberId: string; skinId: number; chromaId: number }>;
+  timestamp: number;
+};
