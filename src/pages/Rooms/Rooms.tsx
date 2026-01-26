@@ -21,6 +21,9 @@ import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicato
 import { SyncProgressBar, SyncFlashOverlay } from "@/components/ui";
 import { useToast } from "@/features/hooks/useToast";
 import { trackSkinergy } from "@/features/analytics/tracker";
+import { useLcuIdentity } from "@/features/hooks/useLcuIdentity";
+import { useOnlineFriends } from "@/features/hooks/useOnlineFriends";
+import { OnlineFriendsList } from "@/components/social/OnlineFriendsList";
 
 export function RoomsPage() {
   const navigate = useNavigate();
@@ -121,6 +124,24 @@ export function RoomsPage() {
   const isConnected = status === "connected";
   const summonerName = useSummonerName(status);
   const canUseRooms = isConnected && !!summonerName;
+
+  // Online friends (Story 4.4)
+  const lcuIdentity = useLcuIdentity(status);
+  const { onlineFriends } = useOnlineFriends(
+    lcuIdentity.puuid,
+    lcuIdentity.summonerName,
+    lcuIdentity.friends,
+    isConnected
+  );
+
+  // Invite handler (placeholder - will be implemented in Story 4.5)
+  const handleInviteFriend = (friendPuuid: string) => {
+    const friend = onlineFriends.find(f => f.puuid === friendPuuid);
+    if (friend) {
+      console.log(`[Rooms] Invite friend: ${friend.summonerName} (${friendPuuid})`);
+      // TODO: Implement in Story 4.5
+    }
+  };
 
   const [copied, setCopied] = useState(false);
 
@@ -429,6 +450,15 @@ export function RoomsPage() {
                   </button>
                 </div>
               </section>
+
+              {/* Online Friends Section */}
+              {isConnected && (
+                <OnlineFriendsList
+                  friends={onlineFriends}
+                  currentRoomCode={undefined}
+                  onInvite={undefined}
+                />
+              )}
             </div>
           </div>
         </main>
@@ -532,6 +562,13 @@ export function RoomsPage() {
                 />
               </div>
             </section>
+
+            {/* Online Friends Section - with invite button when in room */}
+            <OnlineFriendsList
+              friends={onlineFriends}
+              currentRoomCode={room?.code}
+              onInvite={handleInviteFriend}
+            />
           </div>
         </div>
       </main>

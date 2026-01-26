@@ -21,6 +21,32 @@ export type LcuIdentity = {
   error: string | null;
 };
 
+// Socket Identity Handshake types (Story 4.3)
+export type IdentifyPayload = {
+  puuid: string;
+  summonerName: string;
+  friends: string[];
+};
+
+export type IdentityConfirmedPayload = {
+  onlineFriends: string[];
+};
+
+export type FriendOnlinePayload = {
+  puuid: string;
+  summonerName: string;
+};
+
+export type FriendOfflinePayload = {
+  puuid: string;
+};
+
+// Online friend with details (enriched from LcuFriend)
+export type OnlineFriend = {
+  puuid: string;
+  summonerName: string;
+};
+
 export type OwnedSkin = {
   id: number;
   name: string;

@@ -1,6 +1,13 @@
 // src/features/roomsClient.ts
 import { io, Socket } from "socket.io-client";
-import type { AppError, Selection, Toast } from "./types";
+import type {
+  AppError,
+  Selection,
+  Toast,
+  IdentityConfirmedPayload,
+  FriendOnlinePayload,
+  FriendOfflinePayload,
+} from "./types";
 import { errorMessages } from "./utils/errorMessages";
 import { trackRoomCreate, trackRoomJoin, trackGroupReroll } from "./analytics/tracker";
 
@@ -84,6 +91,15 @@ class RoomsClient {
   private comboListeners = new Set<(payload: GroupComboPayload) => void>();
   // Normalized suggestion payload (handles both v1 senderName and v2 memberName)
   private suggestionListeners = new Set<(payload: { memberId: string; senderName: string; skinId: number; chromaId: number }) => void>();
+
+  // --- Identity/Presence System (Story 4.3) ---
+  private identitySocket: Socket | null = null;
+  private identifiedPuuid: string | null = null;
+  private identityCallbacks: {
+    onIdentityConfirmed?: (onlineFriends: string[]) => void;
+    onFriendOnline?: (puuid: string, summonerName: string) => void;
+    onFriendOffline?: (puuid: string) => void;
+  } = {};
 
   // ---- helpers de state global ----
   private emitRoom(room: RoomState | null) {
@@ -426,6 +442,112 @@ class RoomsClient {
         }
       );
     });
+  }
+
+  // --- Identity/Presence Methods (Story 4.3) ---
+
+  /**
+   * Set callbacks for identity-related events
+   */
+  setIdentityCallbacks(callbacks: {
+    onIdentityConfirmed?: (onlineFriends: string[]) => void;
+    onFriendOnline?: (puuid: string, summonerName: string) => void;
+    onFriendOffline?: (puuid: string) => void;
+  }) {
+    this.identityCallbacks = callbacks;
+  }
+
+  /**
+   * Connect to the server for identity/presence (independent of rooms)
+   */
+  connectIdentity() {
+    if (this.identitySocket) return;
+
+    this.identitySocket = io(ROOMS_SERVER_URL, {
+      autoConnect: true,
+      query: {
+        clientVersion: String(CLIENT_VERSION),
+      },
+    });
+
+    this.identitySocket.on("connect", () => {
+      log.info("[roomsClient] Identity socket connected", {
+        socketId: this.identitySocket?.id,
+      });
+    });
+
+    this.identitySocket.on("disconnect", (reason) => {
+      log.warn("[roomsClient] Identity socket disconnected", { reason });
+      this.identifiedPuuid = null;
+    });
+
+    this.identitySocket.on("connect_error", (error) => {
+      log.error("[roomsClient] Identity socket connection error", error);
+    });
+
+    // Identity event listeners
+    this.identitySocket.on("identity-confirmed", (payload: IdentityConfirmedPayload) => {
+      log.info("[roomsClient] Identity confirmed", { onlineFriends: payload.onlineFriends.length });
+      this.identityCallbacks.onIdentityConfirmed?.(payload.onlineFriends);
+    });
+
+    this.identitySocket.on("friend-online", (payload: FriendOnlinePayload) => {
+      log.info("[roomsClient] Friend came online", { puuid: payload.puuid, name: payload.summonerName });
+      this.identityCallbacks.onFriendOnline?.(payload.puuid, payload.summonerName);
+    });
+
+    this.identitySocket.on("friend-offline", (payload: FriendOfflinePayload) => {
+      log.info("[roomsClient] Friend went offline", { puuid: payload.puuid });
+      this.identityCallbacks.onFriendOffline?.(payload.puuid);
+    });
+  }
+
+  /**
+   * Identify the current user to the server
+   */
+  identify(puuid: string, summonerName: string, friends: string[]) {
+    if (!this.identitySocket) {
+      this.connectIdentity();
+    }
+
+    // Wait for connection if not yet connected
+    if (!this.identitySocket?.connected) {
+      this.identitySocket?.once("connect", () => {
+        this.identitySocket?.emit("identify", { puuid, summonerName, friends });
+        this.identifiedPuuid = puuid;
+        log.info("[roomsClient] Sent identify after connection", { puuid, friendsCount: friends.length });
+      });
+    } else {
+      this.identitySocket.emit("identify", { puuid, summonerName, friends });
+      this.identifiedPuuid = puuid;
+      log.info("[roomsClient] Sent identify", { puuid, friendsCount: friends.length });
+    }
+  }
+
+  /**
+   * Disconnect the identity socket
+   */
+  disconnectIdentity() {
+    if (this.identitySocket) {
+      this.identitySocket.disconnect();
+      this.identitySocket = null;
+      this.identifiedPuuid = null;
+      log.info("[roomsClient] Identity socket disconnected");
+    }
+  }
+
+  /**
+   * Check if user is identified
+   */
+  isIdentified() {
+    return !!this.identifiedPuuid && this.identitySocket?.connected;
+  }
+
+  /**
+   * Get the current identified PUUID
+   */
+  getIdentifiedPuuid() {
+    return this.identifiedPuuid;
   }
 }
 
