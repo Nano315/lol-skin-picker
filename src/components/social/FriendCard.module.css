@@ -71,6 +71,27 @@
   transform: scale(0.98);
 }
 
+.inviteButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.inviteButtonSent {
+  background: rgba(34, 197, 94, 0.8);
+}
+
+.inviteButtonSent:hover {
+  background: rgba(34, 197, 94, 0.9);
+}
+
+.inviteButtonFailed {
+  background: rgba(239, 68, 68, 0.8);
+}
+
+.inviteButtonFailed:hover {
+  background: rgba(239, 68, 68, 0.9);
+}
+
 /* Entrance animation for new friends */
 @keyframes slideIn {
   from {

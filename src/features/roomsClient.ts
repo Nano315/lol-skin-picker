@@ -7,6 +7,10 @@ import type {
   IdentityConfirmedPayload,
   FriendOnlinePayload,
   FriendOfflinePayload,
+  RoomInviteReceivedPayload,
+  InviteSentPayload,
+  InviteFailedPayload,
+  InviteFailureReason,
 } from "./types";
 import { errorMessages } from "./utils/errorMessages";
 import { trackRoomCreate, trackRoomJoin, trackGroupReroll } from "./analytics/tracker";
@@ -99,6 +103,13 @@ class RoomsClient {
     onIdentityConfirmed?: (onlineFriends: string[]) => void;
     onFriendOnline?: (puuid: string, summonerName: string) => void;
     onFriendOffline?: (puuid: string) => void;
+  } = {};
+
+  // --- Room Invitation System (Story 4.5) ---
+  private inviteCallbacks: {
+    onInviteSent?: (targetPuuid: string) => void;
+    onInviteFailed?: (reason: InviteFailureReason) => void;
+    onInviteReceived?: (fromPuuid: string, fromName: string, roomCode: string) => void;
   } = {};
 
   // ---- helpers de state global ----
@@ -500,6 +511,26 @@ class RoomsClient {
       log.info("[roomsClient] Friend went offline", { puuid: payload.puuid });
       this.identityCallbacks.onFriendOffline?.(payload.puuid);
     });
+
+    // Invite event listeners (Story 4.5)
+    this.identitySocket.on("invite-sent", (payload: InviteSentPayload) => {
+      log.info("[roomsClient] Invite sent successfully", { targetPuuid: payload.targetPuuid });
+      this.inviteCallbacks.onInviteSent?.(payload.targetPuuid);
+    });
+
+    this.identitySocket.on("invite-failed", (payload: InviteFailedPayload) => {
+      log.warn("[roomsClient] Invite failed", { reason: payload.reason });
+      this.inviteCallbacks.onInviteFailed?.(payload.reason);
+    });
+
+    this.identitySocket.on("room-invite-received", (payload: RoomInviteReceivedPayload) => {
+      log.info("[roomsClient] Received room invite", {
+        fromPuuid: payload.fromPuuid,
+        fromName: payload.fromName,
+        roomCode: payload.roomCode,
+      });
+      this.inviteCallbacks.onInviteReceived?.(payload.fromPuuid, payload.fromName, payload.roomCode);
+    });
   }
 
   /**
@@ -548,6 +579,33 @@ class RoomsClient {
    */
   getIdentifiedPuuid() {
     return this.identifiedPuuid;
+  }
+
+  // --- Room Invitation Methods (Story 4.5) ---
+
+  /**
+   * Set callbacks for invitation events
+   */
+  setInviteCallbacks(callbacks: {
+    onInviteSent?: (targetPuuid: string) => void;
+    onInviteFailed?: (reason: InviteFailureReason) => void;
+    onInviteReceived?: (fromPuuid: string, fromName: string, roomCode: string) => void;
+  }) {
+    this.inviteCallbacks = callbacks;
+  }
+
+  /**
+   * Send a room invitation to a friend
+   */
+  sendRoomInvite(targetPuuid: string, roomCode: string) {
+    if (!this.identitySocket?.connected) {
+      log.warn("[roomsClient] Cannot send invite: identity socket not connected");
+      this.inviteCallbacks.onInviteFailed?.("not_identified");
+      return;
+    }
+
+    log.info("[roomsClient] Sending room invite", { targetPuuid, roomCode });
+    this.identitySocket.emit("send-room-invite", { targetPuuid, roomCode });
   }
 }
 

@@ -47,6 +47,28 @@ export type OnlineFriend = {
   summonerName: string;
 };
 
+// --- Room Invitation Types (Story 4.5) ---
+
+// Payload for 'room-invite-received' event (S->C)
+export type RoomInviteReceivedPayload = {
+  fromPuuid: string;
+  fromName: string;
+  roomCode: string;
+};
+
+// Payload for 'invite-sent' event (S->C)
+export type InviteSentPayload = {
+  targetPuuid: string;
+};
+
+// Payload for 'invite-failed' event (S->C)
+export type InviteFailedPayload = {
+  reason: "not_identified" | "not_friend" | "rate_limited" | "friend_offline";
+};
+
+// Invite failure reasons for UI display
+export type InviteFailureReason = InviteFailedPayload["reason"];
+
 export type OwnedSkin = {
   id: number;
   name: string;

@@ -6,15 +6,13 @@ import styles from "./OnlineFriendsList.module.css";
 interface OnlineFriendsListProps {
   friends: OnlineFriend[];
   currentRoomCode?: string;
-  onInvite?: (friendPuuid: string) => void;
 }
 
 export function OnlineFriendsList({
   friends,
   currentRoomCode,
-  onInvite,
 }: OnlineFriendsListProps) {
-  const showInviteButton = !!currentRoomCode && !!onInvite;
+  const showInviteButton = !!currentRoomCode;
 
   return (
     <section className={`card ${styles.container}`}>
@@ -43,7 +41,7 @@ export function OnlineFriendsList({
                 <FriendCard
                   friend={friend}
                   showInvite={showInviteButton}
-                  onInvite={() => onInvite?.(friend.puuid)}
+                  roomCode={currentRoomCode}
                 />
               </li>
             ))}

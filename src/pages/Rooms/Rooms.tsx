@@ -134,14 +134,6 @@ export function RoomsPage() {
     isConnected
   );
 
-  // Invite handler (placeholder - will be implemented in Story 4.5)
-  const handleInviteFriend = (friendPuuid: string) => {
-    const friend = onlineFriends.find(f => f.puuid === friendPuuid);
-    if (friend) {
-      console.log(`[Rooms] Invite friend: ${friend.summonerName} (${friendPuuid})`);
-      // TODO: Implement in Story 4.5
-    }
-  };
 
   const [copied, setCopied] = useState(false);
 
@@ -456,7 +448,6 @@ export function RoomsPage() {
                 <OnlineFriendsList
                   friends={onlineFriends}
                   currentRoomCode={undefined}
-                  onInvite={undefined}
                 />
               )}
             </div>
@@ -567,7 +558,6 @@ export function RoomsPage() {
             <OnlineFriendsList
               friends={onlineFriends}
               currentRoomCode={room?.code}
-              onInvite={handleInviteFriend}
             />
           </div>
         </div>
