@@ -1,4 +1,5 @@
 import type { OwnedSkin } from "../services/skins.service";
+import type { LcuFriend, LcuIdentity } from "../services/lcuWatcher";
 
 export {};
 
@@ -9,6 +10,10 @@ declare global {
     lcu: {
       getStatus: () => Promise<string>;
       onStatus: (cb: (s: string) => void) => Unsub;
+
+      // Identity & Friends
+      getIdentity: () => Promise<LcuIdentity | null>;
+      getFriends: () => Promise<LcuFriend[] | null>;
 
       getSummonerIcon: () => Promise<number>;
       onSummonerIcon: (cb: (id: number) => void) => Unsub;

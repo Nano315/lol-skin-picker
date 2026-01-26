@@ -6,6 +6,21 @@ export type Selection = {
   locked: boolean;
 };
 
+// LCU Identity & Friends types
+export type LcuFriend = {
+  puuid: string;
+  name: string;
+  availability: string;
+};
+
+export type LcuIdentity = {
+  puuid: string | null;
+  summonerName: string | null;
+  friends: LcuFriend[];
+  isLoading: boolean;
+  error: string | null;
+};
+
 export type OwnedSkin = {
   id: number;
   name: string;

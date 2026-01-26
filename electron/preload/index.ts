@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { contextBridge, ipcRenderer } from "electron";
 import type { OwnedSkin } from "../services/skins.service";
+import type { LcuFriend, LcuIdentity } from "../services/lcuWatcher";
 
 const logApi = {
   info: (...args: any[]) => ipcRenderer.invoke("log-message", "info", ...args),
@@ -17,6 +18,10 @@ const api = {
     ipcRenderer.on("lcu-status", listener);
     return () => ipcRenderer.removeListener("lcu-status", listener);
   },
+
+  /* Identity & Friends */
+  getIdentity: () => ipcRenderer.invoke("lcu:getIdentity") as Promise<LcuIdentity | null>,
+  getFriends: () => ipcRenderer.invoke("lcu:getFriends") as Promise<LcuFriend[] | null>,
 
   /* Summoner Icon */
   getSummonerIcon: () => ipcRenderer.invoke("get-summoner-icon"),

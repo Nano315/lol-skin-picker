@@ -47,6 +47,8 @@ export async function createMainWindow() {
 
   if (process.env.VITE_DEV_SERVER_URL) {
     await win.loadURL(process.env.VITE_DEV_SERVER_URL);
+    // Open DevTools in dev mode
+    win.webContents.openDevTools();
   } else {
     const indexHtml = path.join(__dirname, "../dist/index.html");
     await win.loadFile(indexHtml);

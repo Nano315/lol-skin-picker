@@ -1,6 +1,7 @@
 import { exec } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { promisify } from "node:util";
+import fetch from "node-fetch";
 import { logger } from "../logger";
 
 const execAsync = promisify(exec);
@@ -11,6 +12,17 @@ export interface LockCreds {
   port: string;
   password: string;
   protocol: string;
+}
+
+export interface LcuFriend {
+  puuid: string;
+  name: string;
+  availability: string;
+}
+
+export interface LcuIdentity {
+  puuid: string;
+  summonerName: string;
 }
 
 /* -------- implementation -------- */
@@ -126,6 +138,94 @@ export class LcuWatcher extends EventEmitter {
         protocol: "https", // Toujours https pour le LCU
       };
     } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get current player identity (PUUID + summoner name) from LCU
+   * Returns null if client is not connected
+   */
+  async getIdentity(): Promise<LcuIdentity | null> {
+    if (!this.creds) return null;
+
+    const { protocol, port, password } = this.creds;
+    const url = `${protocol}://127.0.0.1:${port}/lol-summoner/v1/current-summoner`;
+    const auth = Buffer.from(`riot:${password}`).toString("base64");
+
+    try {
+      const res = await fetch(url, {
+        headers: { Authorization: `Basic ${auth}` },
+      });
+
+      if (!res.ok) {
+        logger.warn("[LCU] Failed to get identity", { status: res.status });
+        return null;
+      }
+
+      const data = (await res.json()) as {
+        puuid?: string;
+        gameName?: string;
+        displayName?: string;
+      };
+
+      if (!data.puuid) {
+        logger.warn("[LCU] Identity response missing puuid");
+        return null;
+      }
+
+      return {
+        puuid: data.puuid,
+        summonerName: data.gameName || data.displayName || "",
+      };
+    } catch (error) {
+      logger.error("[LCU] Error fetching identity", error);
+      return null;
+    }
+  }
+
+  /**
+   * Get friends list from LCU
+   * Returns null if client is not connected
+   */
+  async getFriends(): Promise<LcuFriend[] | null> {
+    if (!this.creds) return null;
+
+    const { protocol, port, password } = this.creds;
+    const url = `${protocol}://127.0.0.1:${port}/lol-chat/v1/friends`;
+    const auth = Buffer.from(`riot:${password}`).toString("base64");
+
+    try {
+      const res = await fetch(url, {
+        headers: { Authorization: `Basic ${auth}` },
+      });
+
+      if (!res.ok) {
+        logger.warn("[LCU] Failed to get friends", { status: res.status });
+        return null;
+      }
+
+      const data = (await res.json()) as Array<{
+        puuid?: string;
+        name?: string;
+        gameName?: string;
+        availability?: string;
+      }>;
+
+      if (!Array.isArray(data)) {
+        logger.warn("[LCU] Friends response is not an array");
+        return null;
+      }
+
+      return data
+        .filter((f) => f.puuid)
+        .map((f) => ({
+          puuid: f.puuid!,
+          name: f.gameName || f.name || "",
+          availability: f.availability || "offline",
+        }));
+    } catch (error) {
+      logger.error("[LCU] Error fetching friends", error);
       return null;
     }
   }

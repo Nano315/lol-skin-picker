@@ -1,4 +1,4 @@
-import type { OwnedSkin, Selection } from "./types";
+import type { OwnedSkin, Selection, LcuFriend } from "./types";
 
 type Unsub = () => void;
 const lcu = window.lcu;
@@ -10,6 +10,10 @@ export const api = {
   // connection
   getStatus: () => lcu.getStatus(),
   onStatus: (cb: (s: string) => void): Unsub => asUnsub(lcu.onStatus(cb)),
+
+  // identity & friends
+  getIdentity: () => lcu.getIdentity(),
+  getFriends: () => lcu.getFriends() as Promise<LcuFriend[] | null>,
 
   // summoner name
   getSummonerName: () => lcu.getSummonerName(),
