@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import fallbackIcon from "/fallback-icon.png?url";
 import { useInvitationBadgeCount } from "@/features/hooks/useInvitationQueue";
+import { SocketConnectionIndicator } from "@/components/common/SocketConnectionIndicator";
 
 export default function Header({
   status,
@@ -94,6 +95,7 @@ export default function Header({
 
       {/* Bloc droit : etat + avatar */}
       <div className="connection">
+        <SocketConnectionIndicator />
         <div className="state">{connectionLabel()}</div>
         {iconUrl && <img src={iconUrl} alt="summoner" className="avatar" />}
       </div>

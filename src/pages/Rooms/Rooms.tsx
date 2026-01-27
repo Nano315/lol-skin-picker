@@ -450,12 +450,11 @@ export function RoomsPage() {
               </section>
 
               {/* Online Friends Section */}
-              {isConnected && (
-                <OnlineFriendsList
-                  friends={onlineFriends}
-                  currentRoomCode={undefined}
-                />
-              )}
+              <OnlineFriendsList
+                friends={onlineFriends}
+                currentRoomCode={undefined}
+                isLcuConnected={isConnected}
+              />
             </div>
           </div>
         </main>
@@ -581,6 +580,7 @@ export function RoomsPage() {
             <OnlineFriendsList
               friends={onlineFriends}
               currentRoomCode={room?.code}
+              isLcuConnected={isConnected}
             />
           </div>
         </div>

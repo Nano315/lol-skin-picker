@@ -30,18 +30,47 @@ export class LcuWatcher extends EventEmitter {
   status: LcuStatus = "disconnected";
   creds: LockCreds | null = null;
 
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private timer: ReturnType<typeof setTimeout> | null = null;
   private lastCommandLine = "";
   private isScanning = false;
+  // Intelligent polling (Story 4.9)
+  private pollingInterval = 2000; // Start at 2s
+  private timeWithoutClient = 0;
 
   public isConnected(): boolean {
     return this.creds !== null;
   }
 
-  start(interval = 2000) {
+  start() {
     if (this.timer) return;
+    this.schedulePoll();
+  }
+
+  private schedulePoll() {
     this.tick();
-    this.timer = setInterval(() => this.tick(), interval);
+    this.timer = setTimeout(() => this.schedulePoll(), this.pollingInterval);
+  }
+
+  private adjustPollingSpeed(clientFound: boolean) {
+    if (clientFound) {
+      // Reset to fast polling when client is found
+      this.pollingInterval = 2000;
+      this.timeWithoutClient = 0;
+      return;
+    }
+
+    // Increment time without client
+    this.timeWithoutClient += this.pollingInterval;
+
+    // Slow down polling progressively (Story 4.9 AC6)
+    if (this.timeWithoutClient > 120000) {
+      // After 2 minutes: poll every 30s
+      this.pollingInterval = 30000;
+    } else if (this.timeWithoutClient > 30000) {
+      // After 30 seconds: poll every 10s
+      this.pollingInterval = 10000;
+    }
+    // Otherwise keep at 2s
   }
 
   private async tick() {
@@ -53,24 +82,28 @@ export class LcuWatcher extends EventEmitter {
 
       if (!commandLine) {
         this.toDisconnected();
+        this.adjustPollingSpeed(false);
         return;
       }
 
       if (commandLine !== this.lastCommandLine) {
         this.lastCommandLine = commandLine;
         const parsed = this.parseCommandLine(commandLine);
-        
+
         if (!parsed) {
           logger.warn("[LCU] Impossible de parser les credentials de la ligne de commande");
           this.toDisconnected();
+          this.adjustPollingSpeed(false);
           return;
         }
 
         this.toConnected(parsed);
       }
+      this.adjustPollingSpeed(true);
     } catch (error) {
       logger.error("[LCU] Erreur lors du scan du processus", error);
       this.toDisconnected();
+      this.adjustPollingSpeed(false);
     } finally {
       this.isScanning = false;
     }

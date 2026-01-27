@@ -14,6 +14,7 @@ import type {
 } from "./types";
 import { errorMessages } from "./utils/errorMessages";
 import { trackRoomCreate, trackRoomJoin, trackGroupReroll } from "./analytics/tracker";
+import { presenceStore } from "./presence/presenceStore";
 
 const ROOMS_SERVER_URL = import.meta.env.VITE_ROOMS_SERVER_URL;
 const log = window.log;
@@ -96,9 +97,15 @@ class RoomsClient {
   // Normalized suggestion payload (handles both v1 senderName and v2 memberName)
   private suggestionListeners = new Set<(payload: { memberId: string; senderName: string; skinId: number; chromaId: number }) => void>();
 
-  // --- Identity/Presence System (Story 4.3) ---
+  // --- Identity/Presence System (Story 4.3, 4.8) ---
   private identitySocket: Socket | null = null;
   private identifiedPuuid: string | null = null;
+  // Stored LCU identity for re-identification on reconnect (Story 4.8)
+  private storedIdentity: {
+    puuid: string;
+    summonerName: string;
+    friends: string[];
+  } | null = null;
   private identityCallbacks: {
     onIdentityConfirmed?: (onlineFriends: string[]) => void;
     onFriendOnline?: (puuid: string, summonerName: string) => void;
@@ -470,30 +477,46 @@ class RoomsClient {
 
   /**
    * Connect to the server for identity/presence (independent of rooms)
+   * Handles automatic reconnection and re-identification (Story 4.8)
    */
   connectIdentity() {
     if (this.identitySocket) return;
 
     this.identitySocket = io(ROOMS_SERVER_URL, {
       autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
       query: {
         clientVersion: String(CLIENT_VERSION),
       },
     });
 
+    // Handler for EVERY connection (including reconnections)
     this.identitySocket.on("connect", () => {
       log.info("[roomsClient] Identity socket connected", {
         socketId: this.identitySocket?.id,
       });
+      presenceStore.setConnectionStatus("connected");
+
+      // Re-identify on reconnection if we have stored identity (Story 4.8)
+      if (this.storedIdentity) {
+        log.info("[roomsClient] Re-identifying after reconnection");
+        this.identitySocket?.emit("identify", this.storedIdentity);
+        this.identifiedPuuid = this.storedIdentity.puuid;
+      }
     });
 
     this.identitySocket.on("disconnect", (reason) => {
       log.warn("[roomsClient] Identity socket disconnected", { reason });
       this.identifiedPuuid = null;
+      presenceStore.setConnectionStatus("disconnected");
     });
 
     this.identitySocket.on("connect_error", (error) => {
       log.error("[roomsClient] Identity socket connection error", error);
+      presenceStore.setConnectionStatus("connecting");
     });
 
     // Identity event listeners
@@ -535,8 +558,12 @@ class RoomsClient {
 
   /**
    * Identify the current user to the server
+   * Stores identity for automatic re-identification on reconnection (Story 4.8)
    */
   identify(puuid: string, summonerName: string, friends: string[]) {
+    // Store identity for reconnection (Story 4.8)
+    this.storedIdentity = { puuid, summonerName, friends };
+
     if (!this.identitySocket) {
       this.connectIdentity();
     }
@@ -563,6 +590,8 @@ class RoomsClient {
       this.identitySocket.disconnect();
       this.identitySocket = null;
       this.identifiedPuuid = null;
+      this.storedIdentity = null;
+      presenceStore.setConnectionStatus("disconnected");
       log.info("[roomsClient] Identity socket disconnected");
     }
   }

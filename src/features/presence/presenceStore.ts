@@ -7,12 +7,15 @@
 
 import type { OnlineFriend } from "../types";
 
+export type SocketConnectionStatus = "connected" | "connecting" | "disconnected";
+
 type Listener = () => void;
 
 class PresenceStore {
   private onlineFriends = new Map<string, OnlineFriend>();
   private listeners = new Set<Listener>();
   private _isIdentified = false;
+  private _connectionStatus: SocketConnectionStatus = "disconnected";
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -42,6 +45,17 @@ class PresenceStore {
     this.notify();
   }
 
+  getConnectionStatus(): SocketConnectionStatus {
+    return this._connectionStatus;
+  }
+
+  setConnectionStatus(status: SocketConnectionStatus): void {
+    if (this._connectionStatus !== status) {
+      this._connectionStatus = status;
+      this.notify();
+    }
+  }
+
   setOnlineFriends(friends: OnlineFriend[]): void {
     this.onlineFriends.clear();
     for (const friend of friends) {
@@ -68,6 +82,7 @@ class PresenceStore {
   clear(): void {
     this.onlineFriends.clear();
     this._isIdentified = false;
+    this._connectionStatus = "disconnected";
     this.notify();
   }
 }
