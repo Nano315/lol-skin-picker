@@ -21,7 +21,6 @@ import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicato
 import { SyncProgressBar, SyncFlashOverlay } from "@/components/ui";
 import { useToast } from "@/features/hooks/useToast";
 import { trackSkinergy } from "@/features/analytics/tracker";
-import { useLcuIdentity } from "@/features/hooks/useLcuIdentity";
 import { useOnlineFriends } from "@/features/hooks/useOnlineFriends";
 import { OnlineFriendsList } from "@/components/social/OnlineFriendsList";
 
@@ -129,14 +128,8 @@ export function RoomsPage() {
   const summonerName = useSummonerName(status);
   const canUseRooms = isConnected && !!summonerName;
 
-  // Online friends (Story 4.4)
-  const lcuIdentity = useLcuIdentity(status);
-  const { onlineFriends } = useOnlineFriends(
-    lcuIdentity.puuid,
-    lcuIdentity.summonerName,
-    lcuIdentity.friends,
-    isConnected,
-  );
+  // Online friends (Story 4.4) - consumes global presenceStore
+  const { onlineFriends } = useOnlineFriends();
 
   const [copied, setCopied] = useState(false);
 

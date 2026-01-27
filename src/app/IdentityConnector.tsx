@@ -4,13 +4,17 @@ import { roomsClient } from "@/features/roomsClient";
 import { useLcuIdentity } from "@/features/hooks/useLcuIdentity";
 import { useConnection } from "@/features/hooks/useConnection";
 import { invitationStore, type Invitation } from "@/features/invitations/invitationStore";
+import { presenceStore } from "@/features/presence/presenceStore";
 
 /**
  * Global component that manages identity connection to the rooms server.
  * Mounted at the app level to ensure the user is always identified
  * as long as the LCU client is connected.
  *
- * This fixes the issue where users only appeared online when visiting /rooms.
+ * Handles:
+ * - Identity socket connection lifecycle
+ * - Presence events (friend-online/offline) -> presenceStore
+ * - Invitation events -> invitationStore
  */
 export function IdentityConnector() {
   const { status } = useConnection();
@@ -21,13 +25,40 @@ export function IdentityConnector() {
   const callbacksSetRef = useRef(false);
   // Track previous connection state to detect reconnections
   const wasConnectedRef = useRef(false);
+  // Keep friends ref updated for identity-confirmed lookup
+  const friendsRef = useRef(friends);
 
-  // Set up invite callbacks once at the global level
-  // This ensures invitations are always received regardless of which page the user is on
-  const setupInviteCallbacks = useCallback(() => {
+  useEffect(() => {
+    friendsRef.current = friends;
+  }, [friends]);
+
+  // Set up all callbacks once at the global level
+  const setupCallbacks = useCallback(() => {
     if (callbacksSetRef.current) return;
     callbacksSetRef.current = true;
 
+    // Identity/Presence callbacks -> presenceStore
+    roomsClient.setIdentityCallbacks({
+      onIdentityConfirmed: (onlinePuuids: string[]) => {
+        presenceStore.setIdentified(true);
+        // Resolve puuids to OnlineFriend objects using LCU friends list
+        const onlineFriends = onlinePuuids
+          .map((puuid) => {
+            const friend = friendsRef.current.find((f) => f.puuid === puuid);
+            return friend ? { puuid, summonerName: friend.name } : null;
+          })
+          .filter((f): f is { puuid: string; summonerName: string } => f !== null);
+        presenceStore.setOnlineFriends(onlineFriends);
+      },
+      onFriendOnline: (puuid: string, summonerName: string) => {
+        presenceStore.addFriend({ puuid, summonerName });
+      },
+      onFriendOffline: (puuid: string) => {
+        presenceStore.removeFriend(puuid);
+      },
+    });
+
+    // Invite callbacks -> invitationStore
     roomsClient.setInviteCallbacks({
       onInviteReceived: (fromPuuid: string, fromName: string, roomCode: string) => {
         const invitation: Invitation = {
@@ -58,14 +89,15 @@ export function IdentityConnector() {
   // Connect and identify when LCU is connected and we have identity
   useEffect(() => {
     // Set up callbacks first (only once)
-    setupInviteCallbacks();
+    setupCallbacks();
 
     // Check if we should connect
     if (!isConnected || !puuid || !summonerName) {
-      // Disconnect only if we were previously connected
+      // Disconnect and clear stores only if we were previously connected
       if (wasConnectedRef.current) {
         wasConnectedRef.current = false;
         roomsClient.disconnectIdentity();
+        presenceStore.clear();
       }
       return;
     }
@@ -78,7 +110,7 @@ export function IdentityConnector() {
 
     // No cleanup - we want to stay connected as long as the app is running
     // The connection will only be dropped when LCU disconnects (handled above)
-  }, [isConnected, puuid, summonerName, friends, setupInviteCallbacks]);
+  }, [isConnected, puuid, summonerName, friends, setupCallbacks]);
 
   // Re-identify when friends list changes (to update server-side friends list)
   useEffect(() => {
