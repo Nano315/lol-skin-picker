@@ -1,4 +1,5 @@
 import { api } from "@/features/api";
+import type { PrefKey } from "@/features/hooks/usePrefs";
 
 export default function OptionsPanel({
   includeDefault,
@@ -27,7 +28,7 @@ export default function OptionsPanel({
   setHistoryEnabled: (v: boolean) => void;
   historySize: number;
   setHistorySize: (v: number) => void;
-  savePref: (k: "includeDefault" | "autoRoll" | "performanceMode", v: boolean) => void;
+  savePref: (k: PrefKey, v: boolean) => void;
 }) {
   const onIncludeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.checked;

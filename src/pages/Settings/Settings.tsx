@@ -21,6 +21,7 @@ export default function Settings() {
   const [openAtLogin, setOpenAtLogin] = useState(false);
   const [historyEnabled, setHistoryEnabled] = useState(true);
   const [historySize, setHistorySize] = useState(5);
+  const [notificationSound, setNotificationSound] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -33,6 +34,7 @@ export default function Settings() {
       const incPref = read("includeDefault");
       const autoPref = read("autoRoll");
       const perfPref = read("performanceMode");
+      const soundPref = read("notificationSound");
 
       setIncludeDefault(incPref ?? incSrv);
       setAutoRoll(autoPref ?? autoSrv);
@@ -40,6 +42,8 @@ export default function Settings() {
       setOpenAtLogin(openAtLoginSrv);
       setHistoryEnabled(historySrv.historyEnabled);
       setHistorySize(historySrv.historySize);
+      // notificationSound defaults to true if not set
+      setNotificationSound(soundPref ?? true);
 
       if (incPref !== null && incPref !== incSrv) {
         void api.setIncludeDefault(incPref).catch(() => {});
@@ -92,6 +96,39 @@ export default function Settings() {
                 setHistorySize={setHistorySize}
                 savePref={save}
               />
+            </section>
+
+            <section className="card settings-card">
+              <div className="card-header">
+                <div>
+                  <p className="eyebrow">NOTIFICATIONS</p>
+                  <h2 className="card-title">Room Invitations</h2>
+                </div>
+              </div>
+              <div className="options-group">
+                <div className="option-row">
+                  <div className="option-info">
+                    <span className="option-label">Notification sound</span>
+                    <span className="option-desc">
+                      Play a sound when you receive a room invitation.
+                    </span>
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={notificationSound}
+                      onChange={(e) => {
+                        const v = e.target.checked;
+                        setNotificationSound(v);
+                        save("notificationSound", v);
+                      }}
+                    />
+                    <span className="track">
+                      <span className="thumb" />
+                    </span>
+                  </label>
+                </div>
+              </div>
             </section>
 
             <section className="card settings-card">

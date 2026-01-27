@@ -1,5 +1,6 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import fallbackIcon from "/fallback-icon.png?url";
+import { useInvitationBadgeCount } from "@/features/hooks/useInvitationQueue";
 
 export default function Header({
   status,
@@ -10,6 +11,10 @@ export default function Header({
   phase: string;
   iconId: number | null;
 }) {
+  const location = useLocation();
+  const invitationCount = useInvitationBadgeCount();
+  // Show badge only when not on /rooms page and there are pending invitations
+  const showBadge = invitationCount > 0 && location.pathname !== "/rooms";
   const iconUrl = iconId
     ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`
     : fallbackIcon;
@@ -41,8 +46,32 @@ export default function Header({
             className={({ isActive }) =>
               isActive ? "nav-link active" : "nav-link"
             }
+            style={{ position: "relative" }}
           >
             Rooms
+            {showBadge && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: "-4px",
+                  right: "-8px",
+                  minWidth: "18px",
+                  height: "18px",
+                  padding: "0 5px",
+                  background: "#ef4444",
+                  borderRadius: "9px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  animation: "pulse 2s ease-in-out infinite",
+                }}
+              >
+                {invitationCount}
+              </span>
+            )}
           </NavLink>
           <NavLink
             to="/priority"

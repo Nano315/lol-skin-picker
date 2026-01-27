@@ -75,7 +75,7 @@ export function RoomsPage() {
   const prevPhaseRef = useRef(phase);
   useEffect(() => {
     // Clear suggestions when phase changes from ChampSelect to something else
-    if (prevPhaseRef.current === 'ChampSelect' && phase !== 'ChampSelect') {
+    if (prevPhaseRef.current === "ChampSelect" && phase !== "ChampSelect") {
       clearSuggestions();
     }
     prevPhaseRef.current = phase;
@@ -84,14 +84,18 @@ export function RoomsPage() {
   // Track previous room members to clear suggestions when someone leaves
   const prevMemberIdsRef = useRef<string[]>([]);
   useEffect(() => {
-    const currentMemberIds = room?.members.map(m => m.id) ?? [];
+    const currentMemberIds = room?.members.map((m) => m.id) ?? [];
     const prevMemberIds = prevMemberIdsRef.current;
 
     // Check if any member left
-    const leftMembers = prevMemberIds.filter(id => !currentMemberIds.includes(id));
+    const leftMembers = prevMemberIds.filter(
+      (id) => !currentMemberIds.includes(id),
+    );
     if (leftMembers.length > 0 && Object.keys(suggestedColorsMap).length > 0) {
       // Clear suggestions from members who left
-      const hasLeftMemberSuggestion = leftMembers.some(id => suggestedColorsMap[id]);
+      const hasLeftMemberSuggestion = leftMembers.some(
+        (id) => suggestedColorsMap[id],
+      );
       if (hasLeftMemberSuggestion) {
         clearSuggestions();
       }
@@ -131,9 +135,8 @@ export function RoomsPage() {
     lcuIdentity.puuid,
     lcuIdentity.summonerName,
     lcuIdentity.friends,
-    isConnected
+    isConnected,
   );
-
 
   const [copied, setCopied] = useState(false);
 
@@ -229,7 +232,8 @@ export function RoomsPage() {
 
   // Calcul et envoi des skins possedes (Owned Options) - Parallelized with cache
   useEffect(() => {
-    if (!joined || !isConnected || !selection.championId || !skins?.length) return;
+    if (!joined || !isConnected || !selection.championId || !skins?.length)
+      return;
 
     let isMounted = true;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -237,7 +241,7 @@ export function RoomsPage() {
     async function computeOptionWithCache(
       championId: number,
       skinId: number,
-      chromaId: number
+      chromaId: number,
     ): Promise<GroupSkinOption | null> {
       // Check cache first
       const cached = colorCache.get(championId, skinId, chromaId);
@@ -260,7 +264,7 @@ export function RoomsPage() {
 
       setIsSyncing(true);
       setSyncProgress(0);
-      console.time('[Rooms] Sync duration');
+      console.time("[Rooms] Sync duration");
       console.log("[Rooms] Computing skin colors for synergy (parallel)...");
 
       try {
@@ -281,15 +285,23 @@ export function RoomsPage() {
           return;
         }
 
-        console.log(`[Rooms] Processing ${computations.length} skin/chroma combinations...`);
+        console.log(
+          `[Rooms] Processing ${computations.length} skin/chroma combinations...`,
+        );
         let completed = 0;
 
         // Process all computations in parallel
         const promises = computations.map(async ({ skinId, chromaId }) => {
-          const result = await computeOptionWithCache(selection.championId, skinId, chromaId);
+          const result = await computeOptionWithCache(
+            selection.championId,
+            skinId,
+            chromaId,
+          );
           completed++;
           if (isMounted) {
-            setSyncProgress(Math.round((completed / computations.length) * 100));
+            setSyncProgress(
+              Math.round((completed / computations.length) * 100),
+            );
           }
           return result;
         });
@@ -298,8 +310,11 @@ export function RoomsPage() {
         if (!isMounted) return;
 
         const options = results
-          .filter((r): r is PromiseFulfilledResult<GroupSkinOption | null> => r.status === 'fulfilled')
-          .map(r => r.value)
+          .filter(
+            (r): r is PromiseFulfilledResult<GroupSkinOption | null> =>
+              r.status === "fulfilled",
+          )
+          .map((r) => r.value)
           .filter((opt): opt is GroupSkinOption => opt !== null);
 
         setSkinOptions(options);
@@ -312,7 +327,7 @@ export function RoomsPage() {
           });
         }
       } finally {
-        console.timeEnd('[Rooms] Sync duration');
+        console.timeEnd("[Rooms] Sync duration");
         if (isMounted) {
           setIsSyncing(false);
           setSyncProgress(100);
@@ -327,13 +342,23 @@ export function RoomsPage() {
       isMounted = false;
       if (debounceTimer) clearTimeout(debounceTimer);
     };
-  }, [joined, selection.championId, selection.championAlias, isConnected, skins]);
+  }, [
+    joined,
+    selection.championId,
+    selection.championAlias,
+    isConnected,
+    skins,
+  ]);
 
   const activeRoomColor = useMemo(() => {
     if (!room?.synergy?.colors || !skinOptions.length) return undefined;
-    const currentOption = skinOptions.find(o => o.skinId === selection.skinId && o.chromaId === selection.chromaId);
+    const currentOption = skinOptions.find(
+      (o) => o.skinId === selection.skinId && o.chromaId === selection.chromaId,
+    );
     if (!currentOption?.auraColor) return undefined;
-    const synergy = room.synergy.colors.find(c => c.color === currentOption.auraColor);
+    const synergy = room.synergy.colors.find(
+      (c) => c.color === currentOption.auraColor,
+    );
     return synergy ? synergy.color : undefined;
   }, [room, skinOptions, selection.skinId, selection.chromaId]);
 
@@ -363,19 +388,7 @@ export function RoomsPage() {
               onRetry={canRetry ? retry : undefined}
             />
             <div className="bento-grid rooms-bento">
-              {!isConnected && (
-                <p className="rooms-warning">
-                  Connect your League of Legends client to use rooms.
-                </p>
-              )}
-
-              {isConnected && !summonerName && (
-                <p className="rooms-warning">
-                  Fetching your summoner name from the client...
-                </p>
-              )}
-
-              {error && error.code !== 'NETWORK_ERROR' && (
+              {error && error.code !== "NETWORK_ERROR" && (
                 <div className="rooms-error-block">
                   <p className="rooms-error-message">{error.message}</p>
                   {canRetry && (
@@ -407,7 +420,7 @@ export function RoomsPage() {
                   onClick={() => summonerName && create(summonerName)}
                   disabled={!canUseRooms || isLoading}
                 >
-                  {isLoading ? 'Creating...' : 'Create room'}
+                  {isLoading ? "Creating..." : "Create room"}
                 </button>
               </section>
 
@@ -438,7 +451,7 @@ export function RoomsPage() {
                     }
                     disabled={!canUseRooms || !code.trim() || isLoading}
                   >
-                    {isLoading ? 'Joining...' : 'Join room'}
+                    {isLoading ? "Joining..." : "Join room"}
                   </button>
                 </div>
               </section>
@@ -497,18 +510,25 @@ export function RoomsPage() {
 
               <div className="rooms-members-row">
                 {orderedSlots.map(({ member, slotIndex }) => {
-                  const suggestion = member ? suggestedColorsMap[member.id] : undefined;
+                  const suggestion = member
+                    ? suggestedColorsMap[member.id]
+                    : undefined;
 
                   const handleApplySuggestion = () => {
-                     if (!suggestion || !room || !member) return;
-                     (async () => {
-                        const color = await computeChromaColor({
-                           championId: member.championId,
-                           skinId: suggestion.skinId,
-                           chromaId: suggestion.chromaId
+                    if (!suggestion || !room || !member) return;
+                    (async () => {
+                      const color = await computeChromaColor({
+                        championId: member.championId,
+                        skinId: suggestion.skinId,
+                        chromaId: suggestion.chromaId,
+                      });
+                      if (color)
+                        roomsClient.requestGroupReroll({
+                          type: "sameColor",
+                          color,
+                          sourceMemberId: member.id,
                         });
-                        if (color) roomsClient.requestGroupReroll({ type: "sameColor", color, sourceMemberId: member.id });
-                     })();
+                    })();
                   };
 
                   return (
@@ -516,15 +536,22 @@ export function RoomsPage() {
                       key={member?.id ?? `empty-${slotIndex}`}
                       member={member ?? undefined}
                       slotIndex={slotIndex}
-                      suggestedSkinId={isOwner && suggestion ? suggestion.skinId : undefined}
-                      suggestedChromaId={isOwner && suggestion ? suggestion.chromaId : undefined}
-                      onApplySuggestion={isOwner && suggestion ? handleApplySuggestion : undefined}
+                      suggestedSkinId={
+                        isOwner && suggestion ? suggestion.skinId : undefined
+                      }
+                      suggestedChromaId={
+                        isOwner && suggestion ? suggestion.chromaId : undefined
+                      }
+                      onApplySuggestion={
+                        isOwner && suggestion
+                          ? handleApplySuggestion
+                          : undefined
+                      }
                     />
                   );
                 })}
               </div>
             </section>
-
 
             <section className="card rooms-actions-card">
               <div className="card-header rooms-card-header">
@@ -535,7 +562,10 @@ export function RoomsPage() {
               </div>
               <div className="rooms-actions-body">
                 {isSyncing && (
-                  <SyncProgressBar progress={syncProgress} label="Computing synergies..." />
+                  <SyncProgressBar
+                    progress={syncProgress}
+                    label="Computing synergies..."
+                  />
                 )}
                 <ControlBar
                   phase={phase}
