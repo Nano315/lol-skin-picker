@@ -16,6 +16,8 @@ class PresenceStore {
   private listeners = new Set<Listener>();
   private _isIdentified = false;
   private _connectionStatus: SocketConnectionStatus = "disconnected";
+  // Cached array for useSyncExternalStore (must return stable reference)
+  private _cachedFriendsArray: OnlineFriend[] = [];
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -23,13 +25,15 @@ class PresenceStore {
   }
 
   private notify(): void {
+    // Update cached array when data changes
+    this._cachedFriendsArray = Array.from(this.onlineFriends.values());
     for (const listener of this.listeners) {
       listener();
     }
   }
 
   getOnlineFriends(): OnlineFriend[] {
-    return Array.from(this.onlineFriends.values());
+    return this._cachedFriendsArray;
   }
 
   getOnlineFriendCount(): number {
