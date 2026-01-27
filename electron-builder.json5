@@ -98,7 +98,7 @@
   /* ------------------------------------------------------------------ */
 
   extraMetadata: {
-    version: "7.1.1",
+    version: "7.1.2",
     description: "Applique automatiquement un skin/chroma aleatoire durant la phase de selection de champion de League of Legends.",
   },
   extraResources: [
