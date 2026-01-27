@@ -58,7 +58,7 @@ export function IdentityConnector() {
       },
     });
 
-    // Invite callbacks -> invitationStore
+    // Invite callbacks -> invitationStore (Story 4.10: centralized ALL callbacks here)
     roomsClient.setInviteCallbacks({
       onInviteReceived: (fromPuuid: string, fromName: string, roomCode: string) => {
         const invitation: Invitation = {
@@ -82,6 +82,12 @@ export function IdentityConnector() {
             // Ignore errors
           }
         }
+      },
+      onInviteSent: (targetPuuid: string) => {
+        invitationStore.recordSentInvite(targetPuuid);
+      },
+      onInviteFailed: (reason) => {
+        invitationStore.recordFailedInvite(null, reason);
       },
     });
   }, []);
