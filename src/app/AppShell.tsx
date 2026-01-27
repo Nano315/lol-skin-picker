@@ -4,6 +4,7 @@ import { useSyncPrefsWithBackend } from "@/features/hooks/useSyncPrefsWithBacken
 import MascotsLayer from "@/components/overlays/MascotsLayer";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { RoomsClientConnector } from "./RoomsClientConnector";
+import { IdentityConnector } from "./IdentityConnector";
 import { TelemetryConsentModal } from "@/components/TelemetryConsentModal";
 import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
 import { isFirstLaunch } from "@/features/api";
@@ -120,6 +121,7 @@ export default function AppShell() {
         />
       )}
       <RoomsClientConnector />
+      <IdentityConnector />
       <div>
         <RouterProvider router={router} />
         <MascotsLayer />

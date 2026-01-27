@@ -5,7 +5,11 @@ import type { LcuFriend, OnlineFriend } from "../types";
 
 /**
  * Hook to track which friends are currently online.
- * Integrates with the identity handshake system (Story 4.3).
+ * Listens to identity events from roomsClient.
+ *
+ * NOTE: The actual connection and identification is now handled by
+ * IdentityConnector at the app level. This hook only manages the
+ * UI state for displaying online friends.
  *
  * @param puuid - Current user's PUUID (from useLcuIdentity)
  * @param summonerName - Current user's summoner name
@@ -63,48 +67,42 @@ export function useOnlineFriends(
     setOnlineFriends((prev) => prev.filter((f) => f.puuid !== friendPuuid));
   }, []);
 
+  // Set up callbacks to listen for identity events
+  // NOTE: We don't manage connection here anymore - IdentityConnector does that
   useEffect(() => {
     // Reset state when disconnected or no identity
     if (!isConnected || !puuid || !summonerName) {
       setOnlineFriends([]);
       setIsIdentified(false);
-      roomsClient.disconnectIdentity();
       return;
     }
 
-    // Set up callbacks
+    // Set up callbacks to receive identity events
     roomsClient.setIdentityCallbacks({
       onIdentityConfirmed: handleIdentityConfirmed,
       onFriendOnline: handleFriendOnline,
       onFriendOffline: handleFriendOffline,
     });
 
-    // Connect and identify
-    roomsClient.connectIdentity();
-    const friendPuuids = friends.map((f) => f.puuid);
-    roomsClient.identify(puuid, summonerName, friendPuuids);
+    // Check if already identified (connection managed by IdentityConnector)
+    if (roomsClient.isIdentified()) {
+      setIsIdentified(true);
+    }
 
-    // Cleanup on unmount or dependency change
+    // NO cleanup that disconnects - IdentityConnector manages the connection lifecycle
+    // We only clean up the callbacks to prevent stale references
     return () => {
-      roomsClient.setIdentityCallbacks({});
+      // Don't clear callbacks on unmount - let IdentityConnector manage the lifecycle
+      // This prevents the flickering when navigating between pages
     };
   }, [
     isConnected,
     puuid,
     summonerName,
-    friends,
     handleIdentityConfirmed,
     handleFriendOnline,
     handleFriendOffline,
   ]);
-
-  // Re-identify when friends list changes (to update server-side friends list)
-  useEffect(() => {
-    if (!isIdentified || !puuid || !summonerName || !isConnected) return;
-
-    const friendPuuids = friends.map((f) => f.puuid);
-    roomsClient.identify(puuid, summonerName, friendPuuids);
-  }, [friends, isIdentified, puuid, summonerName, isConnected]);
 
   return {
     onlineFriends,
