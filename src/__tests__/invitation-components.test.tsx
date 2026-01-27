@@ -1,5 +1,5 @@
 // src/__tests__/invitation-components.test.tsx
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { InvitationModal } from "../components/social/InvitationModal";
 import { invitationStore, type Invitation } from "../features/invitations/invitationStore";
