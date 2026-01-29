@@ -95,7 +95,7 @@ export default function Header({
 
       {/* Bloc droit : etat + avatar */}
       <div className="connection">
-        <SocketConnectionIndicator />
+        {status === "connected" && <SocketConnectionIndicator />}
         <div className="state">{connectionLabel()}</div>
         {iconUrl && <img src={iconUrl} alt="summoner" className="avatar" />}
       </div>

@@ -1,7 +1,13 @@
 /* OnlineFriendsList.module.css */
 .container {
-  grid-column: span 12;
+  grid-column: span 6;
   min-height: 120px;
+}
+
+@media (max-width: 960px) {
+  .container {
+    grid-column: span 12;
+  }
 }
 
 .header {
@@ -25,8 +31,8 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 280px;
+  gap: 10px;
+  max-height: 320px;
   overflow-y: auto;
 }
 

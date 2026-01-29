@@ -74,7 +74,7 @@ export function IdentityConnector() {
         const soundEnabled = localStorage.getItem("pref-notificationSound");
         if (soundEnabled !== "false") {
           try {
-            const sound = new Audio("/sounds/notification.mp3");
+            const sound = new Audio("./sounds/notification.mp3");
             sound.play().catch(() => {
               // Ignore autoplay restrictions
             });
