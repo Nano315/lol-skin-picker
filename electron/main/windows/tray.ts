@@ -31,6 +31,13 @@ function getAutoUpdater(): AutoUpdater | null {
   try {
     ({ autoUpdater } =
       require("electron-updater") as typeof import("electron-updater"));
+
+    // Beta channel: read updateChannel injected by electron-builder extraMetadata
+    const pkg = require("../../package.json");
+    if (pkg.updateChannel === "beta") {
+      autoUpdater.channel = "beta";
+    }
+
     return autoUpdater;
   } catch (err) {
     console.error("[Updater] electron-updater not available:", err);

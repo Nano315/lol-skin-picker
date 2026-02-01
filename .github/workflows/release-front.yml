@@ -40,26 +40,31 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
 
-      # Detect if this is a beta release and patch electron-builder config
-      - name: Detect beta and configure release type
+      # Detect if this is a beta release and set env vars
+      - name: Detect beta
         shell: bash
         run: |
           if [[ "$VERSION" == *-beta.* ]]; then
             echo "IS_BETA=true" >> "$GITHUB_ENV"
-            node -e "
-              const fs = require('fs');
-              const cfg = fs.readFileSync('electron-builder.json5','utf-8');
-              const patched = cfg.replace('\"releaseType\": \"release\"', '\"releaseType\": \"prerelease\"');
-              fs.writeFileSync('electron-builder.json5', patched);
-            "
+            echo "VITE_MODE=staging" >> "$GITHUB_ENV"
+          else
+            echo "IS_BETA=false" >> "$GITHUB_ENV"
+            echo "VITE_MODE=production" >> "$GITHUB_ENV"
           fi
 
-      # Build: tsc + vite
+      # Build: tsc + vite (--mode staging for beta, production for stable)
       - name: Build renderer and main
-        run: npx tsc && npx vite build
+        run: npx tsc && npx vite build --mode ${{ env.VITE_MODE }}
 
       # Publish release via electron-builder
-      - name: Publish release
+      - name: Publish release (stable)
+        if: env.IS_BETA == 'false'
         run: npx electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish release (beta)
+        if: env.IS_BETA == 'true'
+        run: npx electron-builder --publish always -c.publish.releaseType=prerelease -c.extraMetadata.updateChannel=beta
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
