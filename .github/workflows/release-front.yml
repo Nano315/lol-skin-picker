@@ -1,0 +1,65 @@
+# .github/workflows/release-front.yml
+name: Release Frontend
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - run: npm ci
+      - run: npm test
+
+  build-and-release:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - run: npm ci
+
+      # Extract version from git tag (v7.2.0 → 7.2.0) and inject into package.json
+      - name: Set version from tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+
+      # Detect if this is a beta release
+      - name: Detect beta
+        shell: bash
+        run: |
+          if [[ "$VERSION" == *-beta.* ]]; then
+            echo "IS_BETA=true" >> "$GITHUB_ENV"
+          else
+            echo "IS_BETA=false" >> "$GITHUB_ENV"
+          fi
+
+      # Build: tsc + vite
+      - name: Build renderer and main
+        run: npx tsc && npx vite build
+
+      # Publish release via electron-builder
+      - name: Publish stable release
+        if: env.IS_BETA == 'false'
+        run: npx electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish beta pre-release
+        if: env.IS_BETA == 'true'
+        run: npx electron-builder --publish always -c.publish.releaseType=prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
