@@ -1,11 +1,17 @@
 import { defineConfig } from "vite";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 import electron from "vite-plugin-electron/simple";
 import react from "@vitejs/plugin-react";
+
+const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
 
 // https://vitejs.dev/config/
 export default defineConfig({
   base: "./",
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   plugins: [
     react(),
     electron({
