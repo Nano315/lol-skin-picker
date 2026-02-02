@@ -40,40 +40,46 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
 
-      # Detect if this is a beta release and patch electron-builder config
+      # Detect if this is a beta release and write a dedicated beta config
       - name: Detect beta and configure
         shell: bash
         run: |
           if [[ "$VERSION" == *-beta.* ]]; then
             echo "IS_BETA=true" >> "$GITHUB_ENV"
             echo "VITE_MODE=staging" >> "$GITHUB_ENV"
-            node -e "
-              const fs = require('fs');
-              let cfg = fs.readFileSync('electron-builder.json5','utf-8');
-              cfg = cfg.replace('\"releaseType\": \"release\"', '\"releaseType\": \"prerelease\"');
-              cfg = cfg.replace(
-                /extraMetadata:\s*\{/,
-                'extraMetadata: {\n    updateChannel: \"beta\",\n    name: \"lol-skin-picker-beta\",\n    productName: \"LoL Skin Picker [BETA]\",'
-              );
-              // --- Story 5.4: Beta app identity separation ---
-              cfg = cfg.replace(
-                'appId: \"com.dumas.lolskinpicker\"',
-                'appId: \"com.dumas.lolskinpicker.beta\"'
-              );
-              cfg = cfg.replace(
-                'productName: \"LoL Skin Picker\"',
-                'productName: \"LoL Skin Picker [BETA]\"'
-              );
-              cfg = cfg.replace(
-                'icon: \"public/icon.ico\"',
-                'icon: \"public/icon-beta.ico\"'
-              );
-              cfg = cfg.replace(
-                'from: \"public/icon.ico\"',
-                'from: \"public/icon-beta.ico\"'
-              );
-              fs.writeFileSync('electron-builder.json5', cfg);
-            "
+            cat > electron-builder.json5 << 'BETAEOF'
+          {
+            "appId": "com.dumas.lolskinpicker.beta",
+            "productName": "LoL Skin Picker Beta",
+            "publish": [{ "provider": "github", "owner": "Nano315", "repo": "lol-skin-picker", "releaseType": "prerelease" }],
+            "asar": true,
+            "directories": { "output": "dist" },
+            "files": ["dist/**", "dist-electron/**", "node_modules/**", "package.json"],
+            "win": {
+              "icon": "public/icon-beta.ico",
+              "target": [{ "target": "nsis", "arch": ["x64"] }],
+              "artifactName": "${productName}-Setup-${version}.${ext}"
+            },
+            "nsis": {
+              "oneClick": true,
+              "perMachine": false,
+              "deleteAppDataOnUninstall": false
+            },
+            "extraMetadata": {
+              "name": "lol-skin-picker-beta",
+              "productName": "LoL Skin Picker Beta",
+              "updateChannel": "beta",
+              "description": "Applique automatiquement un skin/chroma aleatoire durant la phase de selection de champion de League of Legends."
+            },
+            "extraResources": [
+              { "from": "public/icon-beta.ico", "to": "icon.ico" },
+              { "from": "public/fallback-icon.png", "to": "assets/fallback-icon.png" },
+              { "from": "public/fallback-skin.png", "to": "assets/fallback-skin.png" }
+            ]
+          }
+          BETAEOF
+            echo "--- Beta config written ---"
+            cat electron-builder.json5
           else
             echo "IS_BETA=false" >> "$GITHUB_ENV"
             echo "VITE_MODE=production" >> "$GITHUB_ENV"
