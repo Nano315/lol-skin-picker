@@ -55,6 +55,23 @@ jobs:
                 /extraMetadata:\s*\{/,
                 'extraMetadata: {\n    updateChannel: \"beta\",'
               );
+              // --- Story 5.4: Beta app identity separation ---
+              cfg = cfg.replace(
+                'appId: \"com.dumas.lolskinpicker\"',
+                'appId: \"com.dumas.lolskinpicker.beta\"'
+              );
+              cfg = cfg.replace(
+                'productName: \"LoL Skin Picker\"',
+                'productName: \"LoL Skin Picker [BETA]\"'
+              );
+              cfg = cfg.replace(
+                'icon: \"public/icon.ico\"',
+                'icon: \"public/icon-beta.ico\"'
+              );
+              cfg = cfg.replace(
+                'from: \"public/icon.ico\"',
+                'from: \"public/icon-beta.ico\"'
+              );
               fs.writeFileSync('electron-builder.json5', cfg);
             "
           else
