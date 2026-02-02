@@ -156,7 +156,7 @@ if (!gotTheLock) {
     logger.info("[App] Application prete, initialisation des services");
     registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
     wireDomainEvents();
-    updaterHooks();
+    updaterHooks(getMainWindow);
 
     await createWindowWithPrefs();
 

@@ -16,6 +16,7 @@ let manualUpdateRequested = false;
 // Type util pour autoUpdater
 type AutoUpdater = typeof import("electron-updater")["autoUpdater"];
 let autoUpdater: AutoUpdater | null = null;
+let isBetaChannel = false;
 
 /**
  * Charge electron-updater uniquement en prod, et de façon safe.
@@ -36,6 +37,7 @@ function getAutoUpdater(): AutoUpdater | null {
     const pkg = require("../../package.json");
     if (pkg.updateChannel === "beta") {
       autoUpdater.channel = "beta";
+      isBetaChannel = true;
     }
 
     return autoUpdater;
@@ -57,6 +59,16 @@ function getTrayIconPath() {
     console.warn("[Tray] Not found (dev):", p);
     return "";
   }
+}
+
+/** Helper: show message box parented to the main window (stays on top) */
+function showMsg(
+  getWin: () => Electron.BrowserWindow | null,
+  opts: Electron.MessageBoxOptions,
+) {
+  const parent = getWin();
+  if (parent) return dialog.showMessageBox(parent, opts);
+  return dialog.showMessageBox(opts);
 }
 
 export function setupTray(getWin: () => Electron.BrowserWindow | null) {
@@ -86,28 +98,28 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
     }
   };
 
-    const manualCheckForUpdates = () => {
-      const au = getAutoUpdater();
+  const manualCheckForUpdates = () => {
+    const au = getAutoUpdater();
 
-      if (!au) {
-        dialog.showMessageBox({
-          type: "info",
-          message: app.isPackaged
-            ? "Auto-update unavailable."
-            : "Updates unavailable in dev",
-        });
-        return;
-      }
+    if (!au) {
+      showMsg(getWin, {
+        type: "info",
+        message: app.isPackaged
+          ? "Auto-update unavailable."
+          : "Updates unavailable in dev",
+      });
+      return;
+    }
 
-      manualUpdateRequested = true;
-      au
-        .checkForUpdates()
-        .catch((err: unknown) => {
-          const message = err instanceof Error ? err.message : String(err);
-          dialog.showErrorBox("Update error", message);
-          manualUpdateRequested = false;
-        });
-    };
+    manualUpdateRequested = true;
+    au
+      .checkForUpdates()
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        dialog.showErrorBox("Update error", message);
+        manualUpdateRequested = false;
+      });
+  };
 
   const refreshTrayMenu = () => {
     const w = getWin();
@@ -127,24 +139,32 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
   tray.on("double-click", toggleWindow);
   refreshTrayMenu();
 
-    // petite API interne
-    const trayApi = setupTray as typeof setupTray & { refresh?: () => void };
-    trayApi.refresh = refreshTrayMenu;
-  }
+  // petite API interne
+  const trayApi = setupTray as typeof setupTray & { refresh?: () => void };
+  trayApi.refresh = refreshTrayMenu;
+}
 
-export function updaterHooks() {
+export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
   const au = getAutoUpdater();
   if (!au) return;
 
   au.on("checking-for-update", () => {
     if (manualUpdateRequested) {
-      dialog.showMessageBox({ type: "info", message: "Checking for updates…" });
+      showMsg(getWin, { type: "info", message: "Checking for updates…" });
     }
   });
 
-    au.on("update-available", (info: UpdateInfo) => {
+  au.on("update-available", (info: UpdateInfo) => {
+    // Guard: if beta app, reject stable updates (semver: 7.2.3 > 7.2.3-beta.1
+    // but we must NOT cross-update between beta and prod installers)
+    if (isBetaChannel && !info.version.includes("-")) {
+      console.log(`[Updater] Ignoring stable update ${info.version} (beta channel)`);
+      manualUpdateRequested = false;
+      return;
+    }
+
     if (manualUpdateRequested) {
-      dialog.showMessageBox({
+      showMsg(getWin, {
         type: "info",
         message: "Update available",
         detail: `Version ${info.version} is being downloaded in the background.`,
@@ -154,7 +174,7 @@ export function updaterHooks() {
 
   au.on("update-not-available", () => {
     if (manualUpdateRequested) {
-      dialog.showMessageBox({
+      showMsg(getWin, {
         type: "info",
         message: "You're up to date",
         detail: `Current version: ${app.getVersion()}`,
@@ -163,35 +183,33 @@ export function updaterHooks() {
     }
   });
 
-    au.on("download-progress", (p: ProgressInfo) => {
-      console.log(`[Updater] ${Math.round(p.percent)} %`);
-    });
+  au.on("download-progress", (p: ProgressInfo) => {
+    console.log(`[Updater] ${Math.round(p.percent)} %`);
+  });
 
-    au.on("update-downloaded", (info: UpdateDownloadedEvent) => {
-      // Reset manual flag if it was set
-      manualUpdateRequested = false;
+  au.on("update-downloaded", (info: UpdateDownloadedEvent) => {
+    // Reset manual flag if it was set
+    manualUpdateRequested = false;
 
-      // ALWAYS show dialog when update is ready (AC: 3, 4)
-      // User can choose to install now or later
-      console.log(`[Updater] Update downloaded: v${info.version}`);
-      dialog
-        .showMessageBox({
-          type: "question",
-          buttons: ["Install and Restart", "Later"],
-          defaultId: 0,
-          cancelId: 1,
-          message: "Update ready",
-          detail: `Version ${info.version} has been downloaded.\n\nClick "Install and Restart" to update now, or "Later" to install on next restart.`,
-        })
-        .then(({ response }) => {
-          if (response === 0) {
-            au.quitAndInstall();
-          } else {
-            console.log("[Updater] User chose 'Later' – will install on quit");
-          }
-        });
+    // ALWAYS show dialog when update is ready (AC: 3, 4)
+    // User can choose to install now or later
+    console.log(`[Updater] Update downloaded: v${info.version}`);
+    showMsg(getWin, {
+      type: "question",
+      buttons: ["Install and Restart", "Later"],
+      defaultId: 0,
+      cancelId: 1,
+      message: "Update ready",
+      detail: `Version ${info.version} has been downloaded.\n\nClick "Install and Restart" to update now, or "Later" to install on next restart.`,
+    }).then(({ response }) => {
+      if (response === 0) {
+        au.quitAndInstall();
+      } else {
+        console.log("[Updater] User chose 'Later' – will install on quit");
+      }
     });
-  }
+  });
+}
 
 // Export getAutoUpdater for use in app.ts (auto-update checks)
 export { getAutoUpdater };
