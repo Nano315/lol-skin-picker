@@ -53,7 +53,7 @@ jobs:
               cfg = cfg.replace('\"releaseType\": \"release\"', '\"releaseType\": \"prerelease\"');
               cfg = cfg.replace(
                 /extraMetadata:\s*\{/,
-                'extraMetadata: {\n    updateChannel: \"beta\",'
+                'extraMetadata: {\n    updateChannel: \"beta\",\n    name: \"lol-skin-picker-beta\",\n    productName: \"LoL Skin Picker [BETA]\",'
               );
               // --- Story 5.4: Beta app identity separation ---
               cfg = cfg.replace(
