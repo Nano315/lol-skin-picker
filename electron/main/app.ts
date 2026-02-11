@@ -7,6 +7,7 @@ import {
 } from "../services/lcuWatcher";
 import { GameflowService } from "../services/gameflow.service";
 import { SkinsService } from "../services/skins.service";
+import { skinLineService } from "../services/skinLineService";
 import { logger } from "../logger";
 
 import { createMainWindow, getMainWindow } from "./windows/mainWindow";
@@ -154,6 +155,10 @@ if (!gotTheLock) {
 
   app.whenReady().then(async () => {
     logger.info("[App] Application prete, initialisation des services");
+
+    // Initialize skin line service (Story 6.1) - fetches CDragon data if cache expired
+    await skinLineService.initialize();
+
     registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
     wireDomainEvents();
     updaterHooks(getMainWindow);

@@ -1,5 +1,6 @@
 import type { OwnedSkin } from "../services/skins.service";
 import type { LcuFriend, LcuIdentity } from "../services/lcuWatcher";
+import type { SkinLineInfo } from "../services/skinLineService";
 
 export {};
 
@@ -14,6 +15,17 @@ declare global {
       // Identity & Friends
       getIdentity: () => Promise<LcuIdentity | null>;
       getFriends: () => Promise<LcuFriend[] | null>;
+
+      // Skin Lines (Story 6.1)
+      getSkinLine: (skinId: number) => Promise<SkinLineInfo | null>;
+      getSkinLines: () => Promise<SkinLineInfo[]>;
+
+      // Chroma Color (fixes CORS)
+      getChromaColor: (params: {
+        championId: number;
+        skinId: number;
+        chromaId: number;
+      }) => Promise<string | null>;
 
       getSummonerIcon: () => Promise<number>;
       onSummonerIcon: (cb: (id: number) => void) => Unsub;

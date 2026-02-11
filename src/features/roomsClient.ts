@@ -73,7 +73,9 @@ export type RoomState = {
 export type GroupSkinOption = {
   skinId: number;
   chromaId: number; // 0 = sans chroma
-  auraColor: string | null; // EXACTEMENT la couleur utilisee pour l’aura côte front
+  auraColor: string | null; // EXACTEMENT la couleur utilisee pour l'aura côte front
+  skinLineId?: number; // Story 6.1: skin line ID for synergy matching
+  skinLineName?: string; // Story 6.1: skin line name for display
 };
 
 export type OwnedOptionsPayload = {

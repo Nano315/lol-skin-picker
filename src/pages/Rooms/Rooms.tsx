@@ -236,20 +236,29 @@ export function RoomsPage() {
       skinId: number,
       chromaId: number,
     ): Promise<GroupSkinOption | null> {
-      // Check cache first
-      const cached = colorCache.get(championId, skinId, chromaId);
-      if (cached) {
-        return { skinId, chromaId, auraColor: cached };
-      }
+      // Check color cache first
+      const cachedColor = colorCache.get(championId, skinId, chromaId);
 
-      // Compute and cache
-      const color = await computeChromaColor({ championId, skinId, chromaId });
-      if (color) {
+      // Fetch skin line info and color in parallel for performance (Story 6.1)
+      const [color, skinLineInfo] = await Promise.all([
+        cachedColor
+          ? Promise.resolve(cachedColor)
+          : computeChromaColor({ championId, skinId, chromaId }),
+        window.lcu.getSkinLine(skinId),
+      ]);
+
+      // Cache the color if it was computed
+      if (color && !cachedColor) {
         colorCache.set(championId, skinId, chromaId, color);
-        return { skinId, chromaId, auraColor: color };
       }
 
-      return { skinId, chromaId, auraColor: null };
+      return {
+        skinId,
+        chromaId,
+        auraColor: color ?? null,
+        skinLineId: skinLineInfo?.id,
+        skinLineName: skinLineInfo?.name,
+      };
     }
 
     async function computeAndSend() {

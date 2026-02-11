@@ -2,6 +2,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { OwnedSkin } from "../services/skins.service";
 import type { LcuFriend, LcuIdentity } from "../services/lcuWatcher";
+import type { SkinLineInfo } from "../services/skinLineService";
 
 const logApi = {
   info: (...args: any[]) => ipcRenderer.invoke("log-message", "info", ...args),
@@ -22,6 +23,14 @@ const api = {
   /* Identity & Friends */
   getIdentity: () => ipcRenderer.invoke("lcu:getIdentity") as Promise<LcuIdentity | null>,
   getFriends: () => ipcRenderer.invoke("lcu:getFriends") as Promise<LcuFriend[] | null>,
+
+  /* Skin Lines (Story 6.1) */
+  getSkinLine: (skinId: number) => ipcRenderer.invoke("lcu:getSkinLine", skinId) as Promise<SkinLineInfo | null>,
+  getSkinLines: () => ipcRenderer.invoke("lcu:getSkinLines") as Promise<SkinLineInfo[]>,
+
+  /* Chroma Color (fixes CORS) */
+  getChromaColor: (params: { championId: number; skinId: number; chromaId: number }) =>
+    ipcRenderer.invoke("lcu:getChromaColor", params) as Promise<string | null>,
 
   /* Summoner Icon */
   getSummonerIcon: () => ipcRenderer.invoke("get-summoner-icon"),
