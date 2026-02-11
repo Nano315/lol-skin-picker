@@ -73,8 +73,8 @@ export function InvitationModal({
 
         <div className={styles.body}>
           <p className={styles.message}>
-            <span className={styles.playerName}>{invitation.fromName}</span> vous
-            invite à rejoindre sa room !
+            <span className={styles.playerName}>{invitation.fromName}</span> invites
+            you to join their room!
           </p>
         </div>
 
@@ -83,14 +83,14 @@ export function InvitationModal({
             className={`${styles.button} ${styles.dismissButton}`}
             onClick={handleDismiss}
           >
-            Ignorer
+            Dismiss
           </button>
           <button
             className={`${styles.button} ${styles.acceptButton}`}
             onClick={handleAccept}
             disabled={isAccepting}
           >
-            {isAccepting ? "..." : "Rejoindre"}
+            {isAccepting ? "..." : "Join"}
           </button>
         </div>
 

@@ -26,11 +26,11 @@ describe("InvitationModal", () => {
     );
 
     expect(screen.getByText("TestPlayer")).toBeInTheDocument();
-    expect(screen.getByText(/vous invite à rejoindre/)).toBeInTheDocument();
+    expect(screen.getByText(/invites you to join/)).toBeInTheDocument();
     expect(screen.getByText("Invitation")).toBeInTheDocument();
   });
 
-  it("calls onAccept when Rejoindre button is clicked", () => {
+  it("calls onAccept when Join button is clicked", () => {
     const onAccept = vi.fn();
     const onDismiss = vi.fn();
 
@@ -42,11 +42,11 @@ describe("InvitationModal", () => {
       />
     );
 
-    fireEvent.click(screen.getByText("Rejoindre"));
+    fireEvent.click(screen.getByText("Join"));
     expect(onAccept).toHaveBeenCalledTimes(1);
   });
 
-  it("calls onDismiss when Ignorer button is clicked", async () => {
+  it("calls onDismiss when Dismiss button is clicked", async () => {
     const onAccept = vi.fn();
     const onDismiss = vi.fn();
 
@@ -58,7 +58,7 @@ describe("InvitationModal", () => {
       />
     );
 
-    fireEvent.click(screen.getByText("Ignorer"));
+    fireEvent.click(screen.getByText("Dismiss"));
 
     // Wait for exit animation (200ms)
     await act(async () => {

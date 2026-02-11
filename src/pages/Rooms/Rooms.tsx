@@ -115,7 +115,7 @@ export function RoomsPage() {
       showToast({
         type: isMySuggestion ? "success" : "info",
         message: isMySuggestion
-          ? "Ta suggestion a été acceptée!"
+          ? "Your suggestion was accepted!"
           : "Team syncing on color!",
         duration: 3000,
       });

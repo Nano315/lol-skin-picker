@@ -238,9 +238,9 @@ export default function ControlBar({
                   className={`${styles.colorOption} ${styles.ownerSyncButton} ${isThisSyncing ? styles.ownerSyncing : ""} ${isThisSuccess ? styles.ownerSyncSuccess : ""}`}
                   style={{ "--opt-color": c.color } as React.CSSProperties}
                   onClick={() => handleImmediateSync(c.color)}
-                  title={`Cliquez pour synchroniser l'équipe sur cette couleur (${c.combinationCount} combinaisons)`}
+                  title={`Click to sync the team on this color (${c.combinationCount} combinations)`}
                   disabled={!!syncingColor || isSyncing}
-                  aria-label={`Synchroniser l'équipe sur ${c.color}`}
+                  aria-label={`Sync team on ${c.color}`}
                 >
                   {isThisSyncing ? (
                     <FontAwesomeIcon icon={faSpinner} spin className={styles.syncSpinner} />

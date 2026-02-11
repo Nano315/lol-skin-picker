@@ -65,10 +65,10 @@ export function ColorSuggestionButton({
         "--opt-color": synergy.color,
         cursor: isPending ? 'wait' : 'pointer'
       } as React.CSSProperties}
-      title={`Cliquez pour suggérer cette couleur à l'owner (${synergy.combinationCount} combinaisons)`}
+      title={`Click to suggest this color to the owner (${synergy.combinationCount} combinations)`}
       onClick={handleSuggest}
       disabled={disabled || isPending}
-      aria-label={`Suggérer la couleur ${synergy.color}`}
+      aria-label={`Suggest ${synergy.color} color`}
     />
   );
 }

@@ -1,16 +1,16 @@
 export const errorMessages: Record<string, string> = {
-  ROOM_NOT_FOUND: "Cette room n'existe plus. Elle a peut-être été fermée.",
-  MEMBER_NOT_FOUND: "Vous n'êtes plus membre de cette room.",
-  INVALID_PAYLOAD: "Une erreur s'est produite. Veuillez réessayer.",
-  UNAUTHORIZED: "Vous n'êtes pas autorisé à effectuer cette action.",
-  INTERNAL_ERROR: "Une erreur inattendue s'est produite.",
-  NETWORK_ERROR: "Problème de connexion. Vérifiez votre réseau.",
+  ROOM_NOT_FOUND: "This room no longer exists. It may have been closed.",
+  MEMBER_NOT_FOUND: "You are no longer a member of this room.",
+  INVALID_PAYLOAD: "An error occurred. Please try again.",
+  UNAUTHORIZED: "You are not authorized to perform this action.",
+  INTERNAL_ERROR: "An unexpected error occurred.",
+  NETWORK_ERROR: "Connection issue. Please check your network.",
 };
 
 export const inviteErrorMessages: Record<string, string> = {
-  not_identified: "Vous n'êtes pas identifié",
-  not_friend: "Ce joueur n'est pas dans votre liste d'amis",
-  rate_limited: "Veuillez patienter avant de renvoyer une invitation",
-  friend_offline: "Ce joueur est hors ligne",
-  already_in_room: "Ce joueur est déjà dans la room",
+  not_identified: "You are not identified",
+  not_friend: "This player is not in your friend list",
+  rate_limited: "Please wait before sending another invite",
+  friend_offline: "This player is offline",
+  already_in_room: "This player is already in the room",
 };

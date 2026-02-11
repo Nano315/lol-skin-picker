@@ -48,10 +48,10 @@ export function FriendCard({ friend, showInvite, roomCode }: FriendCardProps) {
           disabled={isDisabled}
           title={
             inviteState.status === "sent"
-              ? "Invitation envoyée !"
+              ? "Invitation sent!"
               : inviteState.status === "failed"
                 ? inviteErrorMessages[inviteState.error ?? ""] ?? inviteState.error
-                : `Inviter ${friend.summonerName} dans votre room`
+                : `Invite ${friend.summonerName} to your room`
           }
         >
           {getButtonText()}
