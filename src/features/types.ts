@@ -63,7 +63,7 @@ export type InviteSentPayload = {
 
 // Payload for 'invite-failed' event (S->C)
 export type InviteFailedPayload = {
-  reason: "not_identified" | "not_friend" | "rate_limited" | "friend_offline";
+  reason: "not_identified" | "not_friend" | "rate_limited" | "friend_offline" | "already_in_room";
 };
 
 // Invite failure reasons for UI display

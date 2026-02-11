@@ -1,6 +1,7 @@
 // src/components/social/FriendCard.tsx
 import type { OnlineFriend } from "@/features/types";
 import { useInvitations } from "@/features/hooks/useInvitations";
+import { inviteErrorMessages } from "@/features/utils/errorMessages";
 import styles from "./FriendCard.module.css";
 
 interface FriendCardProps {
@@ -47,10 +48,10 @@ export function FriendCard({ friend, showInvite, roomCode }: FriendCardProps) {
           disabled={isDisabled}
           title={
             inviteState.status === "sent"
-              ? "Invitation sent!"
+              ? "Invitation envoyée !"
               : inviteState.status === "failed"
-                ? `Failed: ${inviteState.error}`
-                : `Invite ${friend.summonerName} to your room`
+                ? inviteErrorMessages[inviteState.error ?? ""] ?? inviteState.error
+                : `Inviter ${friend.summonerName} dans votre room`
           }
         >
           {getButtonText()}

@@ -6,3 +6,11 @@ export const errorMessages: Record<string, string> = {
   INTERNAL_ERROR: "Une erreur inattendue s'est produite.",
   NETWORK_ERROR: "Problème de connexion. Vérifiez votre réseau.",
 };
+
+export const inviteErrorMessages: Record<string, string> = {
+  not_identified: "Vous n'êtes pas identifié",
+  not_friend: "Ce joueur n'est pas dans votre liste d'amis",
+  rate_limited: "Veuillez patienter avant de renvoyer une invitation",
+  friend_offline: "Ce joueur est hors ligne",
+  already_in_room: "Ce joueur est déjà dans la room",
+};
