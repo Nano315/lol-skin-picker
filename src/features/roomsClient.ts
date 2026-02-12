@@ -34,6 +34,19 @@ export type ColorSynergy = {
   combinationCount: number;
 };
 
+// Story 6.2: Skin line synergy type
+export type SkinLineSynergy = {
+  type: "skinLine";
+  skinLineId: number;
+  skinLineName: string;
+  members: string[];
+  coverage: number;
+  combinationCount: number;
+};
+
+// Story 6.2: Sync mode
+export type SyncMode = "chromas" | "skins" | "both";
+
 export type GroupComboPick = {
   memberId: string;
   skinId: number;
@@ -42,8 +55,10 @@ export type GroupComboPick = {
 
 export type GroupComboPayload = {
   version?: number; // v2+ includes version
-  type: "sameColor";
-  color: string;
+  type: "sameColor" | "skinLine";
+  color?: string;
+  skinLineId?: number;
+  skinLineName?: string;
   picks: GroupComboPick[];
   sourceMemberId?: string;
 };
@@ -66,7 +81,9 @@ export type RoomState = {
   members: RoomMember[];
   synergy?: {
     colors: ColorSynergy[];
+    skinLines: SkinLineSynergy[]; // Story 6.2
   };
+  syncMode?: SyncMode; // Story 6.2: defaults to "both"
 };
 
 /** Toutes les combinaisons skin/chroma possedees sur le champion lock. */
@@ -393,6 +410,45 @@ class RoomsClient {
       });
     } catch (err) {
       log.error('[roomsClient] Error sending owned options', err);
+    }
+  }
+
+  setSyncMode(mode: SyncMode) {
+    try {
+      if (!this.socket || !this.roomId || !this.memberId) return;
+      this.socket.emit("set-sync-mode", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+        mode,
+      });
+    } catch (err) {
+      log.error('[roomsClient] Error setting sync mode', err);
+    }
+  }
+
+  applyCustomCombo(picks: Array<{ memberId: string; skinId: number; chromaId: number }>) {
+    try {
+      if (!this.socket || !this.roomId || !this.memberId) return;
+      this.socket.emit("apply-custom-combo", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+        picks,
+      });
+    } catch (err) {
+      log.error('[roomsClient] Error applying custom combo', err);
+    }
+  }
+
+  applySkinLineSynergy(skinLineId: number) {
+    try {
+      if (!this.socket || !this.roomId || !this.memberId) return;
+      this.socket.emit("apply-skin-line-synergy", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+        skinLineId,
+      });
+    } catch (err) {
+      log.error('[roomsClient] Error applying skin line synergy', err);
     }
   }
 

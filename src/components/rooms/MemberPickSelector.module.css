@@ -1,0 +1,76 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.memberInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.portrait {
+  width: 28px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.memberName {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.pickInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pickLabel {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+.chromaNote {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+.nonParticipants {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 4px;
+}
+
+.nonLabel {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 500;
+}
+
+.nonName {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.25);
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+}

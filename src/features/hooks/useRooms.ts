@@ -4,7 +4,9 @@ import { api } from "../api";
 import type { AppError, Selection } from "../types";
 
 export type GroupComboNotification = {
-  color: string;
+  type: "sameColor" | "skinLine";
+  color?: string;
+  skinLineName?: string;
   timestamp: number;
   sourceMemberId?: string;
 };
@@ -57,29 +59,29 @@ export function useRooms(selection: Selection) {
   // Handle combos from the server
   useEffect(() => {
     const unsubCombo = roomsClient.onGroupCombo(async (payload: GroupComboPayload) => {
-      if (payload.type === "sameColor") {
-        // Notify about the group combo
-        setLastGroupCombo({
-          color: payload.color,
-          timestamp: Date.now(),
-          sourceMemberId: payload.sourceMemberId,
-        });
+      // Notify about the group combo (color or skin line)
+      setLastGroupCombo({
+        type: payload.type,
+        color: payload.color,
+        skinLineName: payload.skinLineName,
+        timestamp: Date.now(),
+        sourceMemberId: payload.sourceMemberId,
+      });
 
-        // Clear suggested colors since a combo was applied
-        setSuggestedColorsMap({});
+      // Clear suggested colors since a combo was applied
+      setSuggestedColorsMap({});
 
-        const myPick = payload.picks.find(
-          (p) => p.memberId === roomsClient.getMemberId()
-        );
+      const myPick = payload.picks.find(
+        (p) => p.memberId === roomsClient.getMemberId()
+      );
 
-        if (myPick) {
-          const idToApply = myPick.chromaId > 0 ? myPick.chromaId : myPick.skinId;
-          try {
-            await api.applySkinId(idToApply);
-            console.log(`[Sync] Applied skin/chroma ID: ${idToApply}`);
-          } catch (err) {
-            console.error("[Sync] Failed to apply skin", err);
-          }
+      if (myPick) {
+        const idToApply = myPick.chromaId > 0 ? myPick.chromaId : myPick.skinId;
+        try {
+          await api.applySkinId(idToApply);
+          console.log(`[Sync] Applied skin/chroma ID: ${idToApply}`);
+        } catch (err) {
+          console.error("[Sync] Failed to apply skin", err);
         }
       }
     });

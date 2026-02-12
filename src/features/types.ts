@@ -98,3 +98,16 @@ export type ChromaCombination = {
   members: Array<{ memberId: string; skinId: number; chromaId: number }>;
   timestamp: number;
 };
+
+// Story 6.2: Skin line synergy (mirrors backend)
+export type SkinLineSynergy = {
+  type: "skinLine";
+  skinLineId: number;
+  skinLineName: string;
+  members: string[];
+  coverage: number;
+  combinationCount: number;
+};
+
+// Story 6.2: Sync mode (mirrors backend)
+export type SyncMode = "chromas" | "skins" | "both";

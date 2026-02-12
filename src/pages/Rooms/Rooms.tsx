@@ -19,6 +19,10 @@ import { colorCache } from "@/features/utils/colorCache";
 import { findMemberBySummonerName } from "@/features/utils/summonerUtils";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
 import { SyncProgressBar, SyncFlashOverlay } from "@/components/ui";
+import { SyncModeSelector } from "@/components/rooms/SyncModeSelector";
+import { SynergiesPanel } from "@/components/rooms/SynergiesPanel";
+import { CombinationBuilder } from "@/components/rooms/CombinationBuilder";
+import type { SyncMode } from "@/features/roomsClient";
 import { useToast } from "@/features/hooks/useToast";
 import { trackSkinergy } from "@/features/analytics/tracker";
 import { useOnlineFriends } from "@/features/hooks/useOnlineFriends";
@@ -112,14 +116,19 @@ export function RoomsPage() {
       const currentMemberId = roomsClient.getMemberId();
       const isMySuggestion = lastGroupCombo.sourceMemberId === currentMemberId;
 
+      const isSkinLine = lastGroupCombo.type === "skinLine";
       showToast({
         type: isMySuggestion ? "success" : "info",
         message: isMySuggestion
           ? "Your suggestion was accepted!"
-          : "Team syncing on color!",
+          : isSkinLine
+            ? `Team syncing on ${lastGroupCombo.skinLineName ?? "skin line"}!`
+            : "Team syncing on color!",
         duration: 3000,
       });
-      setShowSyncFlash(lastGroupCombo.color);
+      if (lastGroupCombo.color) {
+        setShowSyncFlash(lastGroupCombo.color);
+      }
       clearGroupCombo();
     }
   }, [lastGroupCombo, showToast, clearGroupCombo]);
@@ -173,6 +182,44 @@ export function RoomsPage() {
       const self = findMemberBySummonerName(room.members, summonerName);
       return !!self && room.ownerId === self.id;
     })();
+
+  // --- Sync Mode (Story 6.4) ---
+  const PREFERRED_MODE_KEY = "skinpicker:preferredSyncMode";
+  const currentSyncMode: SyncMode = room?.syncMode ?? "both";
+
+  // Restore preferred sync mode on room creation (owner only)
+  const hasSentPreferredMode = useRef(false);
+  useEffect(() => {
+    if (!joined || !isOwner || hasSentPreferredMode.current) return;
+    const saved = localStorage.getItem(PREFERRED_MODE_KEY) as SyncMode | null;
+    if (saved && saved !== "both" && ["chromas", "skins", "both"].includes(saved)) {
+      roomsClient.setSyncMode(saved);
+      hasSentPreferredMode.current = true;
+    }
+  }, [joined, isOwner]);
+
+  // Reset flag when leaving room
+  useEffect(() => {
+    if (!joined) {
+      hasSentPreferredMode.current = false;
+    }
+  }, [joined]);
+
+  const handleSyncModeChange = (mode: SyncMode) => {
+    localStorage.setItem(PREFERRED_MODE_KEY, mode);
+    roomsClient.setSyncMode(mode);
+  };
+
+  const handleApplySkinLine = (skinLineId: number) => {
+    roomsClient.applySkinLineSynergy(skinLineId);
+  };
+
+  // --- Combination Builder (Story 6.7) ---
+  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+
+  const handleBuilderApply = (picks: Array<{ memberId: string; skinId: number; chromaId: number }>) => {
+    roomsClient.applyCustomCombo(picks);
+  };
 
   // -> Appliquer le combo quand le serveur en choisit un
   useEffect(() => {
@@ -560,12 +607,35 @@ export function RoomsPage() {
                   <p className="eyebrow">{isOwner ? "COMMAND" : "ACTIONS"}</p>
                   <h2 className="card-title">Room Controls</h2>
                 </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <SyncModeSelector
+                    currentMode={currentSyncMode}
+                    isOwner={isOwner || false}
+                    onChange={handleSyncModeChange}
+                  />
+                  {isOwner && (
+                    <button
+                      className="rooms-builder-btn"
+                      onClick={() => setIsBuilderOpen(true)}
+                      title="Open Combination Builder"
+                    >
+                      Builder
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="rooms-actions-body">
                 {isSyncing && (
                   <SyncProgressBar
                     progress={syncProgress}
                     label="Computing synergies..."
+                  />
+                )}
+                {room && (
+                  <SynergiesPanel
+                    room={room}
+                    isOwner={isOwner || false}
+                    onApplySkinLine={handleApplySkinLine}
                   />
                 )}
                 <ControlBar
@@ -600,6 +670,16 @@ export function RoomsPage() {
         <SyncFlashOverlay
           color={showSyncFlash}
           onComplete={() => setShowSyncFlash(null)}
+        />
+      )}
+
+      {/* Combination Builder Modal (Story 6.7) */}
+      {room && (
+        <CombinationBuilder
+          room={room}
+          isOpen={isBuilderOpen}
+          onClose={() => setIsBuilderOpen(false)}
+          onApply={handleBuilderApply}
         />
       )}
     </div>

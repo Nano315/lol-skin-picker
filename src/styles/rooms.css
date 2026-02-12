@@ -171,6 +171,24 @@
   transform: translateY(-1px);
 }
 
+.rooms-builder-btn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(100, 140, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rooms-builder-btn:hover {
+  background: rgba(100, 140, 255, 0.22);
+  border-color: rgba(100, 140, 255, 0.3);
+  color: #fff;
+}
+
 .rooms-members-row {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
