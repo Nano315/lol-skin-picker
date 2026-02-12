@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">59% </span>
+                <span class="strong">59.59% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>59/100</span>
+                <span class='fraction'>59/99</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">20.83% </span>
+                <span class="strong">22.72% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>5/24</span>
+                <span class='fraction'>5/22</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">59.37% </span>
+                <span class="strong">60% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>57/96</span>
+                <span class='fraction'>57/95</span>
             </div>
         
             
@@ -273,7 +273,11 @@
 <a name='L208'></a><a href='#L208'>208</a>
 <a name='L209'></a><a href='#L209'>209</a>
 <a name='L210'></a><a href='#L210'>210</a>
-<a name='L211'></a><a href='#L211'>211</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -332,7 +336,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -341,6 +344,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -354,7 +359,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -489,7 +493,9 @@ import { api } from "../api";
 import type { AppError, Selection } from "../types";
 &nbsp;
 export type GroupComboNotification = {
-  color: string;
+  type: "sameColor" | "skinLine";
+  color?: string;
+  skinLineName?: string;
   timestamp: number;
   sourceMemberId?: string;
 };
@@ -542,29 +548,29 @@ export function useRooms(selection: Selection) {
   // Handle combos from the server
   useEffect(() =&gt; {
     const unsubCombo = roomsClient.onGroupCombo(<span class="fstat-no" title="function not covered" >async (p</span>ayload: GroupComboPayload) =&gt; {
-<span class="cstat-no" title="statement not covered" >      if (payload.type === "sameColor") {</span>
-        // Notify about the group combo
-<span class="cstat-no" title="statement not covered" >        setLastGroupCombo({</span>
-          color: payload.color,
-          timestamp: Date.now(),
-          sourceMemberId: payload.sourceMemberId,
-        });
+      // Notify about the group combo (color or skin line)
+<span class="cstat-no" title="statement not covered" >      setLastGroupCombo({</span>
+        type: payload.type,
+        color: payload.color,
+        skinLineName: payload.skinLineName,
+        timestamp: Date.now(),
+        sourceMemberId: payload.sourceMemberId,
+      });
 &nbsp;
-        // Clear suggested colors since a combo was applied
-<span class="cstat-no" title="statement not covered" >        setSuggestedColorsMap({});</span>
+      // Clear suggested colors since a combo was applied
+<span class="cstat-no" title="statement not covered" >      setSuggestedColorsMap({});</span>
 &nbsp;
-        const myPick = <span class="cstat-no" title="statement not covered" >payload.picks.find(</span>
-<span class="fstat-no" title="function not covered" >          (p</span>) =&gt; <span class="cstat-no" title="statement not covered" >p.memberId === roomsClient.getMemberId()</span>
-        );
+      const myPick = <span class="cstat-no" title="statement not covered" >payload.picks.find(</span>
+<span class="fstat-no" title="function not covered" >        (p</span>) =&gt; <span class="cstat-no" title="statement not covered" >p.memberId === roomsClient.getMemberId()</span>
+      );
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        if (myPick) {</span>
-          const idToApply = <span class="cstat-no" title="statement not covered" >myPick.chromaId &gt; 0 ? myPick.chromaId : myPick.skinId;</span>
-<span class="cstat-no" title="statement not covered" >          try {</span>
-<span class="cstat-no" title="statement not covered" >            await api.applySkinId(idToApply);</span>
-<span class="cstat-no" title="statement not covered" >            console.log(`[Sync] Applied skin/chroma ID: ${idToApply}`);</span>
-          } catch (err) {
-<span class="cstat-no" title="statement not covered" >            console.error("[Sync] Failed to apply skin", err);</span>
-          }
+<span class="cstat-no" title="statement not covered" >      if (myPick) {</span>
+        const idToApply = <span class="cstat-no" title="statement not covered" >myPick.chromaId &gt; 0 ? myPick.chromaId : myPick.skinId;</span>
+<span class="cstat-no" title="statement not covered" >        try {</span>
+<span class="cstat-no" title="statement not covered" >          await api.applySkinId(idToApply);</span>
+<span class="cstat-no" title="statement not covered" >          console.log(`[Sync] Applied skin/chroma ID: ${idToApply}`);</span>
+        } catch (err) {
+<span class="cstat-no" title="statement not covered" >          console.error("[Sync] Failed to apply skin", err);</span>
         }
       }
     });
@@ -700,7 +706,7 @@ export function useRooms(selection: Selection) {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-25T11:38:48.044Z
+                at 2026-02-12T17:24:35.433Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
