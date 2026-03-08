@@ -22,6 +22,7 @@ export type InviteState = {
 export function useInvitations() {
   // Timer ref for updating UI when rate limits expire
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isSendingRef = useRef(false);
   const [, forceUpdate] = useState(0);
 
   // Subscribe to store for lastResult changes
@@ -56,8 +57,15 @@ export function useInvitations() {
    * Send an invitation to a friend
    */
   const sendInvite = useCallback((targetPuuid: string, roomCode: string) => {
+    if (isSendingRef.current) return;
+    
+    isSendingRef.current = true;
     invitationStore.setPendingTarget(targetPuuid);
     roomsClient.sendRoomInvite(targetPuuid, roomCode);
+    
+    setTimeout(() => {
+      isSendingRef.current = false;
+    }, 500);
   }, []);
 
   /**

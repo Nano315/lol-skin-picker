@@ -122,13 +122,13 @@ describe("InvitationModal", () => {
         invitation={mockInvitation}
         onAccept={onAccept}
         onDismiss={onDismiss}
-        timeRemaining={15}
+        timeRemaining={5}
       />
     );
 
     const timerBar = container.querySelector('[class*="timerBar"]');
     expect(timerBar).toBeInTheDocument();
-    expect(timerBar).toHaveStyle({ width: "50%" }); // 15/30 * 100 = 50%
+    expect(timerBar).toHaveStyle({ width: "50%" }); // 5/10 * 100 = 50%
   });
 });
 

@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { invitationStore, type Invitation } from "../invitations/invitationStore";
 
-const AUTO_EXPIRE_MS = 30000; // 30 seconds
+const AUTO_EXPIRE_MS = 10000; // 10 seconds
 
 export type { Invitation } from "../invitations/invitationStore";
 
@@ -23,13 +23,13 @@ export function useInvitationQueue() {
   const currentInvitation = invitations[0] ?? null;
 
   // Track time remaining for current invitation
-  const [timeRemaining, setTimeRemaining] = useState<number>(30);
+  const [timeRemaining, setTimeRemaining] = useState<number>(10);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Auto-expire timer for current invitation
   useEffect(() => {
     if (!currentInvitation) {
-      setTimeRemaining(30);
+      setTimeRemaining(10);
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;

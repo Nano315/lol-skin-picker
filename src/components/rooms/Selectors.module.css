@@ -1,0 +1,76 @@
+.selectorContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.selectorLabel {
+  font-family: var(--font-primary);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+.selectorList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selectorOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selectorOption:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.selectorOption.active {
+  background: var(--accent-color, rgba(200, 160, 80, 0.8));
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.selectorOption:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.optionBadge {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.colorOption {
+  position: relative;
+  overflow: hidden;
+}
+
+.colorIndicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--opt-color, #888);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}

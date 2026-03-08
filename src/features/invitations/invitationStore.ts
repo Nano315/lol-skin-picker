@@ -23,7 +23,7 @@ export interface SentInviteResult {
 
 type Listener = () => void;
 
-const RATE_LIMIT_MS = 30000; // 30 seconds
+const RATE_LIMIT_MS = 10000; // 10 seconds
 
 class InvitationStore {
   private invitations: Invitation[] = [];

@@ -49,7 +49,7 @@ export function InvitationModal({
   }, [handleDismiss]);
 
   // Calculate timer bar width
-  const timerWidth = timeRemaining !== undefined ? (timeRemaining / 30) * 100 : 100;
+  const timerWidth = timeRemaining !== undefined ? (timeRemaining / 10) * 100 : 100;
 
   return (
     <>

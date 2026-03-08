@@ -44,8 +44,7 @@ export type SkinLineSynergy = {
   combinationCount: number;
 };
 
-// Story 6.2: Sync mode
-export type SyncMode = "chromas" | "skins" | "both";
+// Story 6.2: Skin line synergy type
 
 export type GroupComboPick = {
   memberId: string;
@@ -83,8 +82,7 @@ export type RoomState = {
     colors: ColorSynergy[];
     skinLines: SkinLineSynergy[]; // Story 6.2
   };
-  syncMode?: SyncMode; // Story 6.2: defaults to "both"
-};
+  };
 
 /** Toutes les combinaisons skin/chroma possedees sur le champion lock. */
 export type GroupSkinOption = {
@@ -410,32 +408,6 @@ class RoomsClient {
       });
     } catch (err) {
       log.error('[roomsClient] Error sending owned options', err);
-    }
-  }
-
-  setSyncMode(mode: SyncMode) {
-    try {
-      if (!this.socket || !this.roomId || !this.memberId) return;
-      this.socket.emit("set-sync-mode", {
-        roomId: this.roomId,
-        memberId: this.memberId,
-        mode,
-      });
-    } catch (err) {
-      log.error('[roomsClient] Error setting sync mode', err);
-    }
-  }
-
-  applyCustomCombo(picks: Array<{ memberId: string; skinId: number; chromaId: number }>) {
-    try {
-      if (!this.socket || !this.roomId || !this.memberId) return;
-      this.socket.emit("apply-custom-combo", {
-        roomId: this.roomId,
-        memberId: this.memberId,
-        picks,
-      });
-    } catch (err) {
-      log.error('[roomsClient] Error applying custom combo', err);
     }
   }
 
