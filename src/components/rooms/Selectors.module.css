@@ -43,10 +43,10 @@
 }
 
 .selectorOption.active {
-  background: var(--accent-color, rgba(200, 160, 80, 0.8));
+  background: linear-gradient(135deg, rgba(90, 93, 243, 0.9), rgba(138, 107, 255, 0.9));
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(90, 93, 243, 0.3);
 }
 
 .selectorOption:disabled {

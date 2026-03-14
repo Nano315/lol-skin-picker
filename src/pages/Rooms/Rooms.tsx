@@ -75,9 +75,11 @@ export function RoomsPage() {
   // Track previous phase to detect when leaving ChampSelect
   const prevPhaseRef = useRef(phase);
   useEffect(() => {
-    // Clear suggestions when phase changes from ChampSelect to something else
+    // Clear suggestions and reset selectors when phase changes from ChampSelect to something else
     if (prevPhaseRef.current === "ChampSelect" && phase !== "ChampSelect") {
       clearSuggestions();
+      setActiveSkinLineId(null);
+      setActiveChromaColor(null);
     }
     prevPhaseRef.current = phase;
   }, [phase, clearSuggestions]);
@@ -188,18 +190,40 @@ export function RoomsPage() {
   const handleApplySkinLine = (skinLineId: number | null) => {
     setActiveSkinLineId(skinLineId);
     if (skinLineId !== null) {
-      setActiveChromaColor(null); // Deselect chroma when selecting skin line
+      setActiveChromaColor(null); // Deselect chroma when selecting a new skin line
       roomsClient.applySkinLineSynergy(skinLineId);
+    } else {
+      // Going back to "Default" — also reset chroma
+      setActiveChromaColor(null);
     }
   };
 
   const handleApplyChroma = (color: string | null) => {
     setActiveChromaColor(color);
     if (color !== null) {
-      setActiveSkinLineId(null); // Deselect skin line when selecting chroma
+      // If no skin line is active, apply chroma directly
+      // If a skin line IS active, keep the skin line and apply the chroma within that context
       roomsClient.requestGroupReroll({ type: "sameColor", color });
     }
   };
+
+  // Filter chroma synergies by active skin line when one is selected
+  const filteredChromaSynergies = useMemo(() => {
+    if (!room?.synergy?.colors) return [];
+    if (activeSkinLineId === null) return room.synergy.colors;
+
+    // Get the set of aura colors available within the active skin line's options
+    const skinLineColors = new Set<string>();
+    for (const opt of skinOptions) {
+      if (opt.skinLineId === activeSkinLineId && opt.auraColor) {
+        skinLineColors.add(opt.auraColor);
+      }
+    }
+
+    if (skinLineColors.size === 0) return [];
+
+    return room.synergy.colors.filter((c) => skinLineColors.has(c.color));
+  }, [room?.synergy?.colors, activeSkinLineId, skinOptions]);
 
   // -> Appliquer le combo quand le serveur en choisit un
   useEffect(() => {
@@ -604,7 +628,7 @@ export function RoomsPage() {
                       disabled={isSyncing}
                     />
                     <ChromaSelector
-                      synergies={room.synergy.colors}
+                      synergies={filteredChromaSynergies}
                       onApply={handleApplyChroma}
                       activeColor={activeChromaColor}
                       disabled={isSyncing}
