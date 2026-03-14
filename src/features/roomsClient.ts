@@ -424,7 +424,7 @@ class RoomsClient {
     }
   }
 
-  requestGroupReroll(payload: { type: "sameColor"; color: string; sourceMemberId?: string }) {
+  requestGroupReroll(payload: { type: "sameColor"; color: string; skinLineId?: number; sourceMemberId?: string }) {
     try {
       if (!this.socket || !this.roomId || !this.memberId) return;
       this.socket.emit("request-group-reroll", {
@@ -432,6 +432,7 @@ class RoomsClient {
         memberId: this.memberId,
         type: payload.type,
         color: payload.color,
+        skinLineId: payload.skinLineId,
         sourceMemberId: payload.sourceMemberId,
       });
     } catch (err) {

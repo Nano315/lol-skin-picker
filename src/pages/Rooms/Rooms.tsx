@@ -203,7 +203,11 @@ export function RoomsPage() {
     if (color !== null) {
       // If no skin line is active, apply chroma directly
       // If a skin line IS active, keep the skin line and apply the chroma within that context
-      roomsClient.requestGroupReroll({ type: "sameColor", color });
+      roomsClient.requestGroupReroll({
+        type: "sameColor",
+        color,
+        skinLineId: activeSkinLineId ?? undefined,
+      });
     }
   };
 
