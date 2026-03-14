@@ -62,15 +62,46 @@
   font-weight: bold;
 }
 
-.colorOption {
+.chromaBubble {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  overflow: hidden;
+  background-color: var(--opt-color, #888);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.colorIndicator {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background-color: var(--opt-color, #888);
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+.chromaBubble:hover:not(:disabled) {
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.chromaBubble.activeBubble {
+  border-color: #d4af37; /* Gold border for active */
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+  transform: scale(1.15);
+}
+
+.chromaBubble:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.bubbleCount {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-weight: bold;
 }

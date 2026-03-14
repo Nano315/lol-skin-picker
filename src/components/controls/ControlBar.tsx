@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import styles from "./ControlBar.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -9,7 +9,6 @@ import {
   faCircleNotch
 } from "@fortawesome/free-solid-svg-icons";
 import { api } from "@/features/api";
-import { roomsClient } from "@/features/roomsClient";
 import type { OwnedSkin, Selection, ConnectionStatus } from "@/features/types";
 import type { RoomState, GroupSkinOption } from "@/features/roomsClient";
 import { ColorSuggestionButton } from "./ColorSuggestionButton";
@@ -70,44 +69,7 @@ export default function ControlBar({
   const synergyColors = (room?.synergy?.colors ?? []).filter(
     (c) => c.combinationCount > 0
   );
-  // Local state for tracking which color is currently syncing (for Owner feedback)
-  const [syncingColor, setSyncingColor] = useState<string | null>(null);
-  // Track if sync was successful for brief success animation
-  const [syncSuccessColor, setSyncSuccessColor] = useState<string | null>(null);
 
-  // Handle immediate sync when owner clicks a color
-  const handleImmediateSync = (color: string) => {
-    if (syncingColor || isSyncing) return; // Already syncing
-    setSyncingColor(color);
-    roomsClient.requestGroupReroll({
-      type: "sameColor",
-      color,
-    });
-    // Timeout safety: reset state if no response after 5 seconds
-    setTimeout(() => {
-      setSyncingColor((current) => {
-        if (current === color) {
-          window.log?.warn('[ControlBar] Sync timeout for color', color);
-          return null;
-        }
-        return current;
-      });
-    }, 5000);
-  };
-
-  // Reset sync state when parent isSyncing changes
-  // When isSyncing goes true→false, the sync completed - show success animation
-  useEffect(() => {
-    if (!isSyncing && syncingColor) {
-      // Sync completed - show success animation
-      const completedColor = syncingColor;
-      setSyncingColor(null);
-      setSyncSuccessColor(completedColor);
-      // Clear success animation after 1.5 seconds
-      const timer = setTimeout(() => setSyncSuccessColor(null), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [isSyncing, syncingColor]);
 
   // --- Smart Action Logic (Synergy Button) ---
   
@@ -224,35 +186,7 @@ export default function ControlBar({
 
   return (
     <div className={styles.container}>
-      {/* 1. Commander Strip (Owner Only) - Immediate sync on click */}
-      {isOwner && room && synergyColors.length > 0 && selection.locked === true && (
-        <div className={styles.commanderStrip} style={stripStyle}>
-          <div className={styles.stripLabel}>Team Sync</div>
-          <div className={styles.colorSelector}>
-            {synergyColors.map((c) => {
-              const isThisSyncing = syncingColor === c.color;
-              const isThisSuccess = syncSuccessColor === c.color;
-              return (
-                <button
-                  key={c.color}
-                  className={`${styles.colorOption} ${styles.ownerSyncButton} ${isThisSyncing ? styles.ownerSyncing : ""} ${isThisSuccess ? styles.ownerSyncSuccess : ""}`}
-                  style={{ "--opt-color": c.color } as React.CSSProperties}
-                  onClick={() => handleImmediateSync(c.color)}
-                  title={`Click to sync the team on this color (${c.combinationCount} combinations)`}
-                  disabled={!!syncingColor || isSyncing}
-                  aria-label={`Sync team on ${c.color}`}
-                >
-                  {isThisSyncing ? (
-                    <FontAwesomeIcon icon={faSpinner} spin className={styles.syncSpinner} />
-                  ) : (
-                    <div className={styles.colorCount}>{c.combinationCount}</div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* 1. Commander Strip (Owner Only) - Removed as redundant, owner uses Selectors */}
       
       {/* 2. Suggestion Strip (Member Only) */}
       {!isOwner && room && synergyColors.length > 0 && !notInChampSelect && selection.locked === true && suggestColor && (

@@ -623,7 +623,7 @@ export function RoomsPage() {
                     label="Computing synergies..."
                   />
                 )}
-                {isOwner && room && room.synergy && (
+                {isOwner && room && room.synergy && phase === "ChampSelect" && (
                   <>
                     <SkinLineageSelector
                       synergies={room.synergy.skinLines}

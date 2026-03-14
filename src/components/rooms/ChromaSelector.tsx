@@ -30,13 +30,12 @@ export function ChromaSelector({ synergies, onApply, activeColor, disabled }: Ch
           <button
              key={s.color}
              style={{ "--opt-color": s.color } as React.CSSProperties}
-             className={`${styles.selectorOption} ${styles.colorOption} ${activeColor === s.color ? styles.active : ""}`}
+             className={`${styles.chromaBubble} ${activeColor === s.color ? styles.activeBubble : ""}`}
              onClick={() => onApply(s.color)}
              title={`Sync on ${s.color}`}
              disabled={disabled}
           >
-            <div className={styles.colorIndicator} />
-            <span className={styles.optionBadge}>{s.combinationCount}</span>
+            <span className={styles.bubbleCount}>{s.combinationCount}</span>
           </button>
         ))}
       </div>
