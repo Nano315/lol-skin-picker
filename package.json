@@ -13,8 +13,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
-    "release": "tsc && vite build && electron-builder --publish always",
+    "build": "tsc && vite build && electron-builder --config electron-builder.json5",
+    "build:beta": "tsc && vite build && electron-builder --config electron-builder.beta.json5",
+    "release": "tsc && vite build && electron-builder --config electron-builder.json5 --publish always",
+    "release:beta": "tsc && vite build && electron-builder --config electron-builder.beta.json5 --publish always",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest run",

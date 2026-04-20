@@ -1,23 +1,29 @@
-// electron-builder.json5
+// electron-builder.json5 — CANAL STABLE (release)
 // → doc : https://www.electron.build/configuration/configuration
 {
   /* ------------------------------------------------------------------ */
   /*  GeNeRAL                                                          */
   /* ------------------------------------------------------------------ */
 
-  // identifiant unique de l’application (reverse-DNS)
+  // identifiant unique de l'application stable (reverse-DNS).
+  // DOIT etre different de l'appId beta pour que les deux puissent coexister.
   appId: "com.dumas.lolskinpicker",
 
-  // nom “marketing” affiche dans l’installeur, le menu, etc.
+  // nom "marketing" affiche dans l'installeur, le menu Demarrer, etc.
   productName: "LoL Skin Picker",
 
   "publish": [
     {
-      // ─────────────┐
-      "provider": "github",    // <- indispensable
-      // ─────────────┘
-      "owner": "Nano315",  // ton compte / orga
-      "repo": "lol-skin-picker", // le repo où publier les releases
+      "provider": "github",
+      "owner": "Nano315",
+      "repo": "lol-skin-picker",
+
+      // Canal stable : electron-builder ecrit latest.yml dans la release GitHub.
+      // L'autoUpdater cote client lira ce meme fichier.
+      "channel": "latest",
+
+      // GitHub Release "full release" (non prerelease) : les prereleases sont
+      // ignorees par defaut cote client (allowPrerelease=false).
       "releaseType": "release"
     }
   ],
@@ -34,7 +40,7 @@
     output: "dist",
   },
 
-  // ce qui doit etre inclus dans l’appli avant empaquetage
+  // ce qui doit etre inclus dans l'appli avant empaquetage
   files: [
     "dist/**", // bundle Vite (renderer)
     "dist-electron/**", // bundle Electron (main + preload)
@@ -50,7 +56,7 @@
     // icône (256×256 px min.) – laisse .ico multi-resolution
     icon: "public/icon.ico",
 
-    // type d’installeur : NSIS (EXE)
+    // type d'installeur : NSIS (EXE)
     target: [
       {
         target: "nsis",
@@ -65,33 +71,9 @@
   /* Personnalisation NSIS */
   nsis: {
     oneClick: true, // installateur silencieux (un seul clic)
-    perMachine: false, // install pour l’utilisateur courant
-    deleteAppDataOnUninstall: false, // on conserve le cache lors d’une desinstallation
+    perMachine: false, // install pour l'utilisateur courant
+    deleteAppDataOnUninstall: false, // on conserve le cache lors d'une desinstallation
   },
-
-  /* ------------------------------------------------------------------ */
-  /*  macOS  (facultatif : commente si tu ne distribues pas sur mac)    */
-  /* ------------------------------------------------------------------ */
-
-  /*
-  "mac": {
-    "target": [ "dmg" ],
-    "icon": "public/icon.icns",
-    "artifactName": "${productName}-${version}.${ext}"
-  },
-  */
-
-  /* ------------------------------------------------------------------ */
-  /*  Linux  (facultatif)                                               */
-  /* ------------------------------------------------------------------ */
-
-  /*
-  "linux": {
-    "target": [ "AppImage" ],
-    "icon": "public",
-    "artifactName": "${productName}-${version}.${ext}"
-  },
-  */
 
   /* ------------------------------------------------------------------ */
   /*  METADONNeES SUPPLeMENTAIRES (pour le package.json embarque)       */
@@ -99,6 +81,11 @@
 
   extraMetadata: {
     description: "Applique automatiquement un skin/chroma aleatoire durant la phase de selection de champion de League of Legends.",
+
+    // Lu au runtime par tray.ts pour verrouiller l'autoUpdater sur le canal stable.
+    // Ne doit PAS bouger selon le build : "latest" est le nom de canal par defaut
+    // chez electron-updater et correspond au fichier latest.yml.
+    updateChannel: "latest",
   },
   extraResources: [
     { from: "public/icon.ico", to: "icon.ico" },

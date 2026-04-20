@@ -1,0 +1,85 @@
+// electron-builder.beta.json5 — CANAL BETA (prerelease)
+// Independant de la release stable :
+//   - appId different        -> Windows considere les deux comme 2 apps distinctes
+//   - productName different  -> installations dans des dossiers separes
+//                               (Programs\LoL Skin Picker vs Programs\LoL Skin Picker Beta)
+//                               et userData separe (AppData\Roaming\LoL Skin Picker(...Beta))
+//   - publish.channel="beta" -> genere beta.yml au lieu de latest.yml
+//   - updateChannel="beta"   -> l'autoUpdater cote client ne lira QUE beta.yml
+//
+// Grace a ca, les deux canaux ne se "voient" pas : une install beta ne peut
+// plus se faire ecraser par la version prod (ni l'inverse).
+{
+  appId: "com.dumas.lolskinpicker.beta",
+  productName: "LoL Skin Picker Beta",
+
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "Nano315",
+      "repo": "lol-skin-picker",
+
+      // Ecrit beta.yml dans la release GitHub, lu par l'autoUpdater en mode beta.
+      "channel": "beta",
+
+      // La GitHub Release est marquee "prerelease". C'est un garde-fou
+      // supplementaire cote client (allowPrerelease=false par defaut sur le canal
+      // stable), pour eviter tout debordement accidentel d'un beta vers la prod.
+      "releaseType": "prerelease"
+    }
+  ],
+
+  asar: true,
+
+  directories: {
+    output: "dist",
+  },
+
+  files: [
+    "dist/**",
+    "dist-electron/**",
+    "node_modules/**",
+    "package.json",
+  ],
+
+  win: {
+    // Icone dediee pour que le beta soit reconnaissable dans la tray / barre
+    // des taches / menu Demarrer.
+    icon: "public/icon-beta.ico",
+
+    target: [
+      {
+        target: "nsis",
+        arch: ["x64"],
+      },
+    ],
+
+    // Artifact distinct pour ne pas ecraser la version prod sur le disque
+    // du build (ni dans la release GitHub).
+    artifactName: "${productName}-Setup-${version}.${ext}",
+  },
+
+  nsis: {
+    oneClick: true,
+    perMachine: false,
+    deleteAppDataOnUninstall: false,
+  },
+
+  extraMetadata: {
+    // Le name embarque sert notamment a app.getPath("userData") si productName
+    // ne suffisait pas : ceinture + bretelles pour bien separer les profils.
+    name: "lol-skin-picker-beta",
+    description: "[BETA] Applique automatiquement un skin/chroma aleatoire durant la phase de selection de champion de League of Legends.",
+
+    // Lu au runtime par tray.ts pour verrouiller l'autoUpdater sur le canal beta.
+    updateChannel: "beta",
+  },
+  extraResources: [
+    // On expose icon-beta.ico sous le nom "icon.ico" pour que tray.ts et
+    // mainWindow.ts (qui cherchent resourcesPath/icon.ico) affichent l'icone
+    // beta sans modification de code.
+    { from: "public/icon-beta.ico", to: "icon.ico" },
+    { from: "public/fallback-icon.png", to: "assets/fallback-icon.png" },
+    { from: "public/fallback-skin.png", to: "assets/fallback-skin.png" },
+  ],
+}
