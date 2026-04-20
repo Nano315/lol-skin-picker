@@ -137,6 +137,28 @@ function channelLabel() {
   return updaterChannel === "beta" ? "Beta" : "Stable";
 }
 
+/**
+ * Verifie qu'une version appartient bien au canal courant.
+ *
+ * Pourquoi : electron-updater v6 a un comportement surprenant avec
+ * allowPrerelease=true + channel="beta". Quand une release STABLE plus recente
+ * qu'une beta existe (ex: on sort 7.3.2 stable apres 7.3.2-beta.2), le
+ * GitHubProvider (voir node_modules/electron-updater/out/providers/GitHubProvider.js,
+ * methode getLatestVersion) selectionne quand meme la stable comme candidate,
+ * echoue a trouver beta.yml, puis FALLBACK sur latest.yml — et propose donc la
+ * stable a un utilisateur beta.
+ *
+ * On filtre ici : un user beta n'accepte QUE des versions avec "-beta", un
+ * user stable n'accepte QUE des versions sans suffixe prerelease.
+ */
+function isVersionForChannel(
+  version: string,
+  channel: "latest" | "beta",
+): boolean {
+  const isBetaVersion = version.includes("-beta");
+  return channel === "beta" ? isBetaVersion : !isBetaVersion;
+}
+
 export function setupTray(getWin: () => Electron.BrowserWindow | null) {
   const iconPath = getTrayIconPath();
 
@@ -220,6 +242,15 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
         if (settled) return;
         settled = true;
         cleanup();
+        // Protege contre le fallback cross-canal d'electron-updater v6
+        // (cf. commentaire de isVersionForChannel).
+        if (!isVersionForChannel(info.version, updaterChannel)) {
+          logger.info(
+            `[Updater] Ignoring cross-channel release v${info.version} (current channel "${updaterChannel}")`,
+          );
+          resolve({ kind: "not-available" });
+          return;
+        }
         resolve({ kind: "available", info });
       };
       const onNotAvailable = () => {
@@ -349,6 +380,16 @@ export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
     logger.info(
       `[Updater] Update available (${info.version}) on channel "${updaterChannel}"`,
     );
+
+    // Garde-fou contre le fallback cross-canal (cf. isVersionForChannel) :
+    // si electron-updater nous sert une stable alors qu'on est en beta (ou
+    // l'inverse), on ignore silencieusement — pas de download automatique.
+    if (!isVersionForChannel(info.version, updaterChannel)) {
+      logger.info(
+        `[Updater] Ignoring cross-channel release v${info.version} (current channel "${updaterChannel}")`,
+      );
+      return;
+    }
 
     // Sur un check manuel, c'est manualCheckForUpdates qui appelle
     // downloadUpdate apres confirmation utilisateur. On ne double pas.
