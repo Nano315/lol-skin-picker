@@ -195,19 +195,69 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
     }
 
     manualCheckInFlight = true;
+    logger.info(`[Updater] Manual check requested (channel=${updaterChannel})`);
+
+    // On ne peut PAS se baser sur la valeur de retour de checkForUpdates :
+    //   - result.downloadPromise n'est renseigne que si autoDownload=true
+    //   - result.updateInfo est toujours renseigne (meme quand on est a jour),
+    //     du coup impossible de savoir "update dispo ou non" juste avec ca.
+    // Solution fiable : on ecoute les events update-available / update-not-available
+    // qui sont emis par electron-updater a l'issue de sa logique interne (semver
+    // compare, canal, allowDowngrade, etc.).
+    type Outcome =
+      | { kind: "available"; info: UpdateInfo }
+      | { kind: "not-available" }
+      | { kind: "error"; error: Error };
+
+    const outcome = await new Promise<Outcome>((resolve) => {
+      let settled = false;
+      const cleanup = () => {
+        au.removeListener("update-available", onAvailable);
+        au.removeListener("update-not-available", onNotAvailable);
+        au.removeListener("error", onError);
+      };
+      const onAvailable = (info: UpdateInfo) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve({ kind: "available", info });
+      };
+      const onNotAvailable = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve({ kind: "not-available" });
+      };
+      const onError = (err: Error) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve({ kind: "error", error: err });
+      };
+
+      au.on("update-available", onAvailable);
+      au.on("update-not-available", onNotAvailable);
+      au.on("error", onError);
+
+      au.checkForUpdates().catch((err: unknown) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve({
+          kind: "error",
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
+      });
+    });
+
     try {
-      logger.info(`[Updater] Manual check requested (channel=${updaterChannel})`);
-      const result = await au.checkForUpdates();
-
       const current = app.getVersion();
-      const latest = result?.updateInfo?.version;
 
-      // Pas d'update disponible :
-      //   - result null (impossible de joindre le serveur)
-      //   - version identique (on est a jour)
-      //   - result.downloadPromise manquant (electron-updater n'a pas juge
-      //     qu'il fallait downloader => rien de plus recent sur ce canal)
-      if (!result || !latest || latest === current || !result.downloadPromise) {
+      if (outcome.kind === "error") {
+        throw outcome.error;
+      }
+
+      if (outcome.kind === "not-available") {
         await showDialog(getWin, {
           type: "info",
           title: "LoL Skin Picker",
@@ -218,6 +268,7 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
         return;
       }
 
+      const latest = outcome.info.version;
       const { response } = await showDialog(getWin, {
         type: "question",
         title: "LoL Skin Picker",
