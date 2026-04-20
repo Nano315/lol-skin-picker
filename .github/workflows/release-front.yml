@@ -32,7 +32,7 @@ jobs:
 
       - run: npm ci
 
-      # Extract version from git tag (v7.2.0 → 7.2.0) and inject into package.json
+      # Extract version from git tag (v7.2.0 -> 7.2.0) and inject into package.json.
       - name: Set version from tag
         shell: bash
         run: |
@@ -40,57 +40,29 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
 
-      # Detect if this is a beta release and write a dedicated beta config
-      - name: Detect beta and configure
+      # Select the right electron-builder config based on the tag:
+      #   v7.3.0           -> stable  -> electron-builder.json5       + VITE production
+      #   v7.3.1-beta.0    -> beta    -> electron-builder.beta.json5  + VITE staging
+      #
+      # Les DEUX configs vivent dans le repo (plus d'inline-rewriting), ce qui
+      # evite les drifts entre le config reellement publie et ce que l'app embarque.
+      - name: Detect channel and select config
         shell: bash
         run: |
           if [[ "$VERSION" == *-beta.* ]]; then
-            echo "IS_BETA=true" >> "$GITHUB_ENV"
+            echo "BUILDER_CONFIG=electron-builder.beta.json5" >> "$GITHUB_ENV"
             echo "VITE_MODE=staging" >> "$GITHUB_ENV"
-            cat > electron-builder.json5 << 'BETAEOF'
-          {
-            "appId": "com.dumas.lolskinpicker.beta",
-            "productName": "LoL Skin Picker Beta",
-            "publish": [{ "provider": "github", "owner": "Nano315", "repo": "lol-skin-picker", "releaseType": "prerelease" }],
-            "asar": true,
-            "directories": { "output": "dist" },
-            "files": ["dist/**", "dist-electron/**", "node_modules/**", "package.json"],
-            "win": {
-              "icon": "public/icon-beta.ico",
-              "target": [{ "target": "nsis", "arch": ["x64"] }],
-              "artifactName": "${productName}-Setup-${version}.${ext}"
-            },
-            "nsis": {
-              "oneClick": true,
-              "perMachine": false,
-              "deleteAppDataOnUninstall": false
-            },
-            "extraMetadata": {
-              "name": "lol-skin-picker-beta",
-              "productName": "LoL Skin Picker Beta",
-              "updateChannel": "beta",
-              "description": "Applique automatiquement un skin/chroma aleatoire durant la phase de selection de champion de League of Legends."
-            },
-            "extraResources": [
-              { "from": "public/icon-beta.ico", "to": "icon.ico" },
-              { "from": "public/fallback-icon.png", "to": "assets/fallback-icon.png" },
-              { "from": "public/fallback-skin.png", "to": "assets/fallback-skin.png" }
-            ]
-          }
-          BETAEOF
-            echo "--- Beta config written ---"
-            cat electron-builder.json5
+            echo "CHANNEL=beta"
           else
-            echo "IS_BETA=false" >> "$GITHUB_ENV"
+            echo "BUILDER_CONFIG=electron-builder.json5" >> "$GITHUB_ENV"
             echo "VITE_MODE=production" >> "$GITHUB_ENV"
+            echo "CHANNEL=stable"
           fi
 
-      # Build: tsc + vite (--mode staging for beta, production for stable)
       - name: Build renderer and main
         run: npx tsc && npx vite build --mode ${{ env.VITE_MODE }}
 
-      # Publish release via electron-builder
       - name: Publish release
-        run: npx electron-builder --publish always
+        run: npx electron-builder --config ${{ env.BUILDER_CONFIG }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
