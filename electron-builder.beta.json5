@@ -69,6 +69,13 @@
     // Le name embarque sert notamment a app.getPath("userData") si productName
     // ne suffisait pas : ceinture + bretelles pour bien separer les profils.
     name: "lol-skin-picker-beta",
+
+    // IMPORTANT : on INJECTE productName dans le package.json embarque.
+    // Sinon app.getName() renvoie le productName du package.json source
+    // ("Skin Picker"), ce qui ferait tomber userData dans %APPDATA%/Skin Picker
+    // — meme dossier que la prod. Avec productName explicite ici, userData
+    // devient %APPDATA%/LoL Skin Picker Beta, bien separe de la prod.
+    productName: "LoL Skin Picker Beta",
     description: "[BETA] Applique automatiquement un skin/chroma aleatoire durant la phase de selection de champion de League of Legends.",
 
     // Lu au runtime par tray.ts pour verrouiller l'autoUpdater sur le canal beta.
