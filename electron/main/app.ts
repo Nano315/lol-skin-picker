@@ -12,7 +12,11 @@ import { logger } from "../logger";
 
 import { createMainWindow, getMainWindow } from "./windows/mainWindow";
 import { registerAllIpc } from "./ipc";
-import { setupTray, updaterHooks, getAutoUpdater } from "./windows/tray";
+import {
+  setupTray,
+  updaterHooks,
+  checkForUpdates as checkForUpdatesPinned,
+} from "./windows/tray";
 import { loadSettings, saveSettings } from "./settings";
 import path from "node:path";
 
@@ -168,9 +172,13 @@ if (!gotTheLock) {
     lcu.start();
 
     // AUTO-UPDATE: Check 10s after startup (AC: 1)
+    // On passe par checkForUpdatesPinned (pas directement par getAutoUpdater) :
+    // sur le canal beta, ca force d'abord la resolution de la derniere
+    // prerelease via l'API GitHub, pour contourner le bug d'iteration du
+    // GitHubProvider. Sur stable, c'est un simple passe-plat.
     setTimeout(() => {
       logger.info("[Updater] Auto-check at startup");
-      getAutoUpdater()?.checkForUpdates().catch((err) => {
+      checkForUpdatesPinned().catch((err) => {
         console.error("[Updater] Startup check failed:", err);
       });
     }, 10000);
@@ -178,7 +186,7 @@ if (!gotTheLock) {
     // AUTO-UPDATE: Check every 4 hours (AC: 2)
     updateCheckInterval = setInterval(() => {
       logger.info("[Updater] Periodic check (4h interval)");
-      getAutoUpdater()?.checkForUpdates().catch((err) => {
+      checkForUpdatesPinned().catch((err) => {
         console.error("[Updater] Periodic check failed:", err);
       });
     }, 14400000); // 4 hours in ms

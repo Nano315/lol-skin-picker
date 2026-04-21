@@ -150,6 +150,10 @@ function channelLabel() {
  *
  * On filtre ici : un user beta n'accepte QUE des versions avec "-beta", un
  * user stable n'accepte QUE des versions sans suffixe prerelease.
+ *
+ * Ce filtre est un garde-fou (ceinture) en complement de pinBetaFeedUrl
+ * (bretelles) : meme si le feed beta est bien pointe sur la bonne release,
+ * si jamais l'updater renvoie autre chose on bloque.
  */
 function isVersionForChannel(
   version: string,
@@ -157,6 +161,97 @@ function isVersionForChannel(
 ): boolean {
   const isBetaVersion = version.includes("-beta");
   return channel === "beta" ? isBetaVersion : !isBetaVersion;
+}
+
+// Owner/repo sont voulus hard-codes : on veut echouer vite si quelqu'un
+// forke le projet sans reconfigurer ce pointeur. Le GitHub provider gere ca
+// via publish config, mais on utilise le generic provider ici, donc on doit
+// connaitre ces infos explicitement.
+const GITHUB_OWNER = "Nano315";
+const GITHUB_REPO = "lol-skin-picker";
+
+/**
+ * Pour le canal beta UNIQUEMENT : interroge l'API GitHub pour trouver la
+ * derniere prerelease "-beta", puis bascule autoUpdater en mode generic
+ * provider pointant specifiquement sur cette release.
+ *
+ * Raison : le GitHubProvider d'electron-updater v6.6.2 a un bug d'iteration
+ * (voir GitHubProvider.js:51-82). Avec allowPrerelease=true + channel="beta" :
+ *   1. il prend la PREMIERE entree du feed atom (triee par date de publication)
+ *   2. si c'est une stable plus recente qu'une beta (ex: 8.0.0 publiee 9s apres
+ *      8.0.0-beta.0), elle est selectionnee : "shouldFetchVersion" est vrai
+ *      des que currentChannel est "alpha"/"beta", sans regarder la version
+ *      candidate elle-meme
+ *   3. le provider essaie beta.yml sur v8.0.0 -> 404
+ *   4. il fallback sur latest.yml -> retourne 8.0.0 (stable)
+ *   5. l'utilisateur beta se voit proposer la stable (ou, avec notre filtre,
+ *      ne voit rien — mais ne voit pas non plus la nouvelle beta)
+ *
+ * Solution : on court-circuite tout ce mecanisme en pointant generic provider
+ * directement sur l'URL des assets de la derniere prerelease beta. Plus
+ * d'ambiguite, plus de fallback cross-canal.
+ *
+ * A appeler AVANT chaque checkForUpdates() cote beta.
+ */
+async function pinBetaFeedUrl(au: AutoUpdater): Promise<void> {
+  if (updaterChannel !== "beta") return;
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases?per_page=30`,
+      { headers: { Accept: "application/vnd.github+json" } },
+    );
+    if (!res.ok) {
+      logger.warn(
+        `[Updater] GitHub releases API returned ${res.status} — keeping existing feed`,
+      );
+      return;
+    }
+    const releases = (await res.json()) as Array<{
+      tag_name: string;
+      draft: boolean;
+      prerelease: boolean;
+    }>;
+    // L'API GitHub renvoie les releases triees par date de creation decroissante,
+    // donc .find() donne bien la plus recente qui matche.
+    const latestBeta = releases.find(
+      (r) => !r.draft && r.prerelease && r.tag_name.includes("-beta"),
+    );
+    if (!latestBeta) {
+      logger.warn("[Updater] No beta release found via GitHub API");
+      return;
+    }
+    const base = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${latestBeta.tag_name}/`;
+    au.setFeedURL({
+      provider: "generic",
+      url: base,
+      channel: "beta",
+    });
+    logger.info(
+      `[Updater] Pinned beta feed to ${latestBeta.tag_name} (${base})`,
+    );
+  } catch (err) {
+    logger.warn(
+      `[Updater] Failed to pin beta feed URL: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
+}
+
+/**
+ * Point d'entree unique pour tous les checks (auto startup, auto periodique,
+ * manuel). Assure que le feed beta est rafraichi AVANT le check : si une
+ * nouvelle beta est publiee entre deux checks, elle sera vue au check suivant.
+ *
+ * Pour le canal stable : pinBetaFeedUrl ne fait rien, on utilise le GitHub
+ * provider standard (qui fonctionne correctement via /releases/latest quand
+ * allowPrerelease=false).
+ */
+export async function checkForUpdates(): Promise<void> {
+  const au = getAutoUpdater();
+  if (!au) return;
+  await pinBetaFeedUrl(au);
+  await au.checkForUpdates();
 }
 
 export function setupTray(getWin: () => Electron.BrowserWindow | null) {
@@ -218,6 +313,10 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
 
     manualCheckInFlight = true;
     logger.info(`[Updater] Manual check requested (channel=${updaterChannel})`);
+
+    // Pointe sur la derniere prerelease beta avant de lancer le check.
+    // No-op pour le canal stable. Voir pinBetaFeedUrl pour le pourquoi.
+    await pinBetaFeedUrl(au);
 
     // On ne peut PAS se baser sur la valeur de retour de checkForUpdates :
     //   - result.downloadPromise n'est renseigne que si autoDownload=true
@@ -438,5 +537,3 @@ export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
   });
 }
 
-// Export pour app.ts (auto-check au demarrage + check periodique)
-export { getAutoUpdater };
