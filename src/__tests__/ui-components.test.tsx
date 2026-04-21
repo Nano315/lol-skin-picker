@@ -25,13 +25,13 @@ describe('Skeleton', () => {
   it('should apply circle variant class', () => {
     render(<Skeleton variant="circle" />);
     const skeleton = screen.getByLabelText('Loading');
-    expect(skeleton.className).toContain('circle');
+    expect(skeleton).toHaveAttribute('data-variant', 'circle');
   });
 
   it('should apply text variant class', () => {
     render(<Skeleton variant="text" />);
     const skeleton = screen.getByLabelText('Loading');
-    expect(skeleton.className).toContain('text');
+    expect(skeleton).toHaveAttribute('data-variant', 'text');
   });
 });
 

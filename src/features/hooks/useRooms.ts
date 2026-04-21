@@ -101,18 +101,20 @@ export function useRooms(selection: Selection) {
   }, []);
 
   // Actions
-  const create = useCallback(async (name: string) => {
+  const create = useCallback(async (name: string): Promise<RoomState | null> => {
     setIsLoading(true);
     setError(null);
     lastActionRef.current = { type: "create", args: [name] };
     try {
-      await roomsClient.createRoom(name);
+      const { room: newRoom } = await roomsClient.createRoom(name);
       roomsClient.connect();
       roomsClient.sendSelection(selection);
       lastActionRef.current = null; // Clear on success
+      return newRoom;
     } catch (e) {
       // Error is already handled by the onError listener & toast callback
-      // We just need to stop the loading state
+      // We just need to stop the loading state and return null to the caller
+      return null;
     } finally {
       setIsLoading(false);
     }

@@ -10,6 +10,7 @@ import { registerLogIpc } from "./log.ipc";
 import { registerHistoryIpc } from "./history.ipc";
 import { registerPriorityIpc } from "./priority.ipc";
 import { registerTelemetryIpc } from "./telemetry.ipc";
+import { registerWindowIpc } from "./window.ipc";
 
 export function registerAllIpc(opts: {
   lcu: LcuWatcher;
@@ -25,4 +26,5 @@ export function registerAllIpc(opts: {
   registerHistoryIpc(opts.skins);
   registerPriorityIpc();
   registerTelemetryIpc();
+  registerWindowIpc(opts.getWin);
 }

@@ -1,6 +1,6 @@
 /* -------- layout global -------- */
 .app {
-  min-height: 100vh;
+  min-height: 100%;
   margin: 0 18px;
   display: flex;
   flex-direction: column;

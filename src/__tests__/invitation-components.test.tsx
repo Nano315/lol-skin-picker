@@ -27,7 +27,7 @@ describe("InvitationModal", () => {
 
     expect(screen.getByText("TestPlayer")).toBeInTheDocument();
     expect(screen.getByText(/invites you to join/)).toBeInTheDocument();
-    expect(screen.getByText("Invitation")).toBeInTheDocument();
+    expect(screen.getByText("Room invitation")).toBeInTheDocument();
   });
 
   it("calls onAccept when Join button is clicked", () => {
@@ -72,7 +72,7 @@ describe("InvitationModal", () => {
     const onAccept = vi.fn();
     const onDismiss = vi.fn();
 
-    const { container } = render(
+    render(
       <InvitationModal
         invitation={mockInvitation}
         onAccept={onAccept}
@@ -80,10 +80,9 @@ describe("InvitationModal", () => {
       />
     );
 
-    // Find backdrop element (first div with backdrop class)
-    const backdrop = container.querySelector('[class*="backdrop"]');
+    const backdrop = screen.getByTestId("invitation-backdrop");
     expect(backdrop).toBeInTheDocument();
-    fireEvent.click(backdrop!);
+    fireEvent.click(backdrop);
 
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 250));
@@ -117,7 +116,7 @@ describe("InvitationModal", () => {
     const onAccept = vi.fn();
     const onDismiss = vi.fn();
 
-    const { container } = render(
+    render(
       <InvitationModal
         invitation={mockInvitation}
         onAccept={onAccept}
@@ -126,7 +125,7 @@ describe("InvitationModal", () => {
       />
     );
 
-    const timerBar = container.querySelector('[class*="timerBar"]');
+    const timerBar = screen.getByTestId("invitation-timer-bar");
     expect(timerBar).toBeInTheDocument();
     expect(timerBar).toHaveStyle({ width: "50%" }); // 5/10 * 100 = 50%
   });

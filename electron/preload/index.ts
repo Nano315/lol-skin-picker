@@ -137,6 +137,19 @@ const api = {
   isFirstLaunch: () => ipcRenderer.invoke("telemetry:isFirstLaunch"),
 };
 
+const windowControls = {
+  minimize: () => ipcRenderer.invoke("window:minimize"),
+  toggleMaximize: () => ipcRenderer.invoke("window:toggleMaximize"),
+  close: () => ipcRenderer.invoke("window:close"),
+  isMaximized: () => ipcRenderer.invoke("window:isMaximized") as Promise<boolean>,
+  onMaximizeChange: (cb: (isMax: boolean) => void) => {
+    const listener = (_e: any, isMax: boolean) => cb(isMax);
+    ipcRenderer.on("window:maximize-change", listener);
+    return () => ipcRenderer.removeListener("window:maximize-change", listener);
+  },
+};
+
 contextBridge.exposeInMainWorld("lcu", api);
 contextBridge.exposeInMainWorld("api", api);
 contextBridge.exposeInMainWorld("log", logApi);
+contextBridge.exposeInMainWorld("windowControls", windowControls);

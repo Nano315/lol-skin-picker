@@ -1,8 +1,7 @@
 // src/components/RoomMemberCard.tsx
+import { Check, Clock } from "lucide-react";
 import { useChromaColor } from "@/features/hooks/useChromaColor";
 import type { RoomMember } from "@/features/roomsClient";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faClock } from "@fortawesome/free-solid-svg-icons";
 import fallbackSkin from "/fallback-skin.png?url";
 
 type Props = {
@@ -117,7 +116,11 @@ export function RoomMemberCard({
                 color: 'white',
               }}
             >
-              <FontAwesomeIcon icon={member!.isReady ? faCheck : faClock} />
+              {member!.isReady ? (
+                <Check className="h-2.5 w-2.5" aria-hidden />
+              ) : (
+                <Clock className="h-2.5 w-2.5" aria-hidden />
+              )}
             </div>
           </span>
         </div>

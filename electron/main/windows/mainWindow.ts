@@ -37,6 +37,8 @@ export async function createMainWindow() {
 
     show: false,
     icon: getIconPath(),
+    titleBarStyle: "hidden",
+    backgroundColor: "#09090b",
     webPreferences: {
       preload: getPreloadPath(),
       contextIsolation: true,
@@ -53,6 +55,13 @@ export async function createMainWindow() {
     const indexHtml = path.join(__dirname, "../dist/index.html");
     await win.loadFile(indexHtml);
   }
+
+  win.on("maximize", () => {
+    win?.webContents.send("window:maximize-change", true);
+  });
+  win.on("unmaximize", () => {
+    win?.webContents.send("window:maximize-change", false);
+  });
 
   win.once("ready-to-show", () => {
     if (win) {

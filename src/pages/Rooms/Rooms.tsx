@@ -1,7 +1,7 @@
 // src/pages/Rooms/Rooms.tsx
 import { useSelection } from "@/features/hooks/useSelection";
 import { useRooms } from "@/features/hooks/useRooms";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { useConnection } from "@/features/hooks/useConnection";
@@ -18,13 +18,32 @@ import { computeChromaColor } from "@/features/chromaColor";
 import { colorCache } from "@/features/utils/colorCache";
 import { findMemberBySummonerName } from "@/features/utils/summonerUtils";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
-import { SyncProgressBar, SyncFlashOverlay } from "@/components/ui";
+import {
+  SyncProgressBar,
+  SyncFlashOverlay,
+  GlassCard,
+  Reveal,
+  GradientText,
+  Button,
+  CardHeader,
+} from "@/components/ui";
 import { SkinLineageSelector } from "@/components/rooms/SkinLineageSelector";
 import { ChromaSelector } from "@/components/rooms/ChromaSelector";
 import { useToast } from "@/features/hooks/useToast";
 import { trackSkinergy } from "@/features/analytics/tracker";
 import { useOnlineFriends } from "@/features/hooks/useOnlineFriends";
 import { OnlineFriendsList } from "@/components/social/OnlineFriendsList";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Copy,
+  Check,
+  LogOut,
+  Plus,
+  KeyRound,
+  AlertTriangle,
+  RefreshCw,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function RoomsPage() {
   const navigate = useNavigate();
@@ -143,6 +162,37 @@ export function RoomsPage() {
 
   // Online friends (Story 4.4) - consumes global presenceStore
   const { onlineFriends } = useOnlineFriends();
+
+  // Names of members currently in the room (used to disable the invite action
+  // for friends who have already joined).
+  const roomMemberNames = useMemo(
+    () => room?.members.map((m) => m.name) ?? [],
+    [room?.members]
+  );
+
+  // Auto-create-and-invite flow: a FriendCard can request "ensure a room
+  // exists, then give me its code". If we already have a room, we return its
+  // code synchronously; otherwise we create one on the fly and return the
+  // fresh code. Concurrent callers share a single in-flight creation so we
+  // don't spawn multiple rooms when several cards are clicked at once.
+  const ensureRoomInFlight = useRef<Promise<string | null> | null>(null);
+  const ensureRoom = useCallback(async (): Promise<string | null> => {
+    const existing = roomsClient.getCurrentRoom();
+    if (existing?.code) return existing.code;
+    if (!summonerName || !canUseRooms) return null;
+    if (ensureRoomInFlight.current) return ensureRoomInFlight.current;
+
+    const pending = (async () => {
+      const newRoom = await create(summonerName);
+      return newRoom?.code ?? null;
+    })();
+    ensureRoomInFlight.current = pending;
+    try {
+      return await pending;
+    } finally {
+      ensureRoomInFlight.current = null;
+    }
+  }, [summonerName, canUseRooms, create]);
 
   const [copied, setCopied] = useState(false);
 
@@ -436,89 +486,126 @@ export function RoomsPage() {
     return (
       <div className="app">
         <Header status={status} phase={phase} iconId={iconId} />
-        <main className="main">
-          <div className="page-shell rooms-shell">
+        <main className="relative flex flex-col items-center px-4 pb-12 pt-7">
+          <div className="mx-auto w-full max-w-[1200px] px-2 sm:px-4">
             <ConnectionStatusIndicator
               error={error}
               isConnected={isConnected}
               isRetrying={isRetrying}
               onRetry={canRetry ? retry : undefined}
             />
-            <div className="bento-grid rooms-bento">
+            <div className="grid grid-cols-12 gap-6">
               {error && error.code !== "NETWORK_ERROR" && (
-                <div className="rooms-error-block">
-                  <p className="rooms-error-message">{error.message}</p>
-                  {canRetry && (
-                    <button
-                      className="rooms-retry-btn"
-                      onClick={retry}
-                      disabled={isRetrying}
-                    >
-                      {isRetrying ? "Retrying..." : "Retry"}
-                    </button>
-                  )}
-                </div>
+                <Reveal delay={0} className="col-span-12">
+                  <GlassCard
+                    hover={false}
+                    className="flex flex-col items-center gap-3 border-rose-400/30 bg-rose-500/[0.04] text-center"
+                  >
+                    <div className="inline-flex items-center gap-2 text-rose-200">
+                      <AlertTriangle className="h-4 w-4" aria-hidden />
+                      <span className="text-sm font-medium">
+                        {error.message}
+                      </span>
+                    </div>
+                    {canRetry && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={retry}
+                        loading={isRetrying}
+                        icon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
+                      >
+                        {isRetrying ? "Retrying..." : "Retry"}
+                      </Button>
+                    )}
+                  </GlassCard>
+                </Reveal>
               )}
 
-              <section className="card rooms-cta-card">
-                <div className="rooms-card-header card-header">
-                  <div>
-                    <p className="eyebrow">CREATE</p>
-                    <h2 className="card-title">Start a new lobby</h2>
-                  </div>
-                </div>
-
-                <p className="rooms-card-desc">
-                  Generate a fresh room and invite your group instantly.
-                </p>
-
-                <button
-                  className="rooms-primary-btn"
-                  onClick={() => summonerName && create(summonerName)}
-                  disabled={!canUseRooms || isLoading}
-                >
-                  {isLoading ? "Creating..." : "Create room"}
-                </button>
-              </section>
-
-              <section className="card rooms-cta-card">
-                <div className="rooms-card-header card-header">
-                  <div>
-                    <p className="eyebrow">JOIN</p>
-                    <h2 className="card-title">Enter a room code</h2>
-                  </div>
-                </div>
-
-                <p className="rooms-card-desc">
-                  Enter the shared code to sync up with your teammates.
-                </p>
-
-                <div className="rooms-input-row">
-                  <input
-                    className="rooms-input"
-                    placeholder="Room code (e.g. ABC123)"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    disabled={isLoading}
-                  />
-                  <button
-                    className="rooms-primary-btn"
-                    onClick={() =>
-                      summonerName && join(code.trim(), summonerName)
+              {/* ---------- Create Room ---------- */}
+              <Reveal delay={0} className="col-span-12 md:col-span-6">
+                <GlassCard className="flex h-full flex-col gap-4">
+                  <CardHeader
+                    eyebrow="Create"
+                    title={
+                      <>
+                        Start a <GradientText>new lobby</GradientText>
+                      </>
                     }
-                    disabled={!canUseRooms || !code.trim() || isLoading}
-                  >
-                    {isLoading ? "Joining..." : "Join room"}
-                  </button>
-                </div>
-              </section>
+                  />
+                  <p className="m-0 text-sm leading-relaxed text-muted">
+                    Generate a fresh room and invite your group instantly.
+                  </p>
+                  <div className="mt-auto">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                      onClick={() => summonerName && create(summonerName)}
+                      disabled={!canUseRooms || isLoading}
+                      loading={isLoading}
+                      icon={<Plus className="h-5 w-5" aria-hidden />}
+                    >
+                      {isLoading ? "Creating..." : "Create room"}
+                    </Button>
+                  </div>
+                </GlassCard>
+              </Reveal>
 
-              {/* Online Friends Section */}
-              <OnlineFriendsList
-                friends={onlineFriends}
-                currentRoomCode={undefined}
-                isLcuConnected={isConnected}
-              />
+              {/* ---------- Join Room ---------- */}
+              <Reveal delay={0.08} className="col-span-12 md:col-span-6">
+                <GlassCard className="flex h-full flex-col gap-4">
+                  <CardHeader
+                    eyebrow="Join"
+                    title={
+                      <>
+                        Enter a <GradientText>room code</GradientText>
+                      </>
+                    }
+                  />
+                  <p className="m-0 text-sm leading-relaxed text-muted">
+                    Enter the shared code to sync up with your teammates.
+                  </p>
+                  <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:items-stretch">
+                    <input
+                      className={cn(
+                        "flex-1 rounded-full border border-white/10 bg-black/30 px-5 py-3 text-sm text-white",
+                        "placeholder:text-white/30",
+                        "outline-none transition-colors duration-200",
+                        "focus:border-white/30 focus:bg-black/40",
+                        "disabled:cursor-not-allowed disabled:opacity-50"
+                      )}
+                      placeholder="Room code (e.g. ABC123)"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                      disabled={isLoading}
+                      maxLength={8}
+                    />
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      onClick={() =>
+                        summonerName && join(code.trim(), summonerName)
+                      }
+                      disabled={!canUseRooms || !code.trim() || isLoading}
+                      loading={isLoading}
+                      icon={<KeyRound className="h-4 w-4" aria-hidden />}
+                    >
+                      {isLoading ? "Joining..." : "Join room"}
+                    </Button>
+                  </div>
+                </GlassCard>
+              </Reveal>
+
+              {/* ---------- Online Friends ---------- */}
+              <Reveal delay={0.16} className="col-span-12">
+                <OnlineFriendsList
+                  friends={onlineFriends}
+                  currentRoomCode={undefined}
+                  ensureRoom={canUseRooms ? ensureRoom : undefined}
+                  isLcuConnected={isConnected}
+                />
+              </Reveal>
             </div>
           </div>
         </main>
@@ -531,137 +618,145 @@ export function RoomsPage() {
   return (
     <div className="app">
       <Header status={status} phase={phase} iconId={iconId} />
-      <main className="main">
-        <div className="page-shell rooms-shell">
+      <main className="relative flex flex-col items-center px-4 pb-12 pt-7">
+        <div className="mx-auto w-full max-w-[1200px] px-2 sm:px-4">
           <ConnectionStatusIndicator
             error={error}
             isConnected={isConnected}
             isRetrying={isRetrying}
             onRetry={canRetry ? retry : undefined}
           />
-          <div className="bento-grid rooms-bento">
-            <section className="card rooms-squad-card">
-              <div className="card-header rooms-card-header">
-                <div>
-                  <p className="eyebrow">SQUAD</p>
-                  <h2 className="card-title">
-                    Lobby - Room{" "}
-                    <button
-                      type="button"
-                      className="rooms-code-button"
-                      onClick={handleCopyCode}
+          <div className="grid grid-cols-12 gap-6">
+            {/* ---------- Squad Card ---------- */}
+            <Reveal delay={0} className="col-span-12">
+              <GlassCard className="flex flex-col gap-5">
+                <CardHeader
+                  eyebrow={isOwner ? "Command Squad" : "Squad"}
+                  title={
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span>Lobby</span>
+                      <RoomCodePill
+                        code={room?.code ?? ""}
+                        copied={copied}
+                        onCopy={handleCopyCode}
+                      />
+                    </span>
+                  }
+                  trailing={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={leave}
+                      icon={<LogOut className="h-4 w-4" aria-hidden />}
                     >
-                      <span className="rooms-code-text">{room?.code}</span>
-                      {copied && (
-                        <span className="rooms-code-feedback">Copied!</span>
-                      )}
-                    </button>
-                  </h2>
-                </div>
-
-                <button className="rooms-leave-btn" onClick={leave}>
-                  Leave Room
-                </button>
-              </div>
-
-              <div className="rooms-members-row">
-                {orderedSlots.map(({ member, slotIndex }) => {
-                  const suggestion = member
-                    ? suggestedColorsMap[member.id]
-                    : undefined;
-
-                  const handleApplySuggestion = () => {
-                    if (!suggestion || !room || !member) return;
-                    (async () => {
-                      const color = await computeChromaColor({
-                        championId: member.championId,
-                        skinId: suggestion.skinId,
-                        chromaId: suggestion.chromaId,
-                      });
-                      if (color)
-                        roomsClient.requestGroupReroll({
-                          type: "sameColor",
-                          color,
-                          sourceMemberId: member.id,
-                        });
-                    })();
-                  };
-
-                  return (
-                    <RoomMemberCard
-                      key={member?.id ?? `empty-${slotIndex}`}
-                      member={member ?? undefined}
-                      slotIndex={slotIndex}
-                      suggestedSkinId={
-                        isOwner && suggestion ? suggestion.skinId : undefined
-                      }
-                      suggestedChromaId={
-                        isOwner && suggestion ? suggestion.chromaId : undefined
-                      }
-                      onApplySuggestion={
-                        isOwner && suggestion
-                          ? handleApplySuggestion
-                          : undefined
-                      }
-                    />
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="card rooms-actions-card">
-              <div className="card-header rooms-card-header">
-                <div>
-                  <p className="eyebrow">{isOwner ? "COMMAND" : "ACTIONS"}</p>
-                  <h2 className="card-title">Room Controls</h2>
-                </div>
-              </div>
-              <div className="rooms-actions-body">
-                {isSyncing && (
-                  <SyncProgressBar
-                    progress={syncProgress}
-                    label="Computing synergies..."
-                  />
-                )}
-                {isOwner && room && room.synergy && phase === "ChampSelect" && (
-                  <>
-                    <SkinLineageSelector
-                      synergies={room.synergy.skinLines}
-                      onApply={handleApplySkinLine}
-                      activeId={activeSkinLineId}
-                      disabled={isSyncing}
-                    />
-                    <ChromaSelector
-                      synergies={filteredChromaSynergies}
-                      onApply={handleApplyChroma}
-                      activeColor={activeChromaColor}
-                      disabled={isSyncing}
-                    />
-                  </>
-                )}
-                <ControlBar
-                  phase={phase}
-                  status={status}
-                  selection={selection}
-                  skins={skins}
-                  onChanged={() => api.getSelection().then(setSelection)}
-                  room={room ?? undefined}
-                  isOwner={isOwner || false}
-                  activeRoomColor={activeRoomColor}
-                  skinOptions={skinOptions}
-                  isSyncing={isSyncing}
-                  syncProgress={syncProgress}
-                  suggestColor={suggestColor}
+                      Leave
+                    </Button>
+                  }
                 />
-              </div>
-            </section>
 
-            {/* Online Friends Section - with invite button when in room */}
-            <OnlineFriendsList
-              friends={onlineFriends}
-              currentRoomCode={room?.code}
-              isLcuConnected={isConnected}
-            />
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                  {orderedSlots.map(({ member, slotIndex }) => {
+                    const suggestion = member
+                      ? suggestedColorsMap[member.id]
+                      : undefined;
+
+                    const handleApplySuggestion = () => {
+                      if (!suggestion || !room || !member) return;
+                      (async () => {
+                        const color = await computeChromaColor({
+                          championId: member.championId,
+                          skinId: suggestion.skinId,
+                          chromaId: suggestion.chromaId,
+                        });
+                        if (color)
+                          roomsClient.requestGroupReroll({
+                            type: "sameColor",
+                            color,
+                            sourceMemberId: member.id,
+                          });
+                      })();
+                    };
+
+                    return (
+                      <RoomMemberCard
+                        key={member?.id ?? `empty-${slotIndex}`}
+                        member={member ?? undefined}
+                        slotIndex={slotIndex}
+                        suggestedSkinId={
+                          isOwner && suggestion ? suggestion.skinId : undefined
+                        }
+                        suggestedChromaId={
+                          isOwner && suggestion ? suggestion.chromaId : undefined
+                        }
+                        onApplySuggestion={
+                          isOwner && suggestion
+                            ? handleApplySuggestion
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </GlassCard>
+            </Reveal>
+
+            {/* ---------- Actions Card ---------- */}
+            <Reveal delay={0.08} className="col-span-12">
+              <GlassCard className="flex flex-col gap-4">
+                <CardHeader
+                  eyebrow={isOwner ? "Command" : "Actions"}
+                  title="Room Controls"
+                />
+                <div className="flex flex-col gap-3">
+                  {isSyncing && (
+                    <SyncProgressBar
+                      progress={syncProgress}
+                      label="Computing synergies..."
+                    />
+                  )}
+                  {isOwner && room && room.synergy && phase === "ChampSelect" && (
+                    <>
+                      <SkinLineageSelector
+                        synergies={room.synergy.skinLines}
+                        onApply={handleApplySkinLine}
+                        activeId={activeSkinLineId}
+                        disabled={isSyncing}
+                      />
+                      <ChromaSelector
+                        synergies={filteredChromaSynergies}
+                        onApply={handleApplyChroma}
+                        activeColor={activeChromaColor}
+                        disabled={isSyncing}
+                      />
+                    </>
+                  )}
+                  <ControlBar
+                    phase={phase}
+                    status={status}
+                    selection={selection}
+                    skins={skins}
+                    onChanged={() => api.getSelection().then(setSelection)}
+                    room={room ?? undefined}
+                    isOwner={isOwner || false}
+                    activeRoomColor={activeRoomColor}
+                    skinOptions={skinOptions}
+                    isSyncing={isSyncing}
+                    syncProgress={syncProgress}
+                    suggestColor={suggestColor}
+                  />
+                </div>
+              </GlassCard>
+            </Reveal>
+
+            {/* ---------- Online Friends ---------- */}
+            <Reveal delay={0.16} className="col-span-12">
+              <OnlineFriendsList
+                friends={onlineFriends}
+                currentRoomCode={room?.code}
+                roomMemberNames={roomMemberNames}
+                isLcuConnected={isConnected}
+              />
+            </Reveal>
           </div>
         </div>
       </main>
@@ -674,5 +769,62 @@ export function RoomsPage() {
         />
       )}
     </div>
+  );
+}
+
+/* ---------- Local primitives (scoped to Rooms) ---------- */
+
+function RoomCodePill({
+  code,
+  copied,
+  onCopy,
+}: {
+  code: string;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onCopy}
+      whileHover={{ y: -1 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 400, damping: 24 }}
+      className={cn(
+        "group relative inline-flex items-center gap-2 rounded-full border border-white/10",
+        "bg-white/[0.03] px-3 py-1 text-[0.85em] font-bold tracking-[0.08em] text-white",
+        "transition-colors duration-200 hover:border-white/25 hover:bg-white/[0.06]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+      )}
+      title="Copy room code"
+    >
+      <span className="font-mono">{code}</span>
+      <AnimatePresence mode="wait" initial={false}>
+        {copied ? (
+          <motion.span
+            key="copied"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.85 }}
+            transition={{ duration: 0.18 }}
+            className="inline-flex items-center gap-1 rounded-full bg-emerald-400/90 px-2 py-0.5 text-[0.6em] font-semibold uppercase tracking-[0.14em] text-emerald-950"
+          >
+            <Check className="h-3 w-3" aria-hidden />
+            Copied
+          </motion.span>
+        ) : (
+          <motion.span
+            key="copy"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.85 }}
+            transition={{ duration: 0.18 }}
+            className="inline-flex items-center text-muted transition-colors group-hover:text-white"
+          >
+            <Copy className="h-3.5 w-3.5" aria-hidden />
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
   );
 }

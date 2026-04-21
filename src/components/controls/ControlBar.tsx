@@ -1,32 +1,24 @@
 import { useState } from "react";
-import styles from "./ControlBar.module.css";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faDice,
-  faPalette,
-  faWandMagicSparkles,
-  faSpinner,
-  faCircleNotch
-} from "@fortawesome/free-solid-svg-icons";
+import { Dices, Palette, Sparkles, Loader2 } from "lucide-react";
 import { api } from "@/features/api";
+import { Button } from "@/components/ui";
+import { cn } from "@/lib/utils";
 import type { OwnedSkin, Selection, ConnectionStatus } from "@/features/types";
 import type { RoomState, GroupSkinOption } from "@/features/roomsClient";
 import { ColorSuggestionButton } from "./ColorSuggestionButton";
 
 type ControlBarProps = {
-  // Application State
   phase: string;
-  status?: ConnectionStatus; // Made optional to support legacy calls if any, but properly passed now
+  status?: ConnectionStatus;
   selection: Selection;
   skins: OwnedSkin[];
   onChanged: () => void;
-  // Room Context (Optional)
   room?: RoomState;
   isOwner?: boolean;
-  activeRoomColor?: string; // The color currently "suggested" or active for the room
-  skinOptions?: GroupSkinOption[]; // The current user's skin options that match colors
+  activeRoomColor?: string;
+  skinOptions?: GroupSkinOption[];
   isSyncing?: boolean;
-  syncProgress?: number; // 0-100 progress percentage
+  syncProgress?: number;
   suggestColor?: (skinId: number, chromaId: number) => Promise<{ success: boolean; error?: string }>;
 };
 
@@ -44,43 +36,31 @@ export default function ControlBar({
   syncProgress = 0,
   suggestColor,
 }: ControlBarProps) {
-  // --- Derived State ---
   const notInChampSelect = phase !== "ChampSelect";
   const noChampion = selection.championId === 0;
   const notLocked = !selection.locked;
   const isConnected = status === "connected";
-  
-  // Can we operate at all?
-  // We disable interaction if we are not in champ select, or if we are currently syncing
+
   const canInteract = isConnected && !notInChampSelect && !noChampion && !notLocked && !isSyncing;
 
-  // Do we have chromas for the *current* skin?
   const currentSkinId = selection.skinId;
   const currentSkin = skins.find((s) => s.id === currentSkinId);
   const hasChromas = (currentSkin?.chromas?.length ?? 0) > 0;
 
-  // --- Local Loading States for Buttons ---
   const [isRerollLoading, setIsRerollLoading] = useState(false);
   const [isChromaLoading, setIsChromaLoading] = useState(false);
   const [isMagicLoading, setIsMagicLoading] = useState(false);
 
-  // --- Commander / Group Logic ---
-  // Available synergy colors
   const synergyColors = (room?.synergy?.colors ?? []).filter(
     (c) => c.combinationCount > 0
   );
 
-
-  // --- Smart Action Logic (Synergy Button) ---
-  
-  // Helper: Find all valid { skinId, chromaId } pairs that match the active color
   const getSynergyCandidates = () => {
     if (!activeRoomColor) return [];
-    
+
     const candidates: { skinId: number; chromaId: number }[] = [];
     const colorLower = activeRoomColor.toLowerCase();
 
-    // Strategy 1: Use provided skinOptions (Exact Hex matching) -> Preferred
     if (skinOptions && skinOptions.length > 0) {
       for (const opt of skinOptions) {
         if (opt.auraColor === activeRoomColor) {
@@ -90,9 +70,7 @@ export default function ControlBar({
       return candidates;
     }
 
-    // Strategy 2: Fallback to Name matching (if no options provided)
     for (const skin of skins) {
-      // Check chromas
       if (skin.chromas) {
         for (const chroma of skin.chromas) {
           if (chroma.name.toLowerCase().includes(colorLower)) {
@@ -106,29 +84,25 @@ export default function ControlBar({
 
   const synergyCandidates = getSynergyCandidates();
   const canSynergyReroll = canInteract && synergyCandidates.length > 0;
-  
+
   const handleSynergyReroll = async () => {
     if (synergyCandidates.length === 0 || isMagicLoading) return;
     setIsMagicLoading(true);
-    
+
     try {
-      // Pick a random candidate
-      // Try to pick one that isn't the current one, if multiple exist
       let pool = synergyCandidates;
       if (pool.length > 1) {
         pool = pool.filter(c => c.skinId !== selection.skinId || c.chromaId !== (selection.chromaId || 0));
-        if (pool.length === 0) pool = synergyCandidates; // Should not happen if length > 1 but safe fallback
+        if (pool.length === 0) pool = synergyCandidates;
       }
 
       const pick = pool[Math.floor(Math.random() * pool.length)];
 
-      // Apply
       await api.setSkin(pick.skinId);
       if (pick.chromaId !== 0) {
         await api.setChroma(pick.chromaId);
       }
       onChanged();
-      // Minimum visual delay
       await new Promise(r => setTimeout(r, 500));
     } finally {
       setIsMagicLoading(false);
@@ -140,7 +114,6 @@ export default function ControlBar({
     setIsRerollLoading(true);
     try {
       await api.rerollSkin();
-      // Wait a bit for feedback
       await new Promise(r => setTimeout(r, 500));
     } finally {
       setIsRerollLoading(false);
@@ -158,41 +131,38 @@ export default function ControlBar({
     }
   };
 
-  // --- Status Message Logic ---
   let statusMessage = "Ready";
-  let statusIcon = null;
+  let statusIcon: React.ReactNode = null;
 
   if (!isConnected) {
     statusMessage = "Waiting for League Client...";
-    statusIcon = <FontAwesomeIcon icon={faCircleNotch} spin />;
+    statusIcon = <Loader2 className="h-4 w-4 animate-spin" aria-hidden />;
   } else if (notInChampSelect) {
     statusMessage = "Waiting for Champion Select...";
   } else if (noChampion) {
     statusMessage = "Select a champion...";
   } else if (notLocked) {
-     // If we want to enforce locking for syncing, we can say so.
-     // The prompt says: Si !selection.locked => "Lock in your champion to sync"
     statusMessage = "Lock in your champion to sync";
   } else if (isSyncing) {
     statusMessage = syncProgress > 0 ? `Computing synergies... ${syncProgress}%` : "Computing synergies...";
-    statusIcon = <FontAwesomeIcon icon={faSpinner} spin />;
+    statusIcon = <Loader2 className="h-4 w-4 animate-spin" aria-hidden />;
   }
 
-  // Visuals
   const showMagicButton = !!activeRoomColor && canSynergyReroll;
-  
-  // Dynamic styles for synergy strip (pulse/opacity if syncing)
-  const stripStyle = isSyncing ? { opacity: 0.6, pointerEvents: 'none' as const } : {};
 
   return (
-    <div className={styles.container}>
-      {/* 1. Commander Strip (Owner Only) - Removed as redundant, owner uses Selectors */}
-      
-      {/* 2. Suggestion Strip (Member Only) */}
+    <div className="flex w-full flex-col gap-4">
       {!isOwner && room && synergyColors.length > 0 && !notInChampSelect && selection.locked === true && suggestColor && (
-        <div className={styles.commanderStrip} style={stripStyle}>
-          <div className={styles.stripLabel}>Suggestions</div>
-          <div className={styles.suggestionStrip}>
+        <div
+          className={cn(
+            "mb-1 flex flex-col gap-2 border-b border-white/10 pb-3 transition-opacity",
+            isSyncing && "pointer-events-none opacity-60"
+          )}
+        >
+          <div className="text-xs font-semibold uppercase tracking-[0.05em] text-muted">
+            Suggestions
+          </div>
+          <div className="flex justify-center gap-2 py-2">
             {synergyColors.map((synergy) => (
               <ColorSuggestionButton
                 key={synergy.color}
@@ -206,50 +176,47 @@ export default function ControlBar({
         </div>
       )}
 
-      {/* 3. Main Controls */}
-      <div className={styles.mainControls}>
+      <div className="flex flex-row items-stretch gap-3">
         {!canInteract ? (
-          <div className={styles.muted}>
-             {statusIcon} <span style={{ marginLeft: statusIcon ? 8 : 0 }}>{statusMessage}</span>
+          <div className="flex min-h-[2.75rem] w-full items-center justify-center gap-2 text-sm text-muted">
+            {statusIcon}
+            <span>{statusMessage}</span>
           </div>
         ) : (
           <>
             {showMagicButton && (
-              <button 
-                className={`${styles.button} ${styles.buttonMagic}`}
+              <Button
+                variant="magic"
+                size="lg"
+                className="flex-1"
                 onClick={handleSynergyReroll}
-                disabled={isMagicLoading}
+                loading={isMagicLoading}
+                icon={<Sparkles className="h-4 w-4" aria-hidden />}
               >
-                {isMagicLoading ? (
-                   <FontAwesomeIcon icon={faSpinner} spin />
-                ) : (
-                   <FontAwesomeIcon icon={faWandMagicSparkles} className={styles.magicIcon} />
-                )}
-                <span>Match Team</span>
-              </button>
+                Match Team
+              </Button>
             )}
-            <button 
-              className={`${styles.button} ${styles.buttonPrimary}`}
+            <Button
+              variant="primary"
+              size="lg"
+              className="flex-[2]"
               onClick={handleRerollSkin}
+              loading={isRerollLoading}
+              icon={<Dices className="h-5 w-5" aria-hidden />}
               title="Random Skin"
-              disabled={isRerollLoading}
             >
-              {isRerollLoading ? (
-                <FontAwesomeIcon icon={faSpinner} spin size="lg"/>
-              ) : (
-                <FontAwesomeIcon icon={faDice} size="lg" />
-              )}
-              <span>{showMagicButton && !isRerollLoading ? "Random" : (isRerollLoading ? "" : "Random Skin")}</span>
-            </button>
+              {showMagicButton ? "Random" : "Random Skin"}
+            </Button>
             {hasChromas && (
-              <button 
-                className={`${styles.button} ${styles.buttonSecondary}`}
+              <Button
+                variant="secondary"
+                size="icon-lg"
                 onClick={handleRerollChroma}
+                loading={isChromaLoading}
+                icon={<Palette className="h-5 w-5" aria-hidden />}
                 title="Shuffle Chroma"
-                disabled={isChromaLoading}
-              >
-                {isChromaLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPalette} />}
-              </button>
+                aria-label="Shuffle Chroma"
+              />
             )}
           </>
         )}

@@ -1,20 +1,42 @@
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  Bell,
+  ChevronDown,
+  FolderOpen,
+  ShieldCheck,
+  Sparkles,
+  Info,
+} from "lucide-react";
 import Header from "@/components/layout/Header";
 import OptionsPanel from "@/components/controls/OptionsPanel";
 import ContactButton from "@/components/ContactButton";
+import {
+  GlassCard,
+  Reveal,
+  GradientText,
+  CardHeader,
+  Toggle,
+  Button,
+} from "@/components/ui";
 
 import { usePrefs } from "@/features/hooks/usePrefs";
 import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
 import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
-import { useEffect, useState } from "react";
 import { api } from "@/features/api";
+import { cn } from "@/lib/utils";
 
 export default function Settings() {
   const { status, iconId } = useConnection();
   const phase = useGameflow();
 
   const { save, read } = usePrefs();
-  const { enabled: telemetryEnabled, setConsent: setTelemetryEnabled, loading: telemetryLoading } = useTelemetryConsent();
+  const {
+    enabled: telemetryEnabled,
+    setConsent: setTelemetryEnabled,
+    loading: telemetryLoading,
+  } = useTelemetryConsent();
   const [includeDefault, setIncludeDefault] = useState(true);
   const [autoRoll, setAutoRoll] = useState(true);
   const [performanceMode, setPerformanceMode] = useState(false);
@@ -60,177 +82,254 @@ export default function Settings() {
   return (
     <div className="app">
       <Header status={status} phase={phase} iconId={iconId} />
+      <main className="relative flex flex-col items-center px-4 pb-12 pt-7">
+        <div className="mx-auto w-full max-w-[720px] px-2 sm:px-4">
+          <div className="grid grid-cols-12 gap-6">
+            {/* ---------- Preferences ---------- */}
+            <Reveal delay={0} className="col-span-12">
+              <GlassCard className="flex flex-col gap-5">
+                <CardHeader
+                  eyebrow="Preferences"
+                  title={
+                    <>
+                      Application <GradientText>Behavior</GradientText>
+                    </>
+                  }
+                />
+                <OptionsPanel
+                  includeDefault={includeDefault}
+                  setIncludeDefault={(v) => {
+                    setIncludeDefault(v);
+                    save("includeDefault", v);
+                  }}
+                  autoRoll={autoRoll}
+                  setAutoRoll={(v) => {
+                    setAutoRoll(v);
+                    save("autoRoll", v);
+                  }}
+                  performanceMode={performanceMode}
+                  setPerformanceMode={(v) => {
+                    setPerformanceMode(v);
+                    save("performanceMode", v);
+                  }}
+                  openAtLogin={openAtLogin}
+                  setOpenAtLogin={setOpenAtLogin}
+                  historyEnabled={historyEnabled}
+                  setHistoryEnabled={setHistoryEnabled}
+                  historySize={historySize}
+                  setHistorySize={setHistorySize}
+                  savePref={save}
+                />
+              </GlassCard>
+            </Reveal>
 
-      <main className="main settings-main">
-        <div className="page-shell settings-shell">
-          <div className="settings-stack">
-            <section className="card settings-card">
-              <div className="card-header">
-                <div>
-                  <p className="eyebrow">PREFERENCES</p>
-                  <h2 className="card-title">Application Behavior</h2>
-                </div>
-              </div>
-
-              <OptionsPanel
-                includeDefault={includeDefault}
-                setIncludeDefault={(v) => {
-                  setIncludeDefault(v);
-                  save("includeDefault", v);
-                }}
-                autoRoll={autoRoll}
-                setAutoRoll={(v) => {
-                  setAutoRoll(v);
-                  save("autoRoll", v);
-                }}
-                performanceMode={performanceMode}
-                setPerformanceMode={(v) => {
-                  setPerformanceMode(v);
-                  save("performanceMode", v);
-                }}
-                openAtLogin={openAtLogin}
-                setOpenAtLogin={setOpenAtLogin}
-                historyEnabled={historyEnabled}
-                setHistoryEnabled={setHistoryEnabled}
-                historySize={historySize}
-                setHistorySize={setHistorySize}
-                savePref={save}
-              />
-            </section>
-
-            <section className="card settings-card">
-              <div className="card-header">
-                <div>
-                  <p className="eyebrow">NOTIFICATIONS</p>
-                  <h2 className="card-title">Room Invitations</h2>
-                </div>
-              </div>
-              <div className="options-group">
-                <div className="option-row">
-                  <div className="option-info">
-                    <span className="option-label">Notification sound</span>
-                    <span className="option-desc">
-                      Play a sound when you receive a room invitation.
-                    </span>
-                  </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
+            {/* ---------- Notifications ---------- */}
+            <Reveal delay={0.05} className="col-span-12">
+              <GlassCard className="flex flex-col gap-5">
+                <CardHeader
+                  eyebrow="Notifications"
+                  title="Room Invitations"
+                  trailing={
+                    <SectionIcon>
+                      <Bell className="h-3.5 w-3.5" aria-hidden />
+                    </SectionIcon>
+                  }
+                />
+                <div className="flex flex-col">
+                  <SettingRow
+                    label="Notification sound"
+                    description="Play a sound when you receive a room invitation."
+                  >
+                    <Toggle
                       checked={notificationSound}
-                      onChange={(e) => {
-                        const v = e.target.checked;
+                      onChange={(v) => {
                         setNotificationSound(v);
                         save("notificationSound", v);
                       }}
+                      aria-label="Notification sound"
                     />
-                    <span className="track">
-                      <span className="thumb" />
-                    </span>
-                  </label>
+                  </SettingRow>
                 </div>
-              </div>
-            </section>
+              </GlassCard>
+            </Reveal>
 
-            <section className="card settings-card">
-              <div className="card-header">
-                <div>
-                  <p className="eyebrow">PRIVACY</p>
-                  <h2 className="card-title">Telemetry & Analytics</h2>
-                </div>
-              </div>
-              <div className="options-group">
-                <div className="option-row">
-                  <div className="option-info">
-                    <span className="option-label">Enable telemetry</span>
-                    <span className="option-desc">
-                      Help improve SkinPicker by sharing anonymous usage data.
-                    </span>
-                  </div>
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={telemetryEnabled}
-                      disabled={telemetryLoading}
-                      onChange={(e) => setTelemetryEnabled(e.target.checked)}
-                    />
-                    <span className="track">
-                      <span className="thumb" />
-                    </span>
-                  </label>
-                </div>
-                <div className="option-row" style={{ flexDirection: "column", alignItems: "flex-start" }}>
-                  <details className="telemetry-details">
-                    <summary>What data is collected?</summary>
-                    <ul className="telemetry-list">
-                      <li>Anonymous crash reports (to fix bugs)</li>
-                      <li>Features used (reroll, rooms, etc.)</li>
-                      <li>App version and operating system</li>
-                    </ul>
-                    <p className="telemetry-never"><strong>Never collected:</strong> Summoner name, owned skins, game data.</p>
-                  </details>
-                </div>
-              </div>
-            </section>
-
-            <section className="card settings-card">
-              <div className="card-header">
-                <div>
-                  <p className="eyebrow">SUPPORT</p>
-                  <h2 className="card-title">Troubleshooting</h2>
-                </div>
-              </div>
-              <div className="options-group">
-                <div className="option-row">
-                  <div className="option-info">
-                    <span className="option-label">Debug Logs</span>
-                    <span className="option-desc">
-                      Open the logs folder to send files for bug reports.
-                    </span>
-                  </div>
-                  <button
-                    className="contact-btn"
-                    onClick={() => api.openLogsFolder()}
+            {/* ---------- Privacy ---------- */}
+            <Reveal delay={0.1} className="col-span-12">
+              <GlassCard className="flex flex-col gap-5">
+                <CardHeader
+                  eyebrow="Privacy"
+                  title="Telemetry & Analytics"
+                  trailing={
+                    <SectionIcon>
+                      <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                    </SectionIcon>
+                  }
+                />
+                <div className="flex flex-col">
+                  <SettingRow
+                    label="Enable telemetry"
+                    description="Help improve SkinPicker by sharing anonymous usage data."
                   >
-                    OPEN FOLDER
-                  </button>
+                    <Toggle
+                      checked={telemetryEnabled}
+                      onChange={(v) => setTelemetryEnabled(v)}
+                      disabled={telemetryLoading}
+                      aria-label="Enable telemetry"
+                    />
+                  </SettingRow>
                 </div>
+                <TelemetryDetails />
+              </GlassCard>
+            </Reveal>
 
-                <div className="option-row">
-                  <div className="option-info">
-                    <span className="option-label">Contact & Feedback</span>
-                    <span className="option-desc">
-                      Found a bug or have a suggestion? Feel free to reach out!
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center" }}>
+            {/* ---------- Support ---------- */}
+            <Reveal delay={0.15} className="col-span-12">
+              <GlassCard className="flex flex-col gap-5">
+                <CardHeader
+                  eyebrow="Support"
+                  title="Troubleshooting"
+                  trailing={
+                    <SectionIcon>
+                      <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                    </SectionIcon>
+                  }
+                />
+                <div className="flex flex-col">
+                  <SettingRow
+                    label="Debug logs"
+                    description="Open the logs folder to send files for bug reports."
+                  >
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => api.openLogsFolder()}
+                      icon={<FolderOpen className="h-3.5 w-3.5" aria-hidden />}
+                    >
+                      Open folder
+                    </Button>
+                  </SettingRow>
+
+                  <SettingRow
+                    label="Contact & feedback"
+                    description="Found a bug or have a suggestion? Feel free to reach out."
+                  >
                     <ContactButton />
-                  </div>
+                  </SettingRow>
                 </div>
-              </div>
-            </section>
+              </GlassCard>
+            </Reveal>
 
-            <section className="card settings-card">
-              <div className="card-header about-header">
-                <div>
-                  <p className="eyebrow">ABOUT</p>
-                  <h2 className="card-title">Skin Picker</h2>
+            {/* ---------- About ---------- */}
+            <Reveal delay={0.2} className="col-span-12">
+              <GlassCard className="flex flex-col gap-4">
+                <CardHeader
+                  eyebrow="About"
+                  title={
+                    <>
+                      Skin <GradientText>Picker</GradientText>
+                    </>
+                  }
+                  trailing={<VersionPill>v{__APP_VERSION__}</VersionPill>}
+                />
+                <div className="flex flex-col gap-2">
+                  <p className="m-0 flex items-center gap-2 text-sm leading-relaxed text-white/70">
+                    <Info className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+                    Not affiliated with Riot Games or DPM.lol. Crafted to make
+                    skin selection smoother and more delightful.
+                  </p>
+                  <p className="m-0 pl-5 text-xs text-muted">
+                    © 2025 Skin Picker. All rights reserved.
+                  </p>
                 </div>
-                <span className="version-pill">v{__APP_VERSION__}</span>
-              </div>
-
-              <div className="about-body">
-                <p className="about-text">
-                  Not affiliated with Riot Games or DPM.lol. Crafted to make
-                  skin selection smoother and more delightful.
-                </p>
-                <p className="about-meta">
-                  © 2025 Skin Picker. All rights reserved.
-                </p>
-              </div>
-            </section>
+              </GlassCard>
+            </Reveal>
           </div>
         </div>
       </main>
     </div>
+  );
+}
+
+/* ---------- Local primitives (scoped to Settings) ---------- */
+
+function SettingRow({
+  label,
+  description,
+  children,
+}: {
+  label: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-white/[0.05] py-3.5 last:border-0">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-sm font-semibold text-white">{label}</span>
+        {description && (
+          <span className="text-xs leading-relaxed text-white/50">
+            {description}
+          </span>
+        )}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function SectionIcon({ children }: { children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-8 w-8 items-center justify-center rounded-full",
+        "border border-white/10 bg-white/[0.04] text-white/70"
+      )}
+      aria-hidden
+    >
+      {children}
+    </span>
+  );
+}
+
+function VersionPill({ children }: { children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border border-white/15 bg-white/[0.06]",
+        "px-3 py-1 text-xs font-bold tracking-wider text-white"
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function TelemetryDetails() {
+  return (
+    <details className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm">
+      <summary
+        className={cn(
+          "flex cursor-pointer list-none items-center justify-between gap-2 text-white/70",
+          "transition-colors duration-200 hover:text-white",
+          "[&::-webkit-details-marker]:hidden"
+        )}
+      >
+        <span className="font-medium">What data is collected?</span>
+        <ChevronDown
+          className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-180"
+          aria-hidden
+        />
+      </summary>
+      <div className="mt-3 flex flex-col gap-2 text-xs leading-relaxed text-white/60">
+        <ul className="m-0 flex list-disc flex-col gap-1 pl-5">
+          <li>Anonymous crash reports (to fix bugs)</li>
+          <li>Features used (reroll, rooms, etc.)</li>
+          <li>App version and operating system</li>
+        </ul>
+        <p className="m-0 text-accent-strong">
+          <strong className="text-accent">Never collected:</strong> Summoner
+          name, owned skins, game data.
+        </p>
+      </div>
+    </details>
   );
 }

@@ -1,46 +1,40 @@
 // src/components/common/SocketConnectionIndicator.tsx
+import { Loader2, WifiOff } from "lucide-react";
 import { useSocketConnectionStatus } from "@/features/hooks/useSocketConnectionStatus";
+import { cn } from "@/lib/utils";
 
 /**
  * Visual indicator for socket connection status (Story 4.8).
- * - Hidden when connected (optional subtle indicator)
+ * - Hidden when connected (avoids chrome noise in the happy path)
  * - Shows "Reconnecting..." when connecting
- * - Shows warning when disconnected
+ * - Shows "Server offline" warning when fully disconnected
+ *
+ * Compact Tailwind pill matching the overall DA (soft-tinted glass).
  */
 export function SocketConnectionIndicator() {
   const status = useSocketConnectionStatus();
-
-  // Don't show anything when connected (or show minimal indicator)
-  if (status === "connected") {
-    return null;
-  }
+  if (status === "connected") return null;
 
   const isConnecting = status === "connecting";
 
   return (
     <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
-        padding: "4px 8px",
-        borderRadius: "4px",
-        fontSize: "12px",
-        fontWeight: 500,
-        background: isConnecting ? "rgba(251, 191, 36, 0.15)" : "rgba(239, 68, 68, 0.15)",
-        color: isConnecting ? "#fbbf24" : "#ef4444",
-        animation: isConnecting ? "pulse 1.5s ease-in-out infinite" : undefined,
-      }}
+      role="status"
+      aria-live="polite"
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-200",
+        isConnecting
+          ? "border-amber-400/30 bg-amber-500/[0.1] text-amber-100"
+          : "border-rose-400/30 bg-rose-500/[0.1] text-rose-100"
+      )}
     >
-      <span
-        style={{
-          width: "8px",
-          height: "8px",
-          borderRadius: "50%",
-          background: isConnecting ? "#fbbf24" : "#ef4444",
-        }}
-      />
-      {isConnecting ? "Reconnecting..." : "Server offline"}
+      {isConnecting ? (
+        <Loader2 className="h-3 w-3 shrink-0 animate-spin" aria-hidden />
+      ) : (
+        <WifiOff className="h-3 w-3 shrink-0" aria-hidden />
+      )}
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-80 animate-pulse-slow" aria-hidden />
+      <span>{isConnecting ? "Reconnecting..." : "Server offline"}</span>
     </div>
   );
 }
