@@ -1,6 +1,10 @@
 [![Tests](https://github.com/Nano315/lol-skin-picker/actions/workflows/test.yml/badge.svg)](https://github.com/Nano315/lol-skin-picker/actions/workflows/test.yml)
 [![Release](https://img.shields.io/github/v/release/Nano315/lol-skin-picker)](https://github.com/Nano315/lol-skin-picker/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/Nano315/lol-skin-picker/total)](https://github.com/Nano315/lol-skin-picker/releases)
+[![License: MIT](https://img.shields.io/github/license/Nano315/lol-skin-picker)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows-informational)]()
+
+**[Website](https://skin-picker-website.vercel.app)** · **[Download](https://github.com/Nano315/lol-skin-picker/releases/latest)** · **[Report an issue](https://github.com/Nano315/lol-skin-picker/issues)** · **[Rooms server](https://github.com/Nano315/skin-picker-rooms-server)**
 
 # Skin Picker — Desktop
 
@@ -9,6 +13,14 @@ A desktop companion for League of Legends champion select that turns *"what skin
 Skin Picker is an Electron application that talks directly to the local League of Legends Client (LCU) to automatically roll, re-roll and coordinate skins during champion select. It runs standalone for solo queue and pairs with a dedicated real-time server to synchronize a whole team's skins by color, by thematic Skin Line, or a smart blend of both.
 
 > ⚠️ Skin Picker is not affiliated with or endorsed by Riot Games. It interacts only with the local LoL Client to modify cosmetic selection (skins and chromas). You remain responsible for compliance with Riot's Terms of Service.
+
+---
+
+## Download
+
+Grab the latest Windows installer from the [releases page](https://github.com/Nano315/lol-skin-picker/releases/latest) or from the [website](https://skin-picker-website.vercel.app). Updates are delivered automatically via `electron-updater`.
+
+The installer is currently unsigned, so Windows SmartScreen will display a warning on first launch — click **More info** → **Run anyway**. Code signing is being put in place to remove this friction.
 
 ---
 
@@ -72,7 +84,7 @@ The home screen is a responsive Bento-style grid:
 | Renderer | React 18 + Vite 5 + TypeScript 5 + Tailwind 3 |
 | Motion | Framer Motion |
 | Game client integration | Custom LCU watcher (lockfile auth, HTTPS polling) |
-| Real-time sync | Socket.IO client → Node.js + Express 5 + Socket.IO backend ([`SkinPicker-Back`](../SkinPicker-Back)) |
+| Real-time sync | Socket.IO client → Node.js + Express 5 + Socket.IO backend ([`skin-picker-rooms-server`](https://github.com/Nano315/skin-picker-rooms-server)) |
 | State | Custom stores (`presenceStore`, `invitationStore`, `priorityStore`, `historyStore`) — no Redux/Zustand/MobX |
 | Testing | Vitest + Testing Library (unit + integration) |
 | Logging | `electron-log` (rotating files) |
@@ -138,7 +150,7 @@ npm run dev
 
 ### Backend
 
-Skin Picker's multiplayer features require the **Rooms server**. See [`SkinPicker-Back/README.md`](../SkinPicker-Back/README.md) for setup.
+Skin Picker's multiplayer features require the **Rooms server**. See the [`skin-picker-rooms-server`](https://github.com/Nano315/skin-picker-rooms-server) repository for setup.
 
 ---
 
