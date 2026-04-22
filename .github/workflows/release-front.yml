@@ -59,6 +59,34 @@ jobs:
             echo "CHANNEL=stable"
           fi
 
+      # .env.production / .env.staging are .gitignored. We rebuild the right
+      # one at build time from GitHub Secrets so the Vite bundle embeds the
+      # correct values per channel.
+      - name: Write env file from secrets
+        shell: bash
+        env:
+          ROOMS_URL_PROD: ${{ secrets.VITE_ROOMS_SERVER_URL_PROD }}
+          ROOMS_URL_STAGING: ${{ secrets.VITE_ROOMS_SERVER_URL_STAGING }}
+          APTABASE_KEY_PROD: ${{ secrets.VITE_APTABASE_APP_KEY_PROD }}
+          APTABASE_KEY_STAGING: ${{ secrets.VITE_APTABASE_APP_KEY_STAGING }}
+          APTABASE_HOST: ${{ secrets.VITE_APTABASE_HOST }}
+        run: |
+          if [[ "$VITE_MODE" == "staging" ]]; then
+            ENV_FILE=".env.staging"
+            ROOMS_URL="$ROOMS_URL_STAGING"
+            APTABASE_KEY="$APTABASE_KEY_STAGING"
+          else
+            ENV_FILE=".env.production"
+            ROOMS_URL="$ROOMS_URL_PROD"
+            APTABASE_KEY="$APTABASE_KEY_PROD"
+          fi
+          {
+            echo "VITE_ROOMS_SERVER_URL=$ROOMS_URL"
+            echo "VITE_APTABASE_APP_KEY=$APTABASE_KEY"
+            echo "VITE_APTABASE_HOST=$APTABASE_HOST"
+          } > "$ENV_FILE"
+          echo "Wrote $ENV_FILE (values hidden)"
+
       - name: Build renderer and main
         run: npx tsc && npx vite build --mode ${{ env.VITE_MODE }}
 

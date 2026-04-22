@@ -13,6 +13,15 @@ dist-electron
 dist-ssr
 *.local
 
+# Env files — contain per-environment keys (Aptabase, server URLs).
+# `.env.development` stays committed (no secrets, documents the shape).
+# `.env.example` is the canonical template for contributors.
+# CI regenerates `.env.production` / `.env.staging` from GitHub Secrets at build time.
+.env
+.env.production
+.env.staging
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
