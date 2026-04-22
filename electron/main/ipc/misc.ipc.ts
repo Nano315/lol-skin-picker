@@ -1,6 +1,7 @@
 import { app, ipcMain, shell } from "electron";
 import path from "node:path";
 import { loadSettings, saveSettings } from "../settings";
+import { track } from "../telemetry";
 
 export function registerMiscIpc() {
   ipcMain.handle("open-external", (_e, url: string) => {
@@ -37,5 +38,6 @@ export function registerMiscIpc() {
     const settings = await loadSettings();
     settings.openAtLogin = openAtLogin;
     await saveSettings(settings);
+    track("setting_changed", { key: "open_at_login", value: openAtLogin });
   });
 }

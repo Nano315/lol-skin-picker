@@ -60,7 +60,7 @@ The installer is currently unsigned, so Windows SmartScreen will display a warni
 - **Smart window lifecycle** — hides itself during `InProgress` (active game) and reappears on the post-game screen. Window position and target display are persisted across restarts.
 - **Single-instance lock** — a second launch focuses the existing window instead of spawning a duplicate.
 - **Auto-updates** via `electron-updater` and GitHub Releases — check 10 seconds after launch, then every 4 hours.
-- **Opt-in telemetry** — anonymous usage events (Umami, self-hosted) and error reporting (Sentry) are both disabled by default, gated by explicit consent, and revocable at any time from the settings panel.
+- **Opt-in telemetry** — anonymous usage events (Aptabase) and error reporting (Sentry) are both disabled by default, gated by explicit consent, and revocable at any time from the settings panel.
 - **Robust LCU polling** — adaptive interval with exponential back-off, works even if the League Client is slow to start.
 
 ---
@@ -88,7 +88,7 @@ The home screen is a responsive Bento-style grid:
 | State | Custom stores (`presenceStore`, `invitationStore`, `priorityStore`, `historyStore`) — no Redux/Zustand/MobX |
 | Testing | Vitest + Testing Library (unit + integration) |
 | Logging | `electron-log` (rotating files) |
-| Telemetry | Umami (opt-in) + Sentry (opt-in) |
+| Telemetry | Aptabase (opt-in) + Sentry (opt-in) |
 | CI/CD | GitHub Actions (test → release) |
 | Packaging | `electron-builder` (NSIS installer, Windows x64) |
 
@@ -168,7 +168,7 @@ Both channels install into separate `userData` folders and ship distinct icons, 
 ## Privacy & safety
 
 - All communication happens with the local LoL Client (`127.0.0.1` / LCU) or with the dedicated Skin Picker rooms server. No third parties are involved.
-- Telemetry (Umami) and error reporting (Sentry) are **off by default**. The first launch asks for explicit consent; the choice can be revoked at any time from the settings panel.
+- Telemetry (Aptabase) and error reporting (Sentry) are **off by default**. The first launch asks for explicit consent; the choice can be revoked at any time from the settings panel.
 - Only cosmetic selection (skins and chromas) is modified on the client. Runes, summoner spells, champion selection and anything gameplay-related are never touched.
 
 ---

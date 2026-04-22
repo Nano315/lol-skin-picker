@@ -264,7 +264,7 @@ class RoomsClient {
         roomId: this.roomId,
         memberId: this.memberId,
       });
-      trackRoomJoin();
+      trackRoomJoin(room.members.length);
       return { room };
     } catch (err: unknown) {
       const error: AppError = (err && typeof err === 'object' && 'code' in err) 
@@ -331,7 +331,7 @@ class RoomsClient {
 
     this.socket.on("group-apply-combo", (payload: GroupComboPayload) => {
       log.info("[roomsClient] Received group combo", payload);
-      trackGroupReroll();
+      trackGroupReroll(payload.type, this.room?.members.length ?? 0);
       for (const l of this.comboListeners) l(payload);
     });
 

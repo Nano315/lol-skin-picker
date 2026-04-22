@@ -135,6 +135,10 @@ const api = {
   setTelemetryConsent: (enabled: boolean) =>
     ipcRenderer.invoke("telemetry:setConsent", enabled),
   isFirstLaunch: () => ipcRenderer.invoke("telemetry:isFirstLaunch"),
+  trackEvent: (
+    name: string,
+    props?: Record<string, string | number | boolean>
+  ) => ipcRenderer.invoke("telemetry:track", name, props),
 };
 
 const windowControls = {

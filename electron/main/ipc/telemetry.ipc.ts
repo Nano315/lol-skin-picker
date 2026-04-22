@@ -1,5 +1,6 @@
 import { ipcMain } from "electron";
 import { loadSettings, saveSettings } from "../settings";
+import { track, type TelemetryProps } from "../telemetry";
 
 export function registerTelemetryIpc() {
   ipcMain.handle("telemetry:getConsent", async () => {
@@ -9,8 +10,12 @@ export function registerTelemetryIpc() {
 
   ipcMain.handle("telemetry:setConsent", async (_e, enabled: boolean) => {
     const settings = await loadSettings();
+    const wasEnabled = settings.telemetryEnabled ?? false;
     settings.telemetryEnabled = enabled;
     await saveSettings(settings);
+    if (enabled && !wasEnabled) {
+      track("consent_granted");
+    }
     return true;
   });
 
@@ -23,4 +28,11 @@ export function registerTelemetryIpc() {
     }
     return !seen;
   });
+
+  ipcMain.handle(
+    "telemetry:track",
+    async (_e, name: string, props?: TelemetryProps) => {
+      await track(name, props);
+    }
+  );
 }

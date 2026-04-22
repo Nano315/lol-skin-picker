@@ -18,6 +18,7 @@ import {
   checkForUpdates as checkForUpdatesPinned,
 } from "./windows/tray";
 import { loadSettings, saveSettings } from "./settings";
+import { initTelemetry, track } from "./telemetry";
 import path from "node:path";
 
 // Dev only: isole le profil et le cache Chromium
@@ -34,6 +35,10 @@ if (!app.isPackaged) {
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 logger.info("[App] Initialisation de l'application");
+
+// Aptabase's SDK requires initialize() to run BEFORE app.whenReady() fires;
+// calling it later disables tracking silently.
+initTelemetry();
 
 const lcu = new LcuWatcher();
 const gameflow = new GameflowService();
@@ -88,9 +93,19 @@ async function createWindowWithPrefs() {
 }
 
 function wireDomainEvents() {
+  // Evite de re-emettre lcu_connected/disconnected si lcuWatcher publie
+  // plusieurs fois le meme status (reconnexions silencieuses).
+  let lastTrackedStatus: LcuStatus | null = null;
+
   // 1. Gestion de la connexion globale au client LoL
   lcu.on("status", (status: LcuStatus, creds?: LockCreds) => {
     getMainWindow()?.webContents.send("lcu-status", status);
+
+    if (status !== lastTrackedStatus) {
+      lastTrackedStatus = status;
+      if (status === "connected") track("lcu_connected");
+      else if (status === "disconnected") track("lcu_disconnected");
+    }
 
     if (status === "connected" && creds) {
       // Le client vient de s'ouvrir : on demarre les services

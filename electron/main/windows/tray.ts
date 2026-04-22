@@ -8,6 +8,7 @@ import type {
   UpdateInfo,
 } from "electron-updater";
 import { logger } from "../../logger";
+import { track } from "../telemetry";
 
 const require = createRequire(import.meta.url);
 
@@ -490,6 +491,12 @@ export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
       return;
     }
 
+    track("update_available", {
+      from: app.getVersion(),
+      to: info.version,
+      channel: updaterChannel,
+    });
+
     // Sur un check manuel, c'est manualCheckForUpdates qui appelle
     // downloadUpdate apres confirmation utilisateur. On ne double pas.
     if (manualCheckInFlight || downloadInProgress) return;
@@ -512,6 +519,11 @@ export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
     logger.info(`[Updater] Update downloaded: v${info.version}`);
     downloadInProgress = false;
 
+    track("update_downloaded", {
+      version: info.version,
+      channel: updaterChannel,
+    });
+
     const { response } = await showDialog(getWin, {
       type: "question",
       title: "LoL Skin Picker",
@@ -526,6 +538,7 @@ export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
     });
 
     if (response === 0) {
+      track("update_installed", { version: info.version });
       // isSilent=true, isForceRunAfter=true : installe silencieusement puis relance.
       au.quitAndInstall(true, true);
     } else {

@@ -14,7 +14,7 @@ export function useTelemetryConsent() {
   const setConsent = useCallback(async (value: boolean) => {
     await window.lcu.setTelemetryConsent(value);
     setEnabled(value);
-    // Emit event to notify Sentry/Umami
+    // Emit event to notify Sentry/Aptabase
     window.dispatchEvent(
       new CustomEvent("telemetry-consent-changed", { detail: { enabled: value } })
     );

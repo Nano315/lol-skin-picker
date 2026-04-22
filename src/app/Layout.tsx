@@ -3,12 +3,15 @@ import { Outlet } from "react-router-dom";
 import { InvitationHandler } from "./InvitationHandler";
 import Background from "@/components/ui/Background";
 import WindowTitleBar from "@/components/layout/WindowTitleBar";
+import { useRouteTracker } from "@/features/hooks/useRouteTracker";
 
 /**
  * Root layout. The document itself does not scroll — the titlebar stays
  * pinned at the top while only the inner flex-1 column scrolls.
  */
 export function Layout() {
+  useRouteTracker();
+
   return (
     <>
       <Background />

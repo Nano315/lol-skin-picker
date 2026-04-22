@@ -123,6 +123,10 @@ declare global {
       getTelemetryConsent: () => Promise<boolean>;
       setTelemetryConsent: (enabled: boolean) => Promise<boolean>;
       isFirstLaunch: () => Promise<boolean>;
+      trackEvent: (
+        name: string,
+        props?: Record<string, string | number | boolean>
+      ) => Promise<void>;
     };
 
     api: Window["lcu"];
