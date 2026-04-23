@@ -319,15 +319,30 @@ function TelemetryDetails() {
           aria-hidden
         />
       </summary>
-      <div className="mt-3 flex flex-col gap-2 text-xs leading-relaxed text-white/60">
-        <ul className="m-0 flex list-disc flex-col gap-1 pl-5">
-          <li>Anonymous crash reports (to fix bugs)</li>
-          <li>Features used (reroll, rooms, etc.)</li>
-          <li>App version and operating system</li>
-        </ul>
+      <div className="mt-3 flex flex-col gap-3 text-xs leading-relaxed text-white/60">
+        <div>
+          <p className="m-0 mb-1 font-semibold text-white/80">Events we send</p>
+          <ul className="m-0 flex list-disc flex-col gap-1 pl-5">
+            <li>Feature usage — rerolls, rooms (with squad size), priorities, skinergy matches</li>
+            <li>Settings you toggle (auto-roll, performance mode…)</li>
+            <li>App lifecycle — launch, screen views, updates applied</li>
+            <li>League client connect / disconnect (no game data)</li>
+          </ul>
+        </div>
+        <div>
+          <p className="m-0 mb-1 font-semibold text-white/80">
+            Auto-added by the analytics provider
+          </p>
+          <ul className="m-0 flex list-disc flex-col gap-1 pl-5">
+            <li>App version, OS, system language</li>
+            <li>Country (derived from IP, then discarded)</li>
+            <li>A random per-install identifier (no link to your Riot account)</li>
+          </ul>
+        </div>
         <p className="m-0 text-accent-strong">
-          <strong className="text-accent">Never collected:</strong> Summoner
-          name, owned skins, game data.
+          <strong className="text-accent">Never collected:</strong> summoner
+          name, Riot account, owned or selected skins, match or rank data, IP
+          address.
         </p>
       </div>
     </details>

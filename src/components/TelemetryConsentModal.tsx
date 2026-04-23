@@ -59,13 +59,13 @@ export function TelemetryConsentModal({ onAccept, onDecline }: Props) {
           </div>
 
           <p className="m-0 text-sm leading-relaxed text-white/80">
-            By enabling telemetry, you help us improve the app by sharing
-            anonymous usage data and crash reports.
+            Share anonymous events about which features you use and how the
+            app runs. You can change your mind anytime from Settings.
           </p>
 
           <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/[0.08] px-3 py-1.5 text-xs font-semibold text-emerald-200">
             <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-            No personal data is ever collected.
+            Your account, skins and game data are never sent.
           </div>
 
           <div className="mt-7 flex items-center justify-end gap-3">
