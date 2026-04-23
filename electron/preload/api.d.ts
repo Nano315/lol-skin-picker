@@ -145,5 +145,32 @@ declare global {
       isMaximized: () => Promise<boolean>;
       onMaximizeChange: (cb: (isMax: boolean) => void) => Unsub;
     };
+
+    updates: {
+      getState: () => Promise<UpdateState>;
+      check: () => Promise<void>;
+      download: () => Promise<void>;
+      install: () => Promise<void>;
+      onStatus: (cb: (state: UpdateState) => void) => Unsub;
+    };
+  }
+
+  type UpdateStatus =
+    | "idle"
+    | "checking"
+    | "available"
+    | "downloading"
+    | "downloaded"
+    | "not-available"
+    | "error"
+    | "unavailable";
+
+  interface UpdateState {
+    status: UpdateStatus;
+    currentVersion: string;
+    newVersion: string | null;
+    channel: "latest" | "beta" | null;
+    percent: number | null;
+    errorMessage: string | null;
   }
 }

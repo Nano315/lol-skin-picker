@@ -93,3 +93,13 @@ export const getTelemetryConsent = () => window.lcu.getTelemetryConsent();
 export const setTelemetryConsent = (enabled: boolean) =>
   window.lcu.setTelemetryConsent(enabled);
 export const isFirstLaunch = () => window.lcu.isFirstLaunch();
+
+// Updates exports — pilote la pastille in-app dans la title bar
+export const updatesApi = {
+  getState: () => window.updates.getState(),
+  check: () => window.updates.check(),
+  download: () => window.updates.download(),
+  install: () => window.updates.install(),
+  onStatus: (cb: (state: UpdateState) => void): Unsub =>
+    asUnsub(window.updates.onStatus(cb)),
+};

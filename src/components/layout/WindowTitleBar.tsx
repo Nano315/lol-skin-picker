@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Minus, Square, Copy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import UpdateAvailableChip from "@/components/UpdateAvailableChip";
 
 /**
  * Custom titlebar for the frameless Electron window. Sits at top-0 with a
@@ -24,6 +25,10 @@ export default function WindowTitleBar() {
 
   return (
     <div className="drag-region flex h-8 shrink-0 items-center justify-end">
+      {/* Pastille update : se monte en permanence, conditionne son rendu en
+          interne via le hook (pas d'affichage si rien a signaler). Place a
+          gauche des controles fenetre pour ne pas perturber la zone de drag. */}
+      <UpdateAvailableChip />
       <div className="no-drag flex h-full items-center">
         <TitleBarButton onClick={handleMinimize} aria-label="Minimize">
           <Minus className="h-3.5 w-3.5" aria-hidden />

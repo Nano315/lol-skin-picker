@@ -153,7 +153,20 @@ const windowControls = {
   },
 };
 
+const updates = {
+  getState: () => ipcRenderer.invoke("updates:getState"),
+  check: () => ipcRenderer.invoke("updates:check"),
+  download: () => ipcRenderer.invoke("updates:download"),
+  install: () => ipcRenderer.invoke("updates:install"),
+  onStatus: (cb: (s: any) => void) => {
+    const listener = (_e: any, state: any) => cb(state);
+    ipcRenderer.on("updates:status", listener);
+    return () => ipcRenderer.removeListener("updates:status", listener);
+  },
+};
+
 contextBridge.exposeInMainWorld("lcu", api);
 contextBridge.exposeInMainWorld("api", api);
 contextBridge.exposeInMainWorld("log", logApi);
 contextBridge.exposeInMainWorld("windowControls", windowControls);
+contextBridge.exposeInMainWorld("updates", updates);

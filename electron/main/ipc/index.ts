@@ -11,6 +11,7 @@ import { registerHistoryIpc } from "./history.ipc";
 import { registerPriorityIpc } from "./priority.ipc";
 import { registerTelemetryIpc } from "./telemetry.ipc";
 import { registerWindowIpc } from "./window.ipc";
+import { registerUpdatesIpc } from "./updates.ipc";
 
 export function registerAllIpc(opts: {
   lcu: LcuWatcher;
@@ -27,4 +28,5 @@ export function registerAllIpc(opts: {
   registerPriorityIpc();
   registerTelemetryIpc();
   registerWindowIpc(opts.getWin);
+  registerUpdatesIpc();
 }

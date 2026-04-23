@@ -26,6 +26,55 @@ let autoUpdater: AutoUpdater | null = null;
 let updaterChannel: "latest" | "beta" = "latest";
 let listenersRegistered = false;
 
+// Etat partage avec le renderer (pastille in-app dans la title bar). On garde
+// une source de verite unique pour que le renderer puisse interroger l'etat
+// courant a tout moment (au mount du composant, apres reload, etc.) en plus
+// de s'abonner aux broadcasts.
+export type UpdateStatus =
+  | "idle"
+  | "checking"
+  | "available"
+  | "downloading"
+  | "downloaded"
+  | "not-available"
+  | "error"
+  | "unavailable";
+
+export interface UpdateState {
+  status: UpdateStatus;
+  currentVersion: string;
+  newVersion: string | null;
+  channel: "latest" | "beta" | null;
+  percent: number | null;
+  errorMessage: string | null;
+}
+
+let currentUpdateState: UpdateState = {
+  status: "idle",
+  currentVersion: app.getVersion(),
+  newVersion: null,
+  channel: null,
+  percent: null,
+  errorMessage: null,
+};
+
+// Reference vers la mainWindow pour broadcaster sans avoir a la passer a
+// chaque appel. Initialise dans updaterHooks() (au boot, avant que la
+// fenetre soit ready : on tolere les broadcasts a vide tant qu'elle n'existe pas).
+let broadcastWin: (() => Electron.BrowserWindow | null) | null = null;
+
+function setUpdateState(partial: Partial<UpdateState>): void {
+  currentUpdateState = { ...currentUpdateState, ...partial };
+  const win = broadcastWin?.();
+  if (win && !win.isDestroyed()) {
+    win.webContents.send("updates:status", currentUpdateState);
+  }
+}
+
+export function getUpdateState(): UpdateState {
+  return currentUpdateState;
+}
+
 /**
  * Lit le canal de mise a jour depuis le package.json embarque.
  * electron-builder injecte extraMetadata.updateChannel au moment du build
@@ -255,6 +304,40 @@ export async function checkForUpdates(): Promise<void> {
   await au.checkForUpdates();
 }
 
+/**
+ * Declenche le download depuis le renderer (pastille in-app).
+ * Reutilise le meme code path que le flux automatique : on bascule
+ * downloadInProgress=true, on broadcast l'etat "downloading", puis on
+ * laisse electron-updater faire son travail. Les events download-progress
+ * et update-downloaded mettront a jour l'etat au fur et a mesure.
+ */
+export async function downloadUpdate(): Promise<void> {
+  const au = getAutoUpdater();
+  if (!au) throw new Error("Updater unavailable");
+  if (downloadInProgress) return;
+  downloadInProgress = true;
+  setUpdateState({ status: "downloading", percent: 0, errorMessage: null });
+  try {
+    await au.downloadUpdate();
+  } catch (err) {
+    downloadInProgress = false;
+    const message = err instanceof Error ? err.message : String(err);
+    setUpdateState({ status: "error", errorMessage: message });
+    throw err;
+  }
+}
+
+/**
+ * Quit + install. Appele depuis la pastille quand l'utilisateur clique
+ * "Installer maintenant" alors qu'un update est deja telecharge. Equivalent
+ * du bouton "Install and Restart" du dialog tray.
+ */
+export function installUpdate(): void {
+  const au = getAutoUpdater();
+  if (!au) return;
+  au.quitAndInstall(true, true);
+}
+
 export function setupTray(getWin: () => Electron.BrowserWindow | null) {
   const iconPath = getTrayIconPath();
 
@@ -461,19 +544,52 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
  * par les promesses dans manualCheckForUpdates.
  */
 export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
+  // On stocke la reference window AVANT le early-return pour que les
+  // broadcasts fonctionnent meme en dev (ou getAutoUpdater retourne null) :
+  // le renderer recevra "unavailable" et la pastille restera cachee.
+  broadcastWin = getWin;
+
   const au = getAutoUpdater();
-  if (!au || listenersRegistered) return;
+  if (!au) {
+    setUpdateState({
+      status: "unavailable",
+      currentVersion: app.getVersion(),
+      channel: null,
+    });
+    return;
+  }
+  if (listenersRegistered) return;
   listenersRegistered = true;
+
+  // Etat initial : on sait dans quel canal on est, on est a jour par defaut
+  // jusqu'a preuve du contraire (premier check au demarrage, dans 10s).
+  setUpdateState({
+    status: "idle",
+    currentVersion: app.getVersion(),
+    channel: updaterChannel,
+    newVersion: null,
+    percent: null,
+    errorMessage: null,
+  });
+
+  au.on("checking-for-update", () => {
+    setUpdateState({ status: "checking" });
+  });
 
   au.on("error", (err: Error) => {
     logger.error(`[Updater] Error: ${err?.message ?? err}`);
     downloadInProgress = false;
+    setUpdateState({
+      status: "error",
+      errorMessage: err?.message ?? String(err),
+    });
   });
 
   au.on("update-not-available", (info: UpdateInfo) => {
     logger.info(
       `[Updater] Up to date (auto check) — current ${app.getVersion()}, server ${info.version}`,
     );
+    setUpdateState({ status: "not-available", newVersion: null });
   });
 
   au.on("update-available", async (info: UpdateInfo) => {
@@ -483,13 +599,24 @@ export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
 
     // Garde-fou contre le fallback cross-canal (cf. isVersionForChannel) :
     // si electron-updater nous sert une stable alors qu'on est en beta (ou
-    // l'inverse), on ignore silencieusement — pas de download automatique.
+    // l'inverse), on ignore silencieusement — pas de download automatique
+    // ET pas de broadcast vers le renderer (sinon la pastille s'afficherait
+    // pour une version du mauvais canal).
     if (!isVersionForChannel(info.version, updaterChannel)) {
       logger.info(
         `[Updater] Ignoring cross-channel release v${info.version} (current channel "${updaterChannel}")`,
       );
+      setUpdateState({ status: "not-available", newVersion: null });
       return;
     }
+
+    // Broadcast IMMEDIAT : la pastille s'affiche meme en flux manuel (tray)
+    // ou quand l'auto-download n'a pas encore commence.
+    setUpdateState({
+      status: "available",
+      newVersion: info.version,
+      errorMessage: null,
+    });
 
     track("update_available", {
       from: app.getVersion(),
@@ -502,22 +629,32 @@ export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
     if (manualCheckInFlight || downloadInProgress) return;
 
     downloadInProgress = true;
+    setUpdateState({ status: "downloading", percent: 0 });
     try {
       await au.downloadUpdate();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`[Updater] Auto download failed: ${message}`);
       downloadInProgress = false;
+      setUpdateState({ status: "error", errorMessage: message });
     }
   });
 
   au.on("download-progress", (p: ProgressInfo) => {
-    logger.info(`[Updater] Downloading ${Math.round(p.percent)} %`);
+    const pct = Math.round(p.percent);
+    logger.info(`[Updater] Downloading ${pct} %`);
+    setUpdateState({ status: "downloading", percent: pct });
   });
 
   au.on("update-downloaded", async (info: UpdateDownloadedEvent) => {
     logger.info(`[Updater] Update downloaded: v${info.version}`);
     downloadInProgress = false;
+
+    setUpdateState({
+      status: "downloaded",
+      newVersion: info.version,
+      percent: 100,
+    });
 
     track("update_downloaded", {
       version: info.version,
