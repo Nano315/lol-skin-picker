@@ -624,20 +624,11 @@ export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
       channel: updaterChannel,
     });
 
-    // Sur un check manuel, c'est manualCheckForUpdates qui appelle
-    // downloadUpdate apres confirmation utilisateur. On ne double pas.
-    if (manualCheckInFlight || downloadInProgress) return;
-
-    downloadInProgress = true;
-    setUpdateState({ status: "downloading", percent: 0 });
-    try {
-      await au.downloadUpdate();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      logger.error(`[Updater] Auto download failed: ${message}`);
-      downloadInProgress = false;
-      setUpdateState({ status: "error", errorMessage: message });
-    }
+    // Plus d'auto-download : la pastille in-app reste sur "available" et
+    // c'est l'utilisateur qui decide quand telecharger (via le bouton du
+    // popup pastille, ou via le tray "Check for Updates" qui demande
+    // confirmation). Permet d'augmenter la frequence des checks sans rendre
+    // l'experience intrusive.
   });
 
   au.on("download-progress", (p: ProgressInfo) => {
@@ -660,6 +651,18 @@ export function updaterHooks(getWin: () => Electron.BrowserWindow | null) {
       version: info.version,
       channel: updaterChannel,
     });
+
+    // Le dialog OS "Install and Restart" ne s'affiche QUE si l'utilisateur
+    // a declenche le download via le tray (manualCheckInFlight=true).
+    // Si le download vient de la pastille in-app, on laisse le composant
+    // gerer l'install via son propre bouton — sinon double UX (dialog OS
+    // + popup pastille proposant tous les deux d'installer).
+    if (!manualCheckInFlight) {
+      logger.info(
+        "[Updater] Download triggered from in-app chip — skipping OS dialog",
+      );
+      return;
+    }
 
     const { response } = await showDialog(getWin, {
       type: "question",

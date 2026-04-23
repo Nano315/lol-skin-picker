@@ -198,13 +198,18 @@ if (!gotTheLock) {
       });
     }, 10000);
 
-    // AUTO-UPDATE: Check every 4 hours (AC: 2)
+    // AUTO-UPDATE: Check every 15 minutes.
+    // L'auto-download a ete supprime (cf. updaterHooks dans tray.ts) :
+    // les checks ne font plus que mettre a jour l'etat de la pastille
+    // in-app. On peut donc se permettre une frequence elevee sans rien
+    // imposer a l'utilisateur. 15 min = 4 req/h vers l'API GitHub par
+    // user, bien en dessous du rate limit non-authentifie de 60/h/IP.
     updateCheckInterval = setInterval(() => {
-      logger.info("[Updater] Periodic check (4h interval)");
+      logger.info("[Updater] Periodic check (15min interval)");
       checkForUpdatesPinned().catch((err) => {
         console.error("[Updater] Periodic check failed:", err);
       });
-    }, 14400000); // 4 hours in ms
+    }, 900000); // 15 minutes in ms
   });
 }
 
