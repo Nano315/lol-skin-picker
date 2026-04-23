@@ -196,8 +196,10 @@ function StatusPill({
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",
+        // Convention couleurs : emerald = etat temporaire positif (ready, synced,
+        // dispo), violet (accent) = identite/CTA permanents.
         variant === "ready"
-          ? "bg-accent/15 text-white ring-1 ring-accent/40"
+          ? "bg-emerald-500/15 text-emerald-100 ring-1 ring-emerald-400/40"
           : "bg-white/[0.04] text-ink/80 ring-1 ring-white/10"
       )}
     >
@@ -205,7 +207,7 @@ function StatusPill({
         className={cn(
           "h-1.5 w-1.5 rounded-full",
           variant === "ready"
-            ? "bg-accent-strong animate-pulse-slow"
+            ? "bg-emerald-300 animate-pulse-slow"
             : "bg-white/40"
         )}
       />

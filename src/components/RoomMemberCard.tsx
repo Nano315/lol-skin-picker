@@ -2,6 +2,7 @@
 import { Check, Clock } from "lucide-react";
 import { useChromaColor } from "@/features/hooks/useChromaColor";
 import type { RoomMember } from "@/features/roomsClient";
+import { cn } from "@/lib/utils";
 import fallbackSkin from "/fallback-skin.png?url";
 
 type Props = {
@@ -96,32 +97,26 @@ export function RoomMemberCard({
             style={{ position: 'relative', display: 'inline-block' }}
           >
             {member!.name}
-            <div
-              className="sync-status-badge"
+            <span
+              className={cn(
+                "sync-status-badge",
+                "absolute left-full top-1/2 ml-1.5 -translate-y-1/2",
+                "inline-flex h-[18px] w-[18px] items-center justify-center rounded-full",
+                "ring-1 text-white transition-colors duration-300",
+                // Convention couleurs : emerald = synced (positif), amber =
+                // en attente d'une action (anime pour signaler l'attente).
+                member!.isReady
+                  ? "bg-emerald-500/90 ring-emerald-300/50 shadow-[0_0_12px_-2px_rgba(16,185,129,0.65)]"
+                  : "bg-amber-500/85 ring-amber-300/50 shadow-[0_0_10px_-2px_rgba(245,158,11,0.55)]"
+              )}
               title={member!.isReady ? "Synced" : "Waiting for sync"}
-              style={{
-                position: 'absolute',
-                left: '100%',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                marginLeft: 6,
-                width: 16,
-                height: 16,
-                borderRadius: '50%',
-                backgroundColor: member!.isReady ? 'rgba(34, 197, 94, 0.9)' : 'rgba(100, 100, 100, 0.7)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 9,
-                color: 'white',
-              }}
             >
               {member!.isReady ? (
                 <Check className="h-2.5 w-2.5" aria-hidden />
               ) : (
-                <Clock className="h-2.5 w-2.5" aria-hidden />
+                <Clock className="h-2.5 w-2.5 animate-pulse-slow" aria-hidden />
               )}
-            </div>
+            </span>
           </span>
         </div>
       ) : (
