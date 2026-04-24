@@ -32,8 +32,6 @@ if (!app.isPackaged) {
   app.commandLine.appendSwitch("disable-gpu-shader-disk-cache"); // evite le cache GPU
 }
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 logger.info("[App] Initialisation de l'application");
 
 // Aptabase's SDK requires initialize() to run BEFORE app.whenReady() fires;

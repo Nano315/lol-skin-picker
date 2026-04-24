@@ -5,8 +5,35 @@
 import { app } from "electron";
 import { join } from "node:path";
 import { promises as fs } from "node:fs";
+import { isPlainObject, safeParseObject } from "../utils/jsonGuards";
 
 export type Priority = "favorite" | "deprioritized" | null;
+
+function coercePriorityMap(raw: unknown): PriorityMap {
+  if (!isPlainObject(raw)) return {};
+  const out: PriorityMap = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const skinId = Number(key);
+    if (!Number.isInteger(skinId) || skinId < 0) continue;
+    if (value === "favorite" || value === "deprioritized") {
+      out[skinId] = value;
+    }
+  }
+  return out;
+}
+
+function coercePriorities(
+  raw: unknown
+): { [championId: number]: PriorityMap } {
+  if (!isPlainObject(raw)) return {};
+  const out: { [championId: number]: PriorityMap } = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const championId = Number(key);
+    if (!Number.isInteger(championId) || championId < 0) continue;
+    out[championId] = coercePriorityMap(value);
+  }
+  return out;
+}
 
 export interface PriorityMap {
   [skinId: number]: Priority;
@@ -30,9 +57,9 @@ export async function loadPriorities(): Promise<PriorityData> {
 
   try {
     const raw = await fs.readFile(priorityPath, "utf-8");
-    const data = JSON.parse(raw) as Partial<PriorityData>;
+    const parsed = safeParseObject(raw);
     cache = {
-      priorities: data.priorities ?? {},
+      priorities: parsed ? coercePriorities(parsed.priorities) : {},
     };
     return cache;
   } catch {

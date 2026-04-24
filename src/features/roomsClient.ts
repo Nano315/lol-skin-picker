@@ -103,6 +103,10 @@ class RoomsClient {
   private socket: Socket | null = null;
   private roomId: string | null = null;
   private memberId: string | null = null;
+  // Secret token delivered by the server at create/join time.
+  // Required on every socket action to prove membership (prevents room code
+  // leaks from enabling impersonation).
+  private memberToken: string | null = null;
   private isLeaving = false;
 
   private room: RoomState | null = null;
@@ -218,6 +222,7 @@ class RoomsClient {
 
       this.roomId = data.roomId;
       this.memberId = data.memberId;
+      this.memberToken = data.memberToken ?? null;
       const room = data.room as RoomState;
       this.emitRoom(room);
       log.info("[roomsClient] Room created and joined", {
@@ -258,6 +263,7 @@ class RoomsClient {
 
       this.roomId = data.roomId;
       this.memberId = data.memberId;
+      this.memberToken = data.memberToken ?? null;
       const room = data.room as RoomState;
       this.emitRoom(room);
       log.info("[roomsClient] Joined room", {
@@ -280,8 +286,8 @@ class RoomsClient {
 
   // ---- WebSocket ----
   connect() {
-    if (!this.roomId || !this.memberId) {
-      throw new Error("No roomId/memberId set");
+    if (!this.roomId || !this.memberId || !this.memberToken) {
+      throw new Error("No roomId/memberId/memberToken set");
     }
     if (this.socket) return;
 
@@ -301,6 +307,7 @@ class RoomsClient {
       this.socket?.emit("join-room", {
         roomId: this.roomId,
         memberId: this.memberId,
+        memberToken: this.memberToken,
       });
     });
 
@@ -352,6 +359,7 @@ class RoomsClient {
       this.emitError({ code: 'ROOM_NOT_FOUND', message: 'The room was closed.' });
       this.roomId = null;
       this.memberId = null;
+      this.memberToken = null;
       this.emitRoom(null);
       this.socket?.disconnect();
       this.socket = null;
@@ -360,11 +368,12 @@ class RoomsClient {
 
   leaveRoom() {
     try {
-      if (this.socket && this.roomId && this.memberId) {
+      if (this.socket && this.roomId && this.memberId && this.memberToken) {
         this.isLeaving = true;
         this.socket.emit("leave-room", {
           roomId: this.roomId,
           memberId: this.memberId,
+          memberToken: this.memberToken,
         });
         this.socket.disconnect();
       }
@@ -374,6 +383,7 @@ class RoomsClient {
       this.socket = null;
       this.roomId = null;
       this.memberId = null;
+      this.memberToken = null;
       this.emitRoom(null);
       log.info("[roomsClient] Left room", { reason: "manual" });
     }
@@ -381,10 +391,11 @@ class RoomsClient {
 
   sendSelection(selection: Selection) {
     try {
-      if (!this.socket || !this.roomId || !this.memberId) return;
+      if (!this.socket || !this.roomId || !this.memberId || !this.memberToken) return;
       this.socket.emit("update-selection", {
         roomId: this.roomId,
         memberId: this.memberId,
+        memberToken: this.memberToken,
         championId: selection.championId,
         championAlias: selection.championAlias,
         skinId: selection.skinId,
@@ -398,10 +409,11 @@ class RoomsClient {
   /** Envoi de TOUTES les options skin/chroma pour le champion lock. */
   sendOwnedOptions(payload: OwnedOptionsPayload) {
     try {
-      if (!this.socket || !this.roomId || !this.memberId) return;
+      if (!this.socket || !this.roomId || !this.memberId || !this.memberToken) return;
       this.socket.emit("owned-options", {
         roomId: this.roomId,
         memberId: this.memberId,
+        memberToken: this.memberToken,
         championId: payload.championId,
         championAlias: payload.championAlias,
         options: payload.options,
@@ -413,10 +425,11 @@ class RoomsClient {
 
   applySkinLineSynergy(skinLineId: number) {
     try {
-      if (!this.socket || !this.roomId || !this.memberId) return;
+      if (!this.socket || !this.roomId || !this.memberId || !this.memberToken) return;
       this.socket.emit("apply-skin-line-synergy", {
         roomId: this.roomId,
         memberId: this.memberId,
+        memberToken: this.memberToken,
         skinLineId,
       });
     } catch (err) {
@@ -426,10 +439,11 @@ class RoomsClient {
 
   requestGroupReroll(payload: { type: "sameColor"; color: string; skinLineId?: number; sourceMemberId?: string }) {
     try {
-      if (!this.socket || !this.roomId || !this.memberId) return;
+      if (!this.socket || !this.roomId || !this.memberId || !this.memberToken) return;
       this.socket.emit("request-group-reroll", {
         roomId: this.roomId,
         memberId: this.memberId,
+        memberToken: this.memberToken,
         type: payload.type,
         color: payload.color,
         skinLineId: payload.skinLineId,
@@ -458,6 +472,10 @@ class RoomsClient {
       log.warn('[roomsClient] suggestColor failed: no member ID');
       return { success: false, error: 'No member ID' };
     }
+    if (!this.memberToken) {
+      log.warn('[roomsClient] suggestColor failed: no member token');
+      return { success: false, error: 'No member token' };
+    }
     if (!this.socket.connected) {
       log.warn('[roomsClient] suggestColor failed: socket disconnected');
       return { success: false, error: 'Socket disconnected' };
@@ -476,6 +494,7 @@ class RoomsClient {
         {
           roomId: this.roomId,
           memberId: this.memberId,
+          memberToken: this.memberToken,
           skinId,
           chromaId,
         },

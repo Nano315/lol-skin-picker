@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { promises as fs } from "node:fs";
 import fetch from "node-fetch";
 import { logger } from "../logger";
+import { isArray, isPlainObject } from "../utils/jsonGuards";
 
 // ===================== TYPES =====================
 
@@ -161,7 +162,37 @@ class SkinLineService {
   private async loadCache(): Promise<SkinLineCache | null> {
     try {
       const data = await fs.readFile(this.cachePath, "utf-8");
-      return JSON.parse(data) as SkinLineCache;
+      const parsed = JSON.parse(data) as unknown;
+      if (!isPlainObject(parsed)) return null;
+      if (!isArray(parsed.skinLines)) return null;
+      if (!isPlainObject(parsed.skinToLineMap)) return null;
+      if (typeof parsed.timestamp !== "number") return null;
+
+      const skinLines: SkinLineInfo[] = [];
+      for (const sl of parsed.skinLines) {
+        if (
+          isPlainObject(sl) &&
+          typeof sl.id === "number" &&
+          typeof sl.name === "string"
+        ) {
+          skinLines.push({ id: sl.id, name: sl.name });
+        }
+      }
+
+      const skinToLineMap: Record<number, SkinLineInfo> = {};
+      for (const [key, value] of Object.entries(parsed.skinToLineMap)) {
+        const skinId = Number(key);
+        if (!Number.isInteger(skinId)) continue;
+        if (
+          isPlainObject(value) &&
+          typeof value.id === "number" &&
+          typeof value.name === "string"
+        ) {
+          skinToLineMap[skinId] = { id: value.id, name: value.name };
+        }
+      }
+
+      return { skinLines, skinToLineMap, timestamp: parsed.timestamp };
     } catch {
       return null;
     }
@@ -200,7 +231,27 @@ class SkinLineService {
       throw new Error(`Failed to fetch skinlines: ${response.status}`);
     }
 
-    return (await response.json()) as CDragonSkinLine[];
+    const payload = (await response.json()) as unknown;
+    if (!isArray(payload)) {
+      throw new Error("skinlines response is not an array");
+    }
+
+    const out: CDragonSkinLine[] = [];
+    for (const entry of payload) {
+      if (
+        isPlainObject(entry) &&
+        typeof entry.id === "number" &&
+        typeof entry.name === "string"
+      ) {
+        out.push({
+          id: entry.id,
+          name: entry.name,
+          description:
+            typeof entry.description === "string" ? entry.description : null,
+        });
+      }
+    }
+    return out;
   }
 
   private async fetchSkins(): Promise<Record<string, CDragonSkin>> {
@@ -211,7 +262,33 @@ class SkinLineService {
       throw new Error(`Failed to fetch skins: ${response.status}`);
     }
 
-    return (await response.json()) as Record<string, CDragonSkin>;
+    const payload = (await response.json()) as unknown;
+    if (!isPlainObject(payload)) {
+      throw new Error("skins response is not an object");
+    }
+
+    const out: Record<string, CDragonSkin> = {};
+    for (const [key, value] of Object.entries(payload)) {
+      if (!isPlainObject(value)) continue;
+      if (typeof value.id !== "number") continue;
+      if (typeof value.name !== "string") continue;
+
+      const skinLines: Array<{ id: number }> = [];
+      if (isArray(value.skinLines)) {
+        for (const sl of value.skinLines) {
+          if (isPlainObject(sl) && typeof sl.id === "number") {
+            skinLines.push({ id: sl.id });
+          }
+        }
+      }
+
+      out[key] = {
+        id: value.id,
+        name: value.name,
+        skinLines: skinLines.length > 0 ? skinLines : undefined,
+      };
+    }
+    return out;
   }
 
   private async fetchAndBuildCache(): Promise<void> {

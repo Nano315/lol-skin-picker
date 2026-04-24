@@ -70,16 +70,22 @@ export function IdentityConnector() {
 
         invitationStore.addInvitation(invitation);
 
-        // Play notification sound if enabled
+        // Play notification sound if enabled.
+        // Audio failures (missing asset, autoplay block, decode error) must stay
+        // silent — they should never crash the invite flow. We handle each
+        // failure mode: constructor throw, load/decode error, and play rejection.
         const soundEnabled = localStorage.getItem("pref-notificationSound");
         if (soundEnabled !== "false") {
           try {
             const sound = new Audio("./sounds/notification.mp3");
+            sound.onerror = () => {
+              // Missing/corrupt asset — swallow
+            };
             sound.play().catch(() => {
-              // Ignore autoplay restrictions
+              // Autoplay policy or decoding rejection — swallow
             });
           } catch {
-            // Ignore errors
+            // Audio constructor unsupported — swallow
           }
         }
       },

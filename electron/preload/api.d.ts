@@ -129,8 +129,6 @@ declare global {
       ) => Promise<void>;
     };
 
-    api: Window["lcu"];
-
     log: {
       info: (...args: unknown[]) => Promise<void>;
       warn: (...args: unknown[]) => Promise<void>;

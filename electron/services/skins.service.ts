@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import fetch from "node-fetch";
 import { EventEmitter } from "node:events";
 import type { LockCreds } from "./lcuWatcher";
 import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
+import { lcuFetch } from "../utils/lcuFetch";
 import { logger } from "../logger";
 import { RandomSelector, type PriorityMap } from "../utils/RandomSelector";
 import WebSocket from "ws";
@@ -515,7 +515,7 @@ export class SkinsService extends EventEmitter {
     const url = `${protocol}://127.0.0.1:${port}/lol-summoner/v1/current-summoner`;
     const auth = Buffer.from(`riot:${password}`).toString("base64");
     try {
-      const r = (await fetch(url, {
+      const r = (await lcuFetch(url, {
         headers: { Authorization: `Basic ${auth}` },
       }).then((r) => r.json())) as SummonerRes;
 
@@ -552,7 +552,7 @@ export class SkinsService extends EventEmitter {
     try {
       return (
         Number(
-          await fetch(url, {
+          await lcuFetch(url, {
             headers: { Authorization: `Basic ${auth}` },
           }).then((r) => r.text())
         ) || 0
@@ -591,7 +591,7 @@ export class SkinsService extends EventEmitter {
         )}`,
       };
 
-      const allSkins = (await fetch(
+      const allSkins = (await lcuFetch(
         `${base}/lol-champions/v1/inventories/${this.summonerId}/champions/${this.currentChampion}/skins`,
         { headers }
       ).then((r) => r.json())) as SkinRes[];
@@ -602,7 +602,7 @@ export class SkinsService extends EventEmitter {
       )) {
         let chromaList: { id: number; name: string }[] = [];
         try {
-          const chromas = (await fetch(
+          const chromas = (await lcuFetch(
             `${base}/lol-champions/v1/inventories/${this.summonerId}/champions/${this.currentChampion}/skins/${s.id}/chromas`,
             { headers }
           ).then((r) => (r.status === 404 ? [] : r.json()))) as ChromaRes[];
@@ -690,8 +690,31 @@ export class SkinsService extends EventEmitter {
     }
   }
 
+  private isKnownSkinId(skinId: number): boolean {
+    for (const skin of this.skins) {
+      if (skin.id === skinId) return true;
+      for (const chroma of skin.chromas) {
+        if (chroma.id === skinId) return true;
+      }
+    }
+    return false;
+  }
+
   async applySkin(skinId: number): Promise<boolean> {
     if (!this.creds) return false;
+    if (
+      typeof skinId !== "number" ||
+      !Number.isInteger(skinId) ||
+      skinId < 0 ||
+      skinId > 1_000_000_000
+    ) {
+      logger.warn(`[Skins] applySkin refused: invalid skinId ${String(skinId)}`);
+      return false;
+    }
+    if (skinId !== 0 && !this.isKnownSkinId(skinId)) {
+      logger.warn(`[Skins] applySkin refused: skinId ${skinId} is not owned`);
+      return false;
+    }
     logger.info(`[Skins] Tentative d'application du skin ${skinId}`);
     const { protocol, port, password } = this.creds;
     const url = `${protocol}://127.0.0.1:${port}/lol-champ-select/v1/session/my-selection`;
@@ -700,7 +723,7 @@ export class SkinsService extends EventEmitter {
     this.selectedSkinId = skinId;
     this.emit("selection", this.getSelection());
     try {
-      const res = await fetch(url, {
+      const res = await lcuFetch(url, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -769,10 +792,10 @@ export class SkinsService extends EventEmitter {
 
     try {
       const [selectionData, sessionData] = await Promise.all([
-        fetch(`${base}/lol-champ-select/v1/session/my-selection`, {
+        lcuFetch(`${base}/lol-champ-select/v1/session/my-selection`, {
           headers: { Authorization: `Basic ${auth}` },
         }).then((r) => r.json() as Promise<SelectionRes>),
-        fetch(`${base}/lol-champ-select/v1/session`, {
+        lcuFetch(`${base}/lol-champ-select/v1/session`, {
           headers: { Authorization: `Basic ${auth}` },
         }).then((r) =>
           r.ok

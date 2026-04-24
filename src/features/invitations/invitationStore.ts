@@ -34,6 +34,22 @@ class InvitationStore {
   private _lastResult: SentInviteResult | null = null;
   // Track pending invite target
   private _pendingTarget: string | null = null;
+  // Timer for auto-clearing _lastResult; cancelled if another result arrives
+  // first so a stale timer cannot wipe a newer result.
+  private _clearResultTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private scheduleClear(token: SentInviteResult): void {
+    if (this._clearResultTimer !== null) {
+      clearTimeout(this._clearResultTimer);
+    }
+    this._clearResultTimer = setTimeout(() => {
+      this._clearResultTimer = null;
+      if (this._lastResult === token) {
+        this._lastResult = null;
+        this.notify();
+      }
+    }, 3000);
+  }
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -99,21 +115,20 @@ class InvitationStore {
    */
   recordSentInvite(targetPuuid: string): void {
     this.sentInvites.set(targetPuuid, Date.now());
-    this._pendingTarget = null;
-    this._lastResult = {
+    // Only clear pendingTarget if it actually corresponds to this result —
+    // otherwise a late-arriving result for an older invite could wipe a
+    // newly-pending target the user just set.
+    if (this._pendingTarget === targetPuuid) {
+      this._pendingTarget = null;
+    }
+    const result: SentInviteResult = {
       targetPuuid,
       success: true,
       timestamp: Date.now(),
     };
+    this._lastResult = result;
     this.notify();
-
-    // Auto-clear result after 3 seconds
-    setTimeout(() => {
-      if (this._lastResult?.targetPuuid === targetPuuid && this._lastResult?.success) {
-        this._lastResult = null;
-        this.notify();
-      }
-    }, 3000);
+    this.scheduleClear(result);
   }
 
   /**
@@ -121,24 +136,20 @@ class InvitationStore {
    */
   recordFailedInvite(targetPuuid: string | null, reason: InviteFailureReason): void {
     const target = targetPuuid || this._pendingTarget;
-    this._pendingTarget = null;
+    if (this._pendingTarget === target) {
+      this._pendingTarget = null;
+    }
 
     if (target) {
-      this._lastResult = {
+      const result: SentInviteResult = {
         targetPuuid: target,
         success: false,
         error: reason,
         timestamp: Date.now(),
       };
+      this._lastResult = result;
       this.notify();
-
-      // Auto-clear result after 3 seconds
-      setTimeout(() => {
-        if (this._lastResult?.targetPuuid === target && !this._lastResult?.success) {
-          this._lastResult = null;
-          this.notify();
-        }
-      }, 3000);
+      this.scheduleClear(result);
     }
   }
 
@@ -149,6 +160,18 @@ class InvitationStore {
     const lastSent = this.sentInvites.get(targetPuuid);
     if (!lastSent) return true;
     return Date.now() - lastSent >= RATE_LIMIT_MS;
+  }
+
+  /**
+   * Returns true if any friend is currently rate-limited. Used by UI hooks
+   * to decide whether a countdown timer needs to run.
+   */
+  hasActiveRateLimit(): boolean {
+    const now = Date.now();
+    for (const ts of this.sentInvites.values()) {
+      if (now - ts < RATE_LIMIT_MS) return true;
+    }
+    return false;
   }
 
   /**

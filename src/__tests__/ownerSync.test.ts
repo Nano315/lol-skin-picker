@@ -23,6 +23,7 @@ describe('Owner Immediate Sync (requestGroupReroll)', () => {
     (roomsClient as unknown as { socket: null }).socket = null;
     (roomsClient as unknown as { roomId: null }).roomId = null;
     (roomsClient as unknown as { memberId: null }).memberId = null;
+    (roomsClient as unknown as { memberToken: null }).memberToken = null;
   });
 
   afterEach(() => {
@@ -58,6 +59,7 @@ describe('Owner Immediate Sync (requestGroupReroll)', () => {
       (roomsClient as unknown as { socket: typeof mockSocket }).socket = mockSocket;
       (roomsClient as unknown as { roomId: string }).roomId = 'test-room';
       (roomsClient as unknown as { memberId: string }).memberId = 'owner-id';
+      (roomsClient as unknown as { memberToken: string }).memberToken = 'test-token';
 
       roomsClient.requestGroupReroll({ type: 'sameColor', color: '#ff0000' });
 
@@ -79,6 +81,7 @@ describe('Owner Immediate Sync (requestGroupReroll)', () => {
       (roomsClient as unknown as { socket: typeof mockSocket }).socket = mockSocket;
       (roomsClient as unknown as { roomId: string }).roomId = 'my-test-room';
       (roomsClient as unknown as { memberId: string }).memberId = 'my-member-id';
+      (roomsClient as unknown as { memberToken: string }).memberToken = 'test-token';
 
       roomsClient.requestGroupReroll({ type: 'sameColor', color: '#00ff00' });
 
@@ -95,6 +98,7 @@ describe('Owner Immediate Sync (requestGroupReroll)', () => {
       (roomsClient as unknown as { socket: typeof mockSocket }).socket = mockSocket;
       (roomsClient as unknown as { roomId: string }).roomId = 'test-room';
       (roomsClient as unknown as { memberId: string }).memberId = 'owner-id';
+      (roomsClient as unknown as { memberToken: string }).memberToken = 'test-token';
 
       const testColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00'];
 
@@ -121,6 +125,7 @@ describe('Owner Immediate Sync (requestGroupReroll)', () => {
       (roomsClient as unknown as { socket: typeof mockSocket }).socket = mockSocket;
       (roomsClient as unknown as { roomId: string }).roomId = 'test-room';
       (roomsClient as unknown as { memberId: string }).memberId = 'owner-id';
+      (roomsClient as unknown as { memberToken: string }).memberToken = 'test-token';
 
       // This simulates clicking a color - should emit immediately
       const color = '#ff0000';
@@ -144,6 +149,7 @@ describe('Owner Immediate Sync (requestGroupReroll)', () => {
       (roomsClient as unknown as { socket: typeof mockSocket }).socket = mockSocket;
       (roomsClient as unknown as { roomId: string }).roomId = 'test-room';
       (roomsClient as unknown as { memberId: string }).memberId = 'owner-id';
+      (roomsClient as unknown as { memberToken: string }).memberToken = 'test-token';
 
       // Multiple clicks should all go through at roomsClient level
       // (blocking logic is in ControlBar component)

@@ -60,6 +60,10 @@
   filter: grayscale(0.6);
 }
 
+.room-member-name-wrapper {
+  text-align: center;
+}
+
 .room-member-name,
 .room-member-placeholder {
   text-align: center;

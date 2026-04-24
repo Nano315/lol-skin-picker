@@ -3,14 +3,37 @@ import path from "node:path";
 import { loadSettings, saveSettings } from "../settings";
 import { track } from "../telemetry";
 
+const OPEN_EXTERNAL_ALLOWED_HOSTS = new Set<string>([
+  "discord.com",
+  "www.discord.com",
+  "github.com",
+  "www.github.com",
+  "raw.githubusercontent.com",
+  "communitydragon.org",
+  "www.communitydragon.org",
+  "aptabase.com",
+  "www.aptabase.com",
+  "riotgames.com",
+  "www.riotgames.com",
+]);
+
+function isAllowedExternalUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "https:") return false;
+  return OPEN_EXTERNAL_ALLOWED_HOSTS.has(parsed.hostname.toLowerCase());
+}
+
 export function registerMiscIpc() {
   ipcMain.handle("open-external", (_e, url: string) => {
-    // SECURITY: Whitelist de protocole stricte (HTTPS uniquement)
-    if (!url.startsWith("https://")) {
-      console.warn(`[Security] Tentative d'ouverture d'une URL non securisee bloquee : ${url}`);
+    if (typeof url !== "string" || !isAllowedExternalUrl(url)) {
+      console.warn(`[Security] open-external blocked: ${url}`);
       return;
     }
-    // TODO: Ajouter une whitelist de domaines si necessaire (ex: riotgames.com)
     return shell.openExternal(url);
   });
 

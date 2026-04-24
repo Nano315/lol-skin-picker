@@ -49,9 +49,17 @@ export function registerSkinsIpc(
     getWin()?.webContents.send("summoner-name", name)
   );
 
-  ipcMain.handle("apply-skin-id", (_e, skinId: number) =>
-    svc.applySkin(skinId)
-  );
+  ipcMain.handle("apply-skin-id", (_e, skinId: unknown) => {
+    if (
+      typeof skinId !== "number" ||
+      !Number.isInteger(skinId) ||
+      skinId < 0 ||
+      skinId > 1_000_000_000
+    ) {
+      return false;
+    }
+    return svc.applySkin(skinId);
+  });
 
   svc.on("skins", (list) => getWin()?.webContents.send("owned-skins", list));
   svc.on("selection", (sel) => getWin()?.webContents.send("selection", sel));

@@ -1,6 +1,6 @@
-import fetch from "node-fetch";
 import { EventEmitter } from "node:events";
 import type { LockCreds } from "./lcuWatcher";
+import { lcuFetch } from "../utils/lcuFetch";
 import { logger } from "../logger";
 
 export class GameflowService extends EventEmitter {
@@ -29,7 +29,7 @@ export class GameflowService extends EventEmitter {
 
     try {
       const txt = (
-        await fetch(url, { headers: { Authorization: `Basic ${auth}` } }).then(
+        await lcuFetch(url, { headers: { Authorization: `Basic ${auth}` } }).then(
           (r) => r.text()
         )
       ).replace(/"/g, "");

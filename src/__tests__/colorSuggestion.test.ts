@@ -23,6 +23,7 @@ describe('suggestColor', () => {
     (roomsClient as unknown as { socket: null }).socket = null;
     (roomsClient as unknown as { roomId: null }).roomId = null;
     (roomsClient as unknown as { memberId: null }).memberId = null;
+    (roomsClient as unknown as { memberToken: null }).memberToken = null;
   });
 
   afterEach(() => {
@@ -63,6 +64,7 @@ describe('suggestColor', () => {
       (roomsClient as unknown as { socket: typeof mockSocket }).socket = mockSocket;
       (roomsClient as unknown as { roomId: string }).roomId = 'test-room';
       (roomsClient as unknown as { memberId: string }).memberId = 'test-member';
+      (roomsClient as unknown as { memberToken: string }).memberToken = 'test-token';
 
       const result = await roomsClient.suggestColor(1001, 101);
 
@@ -81,6 +83,7 @@ describe('suggestColor', () => {
       (roomsClient as unknown as { socket: typeof mockSocket }).socket = mockSocket;
       (roomsClient as unknown as { roomId: string }).roomId = 'test-room';
       (roomsClient as unknown as { memberId: string }).memberId = 'test-member';
+      (roomsClient as unknown as { memberToken: string }).memberToken = 'test-token';
 
       const result = await roomsClient.suggestColor(1001, 101);
 
@@ -89,6 +92,7 @@ describe('suggestColor', () => {
         {
           roomId: 'test-room',
           memberId: 'test-member',
+          memberToken: 'test-token',
           skinId: 1001,
           chromaId: 101,
         },
@@ -106,6 +110,7 @@ describe('suggestColor', () => {
       (roomsClient as unknown as { socket: typeof mockSocket }).socket = mockSocket;
       (roomsClient as unknown as { roomId: string }).roomId = 'test-room';
       (roomsClient as unknown as { memberId: string }).memberId = 'test-member';
+      (roomsClient as unknown as { memberToken: string }).memberToken = 'test-token';
 
       const result = await roomsClient.suggestColor(1001, 101);
 
@@ -124,6 +129,7 @@ describe('suggestColor', () => {
       (roomsClient as unknown as { socket: typeof mockSocket }).socket = mockSocket;
       (roomsClient as unknown as { roomId: string }).roomId = 'test-room';
       (roomsClient as unknown as { memberId: string }).memberId = 'test-member';
+      (roomsClient as unknown as { memberToken: string }).memberToken = 'test-token';
 
       const result = await roomsClient.suggestColor(1001, 101);
 
@@ -140,6 +146,7 @@ describe('suggestColor', () => {
       (roomsClient as unknown as { socket: typeof mockSocket }).socket = mockSocket;
       (roomsClient as unknown as { roomId: string }).roomId = 'test-room';
       (roomsClient as unknown as { memberId: string }).memberId = 'test-member';
+      (roomsClient as unknown as { memberToken: string }).memberToken = 'test-token';
 
       const resultPromise = roomsClient.suggestColor(1001, 101);
 

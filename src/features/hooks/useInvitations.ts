@@ -36,14 +36,37 @@ export function useInvitations() {
     () => invitationStore.getPendingTarget()
   );
 
-  // Timer to update UI when rate limits expire
+  // Rate-limit countdown timer: only runs when there is something to update.
+  // Previously this ticked every second for the lifetime of the hook, forcing
+  // re-renders app-wide even when no countdown or pending state was active.
+  const needsTimer =
+    pendingTarget !== null || lastResult !== null || invitationStore.hasActiveRateLimit();
+
   useEffect(() => {
-    // Start timer to update UI periodically for rate limit countdown
-    if (!timerRef.current) {
-      timerRef.current = setInterval(() => {
-        forceUpdate((n) => n + 1);
-      }, 1000);
+    if (!needsTimer) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
     }
+
+    if (timerRef.current) return;
+    timerRef.current = setInterval(() => {
+      forceUpdate((n) => n + 1);
+      // Stop the timer as soon as nothing needs updating. The next state
+      // change (new invite, new rate limit) re-runs this effect.
+      if (
+        invitationStore.getPendingTarget() === null &&
+        invitationStore.getLastResult() === null &&
+        !invitationStore.hasActiveRateLimit()
+      ) {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      }
+    }, 1000);
 
     return () => {
       if (timerRef.current) {
@@ -51,7 +74,7 @@ export function useInvitations() {
         timerRef.current = null;
       }
     };
-  }, []);
+  }, [needsTimer]);
 
   /**
    * Send an invitation to a friend

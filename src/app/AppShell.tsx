@@ -32,79 +32,29 @@ export default function AppShell() {
   }, []);
 
   useEffect(() => {
-    // On mount, check if performance mode is enabled
-    const isPerf = read("performanceMode");
-    if (isPerf) {
-      document.body.classList.add("low-spec");
-    } else {
-      document.body.classList.remove("low-spec");
-    }
-    
-    // Listen for storage changes to update immediately if changed in another tab/window
-    // or if changed in Settings and we want global effect
-    const handler = () => {
-       const val = localStorage.getItem("pref-performanceMode") === "true";
-       if (val) document.body.classList.add("low-spec");
-       else document.body.classList.remove("low-spec");
+    const applyPerf = (val: boolean) => {
+      document.body.classList.toggle("low-spec", val);
     };
-    window.addEventListener("storage", handler);
-    // Also listen to a custom event if we want instant update within same window
-    // But for now, since we update localStorage in OptionsPanel, we can rely on that if we dispatch a storage event manually or just rely on state in Settings.
-    // However, AppShell is at the top. 
-    // A simple way is to poll or use an event emitter. 
-    // Given the architecture, let's just check on mount and maybe add a small interval or rely on the fact that 
-    // when user changes it in Settings, the class is applied there? No, Settings is a page.
-    // Let's make it simple: Add a listener to a custom event dispatched by usePrefs/OptionsPanel?
-    // Or simpler: usePrefs could return the current value if it was a context.
-    // For now, let's stick to the requirement: "Utilise un useEffect pour surveiller la preference".
-    // Since usePrefs reads from localStorage, we need a way to know when it changes.
-    // The user requirement says "Fichier : src/app/AppShell.tsx ... Utilise un useEffect pour surveiller la preference 'performanceMode'."
-    
-    // To make it reactive without a Context, we can listen to the window event we might dispatch or just storage event.
-    // But actually, since OptionsPanel updates localStorage, we can dispatch a custom event there?
-    // Or better, let's just use an interval check or the storage event (which only works across windows).
-    // Wait, the user instructions say: "Lors du changement, il doit : mettre a jour l'etat React, sauvegarder via savePref..."
-    // And in AppShell: "Utilise un useEffect pour surveiller la preference".
-    
-    // Let's implement a simple polling or event listener for the custom event if we add one. 
-    // But to be safe and follow instructions strictly:
-    // We can add a custom event dispatch in usePrefs save function? 
-    // No, I shouldn't modify usePrefs more than requested.
-    
-    // Actually, if I look at `useSyncPrefsWithBackend`, maybe I can leverage that?
-    // Let's just add a `storage` listener which is standard, and maybe a custom one.
-    
-    // Let's try to be smart. If I change the preference in Settings, I want the class to apply immediately.
-    // I will add a custom event dispatch in `OptionsPanel` or `usePrefs`? 
-    // The user didn't ask to modify `usePrefs` to dispatch events.
-    // But `OptionsPanel` calls `savePref`.
-    
-    // Let's look at `AppShell.tsx` again.
-    // It's the root component.
-    
-    // I will implement a `useEffect` that checks `localStorage` on mount and adds a listener for a custom event `pref-change`.
-    // And I'll update `usePrefs` to dispatch that event? 
-    // The user instruction for `usePrefs` was "Mets a jour les types et la logique pour gerer une nouvelle cle".
-    // It didn't explicitly forbid adding an event dispatch.
-    
-    // Let's add the dispatch to `usePrefs` `save` function. It's cleaner.
-    
+
+    applyPerf(!!read("performanceMode"));
+
+    // Cross-window changes come through the standard storage event; same-window
+    // changes go through a custom "pref-changed" event dispatched by usePrefs.
+    const storageHandler = () => {
+      applyPerf(localStorage.getItem("pref-performanceMode") === "true");
+    };
+    const localHandler = (e: Event) => {
+      const detail = (e as CustomEvent<{ key: string; value: boolean }>).detail;
+      if (detail?.key === "performanceMode") applyPerf(!!detail.value);
+    };
+
+    window.addEventListener("storage", storageHandler);
+    window.addEventListener("pref-changed", localHandler);
     return () => {
-      window.removeEventListener("storage", handler);
+      window.removeEventListener("storage", storageHandler);
+      window.removeEventListener("pref-changed", localHandler);
     };
   }, [read]);
-
-  // To ensure reactivity within the same window when `save` is called:
-  useEffect(() => {
-      const localHandler = (e: CustomEvent) => {
-          if (e.detail.key === "performanceMode") {
-              if (e.detail.value) document.body.classList.add("low-spec");
-              else document.body.classList.remove("low-spec");
-          }
-      };
-      window.addEventListener("pref-changed", localHandler as EventListener);
-      return () => window.removeEventListener("pref-changed", localHandler as EventListener);
-  }, []);
 
   return (
     <ToastProvider>

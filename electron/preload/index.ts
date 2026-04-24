@@ -166,7 +166,6 @@ const updates = {
 };
 
 contextBridge.exposeInMainWorld("lcu", api);
-contextBridge.exposeInMainWorld("api", api);
 contextBridge.exposeInMainWorld("log", logApi);
 contextBridge.exposeInMainWorld("windowControls", windowControls);
 contextBridge.exposeInMainWorld("updates", updates);

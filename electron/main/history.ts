@@ -6,6 +6,7 @@
 import { app } from "electron";
 import { join } from "node:path";
 import { promises as fs } from "node:fs";
+import { isPlainObject, isArray, safeParseObject } from "../utils/jsonGuards";
 
 export interface HistoryEntry {
   skinId: number;
@@ -35,16 +36,83 @@ const historyPath = join(app.getPath("userData"), "skin-history.json");
 
 let cache: HistoryData | null = null;
 
+function coerceHistorySettings(raw: unknown): HistoryData["settings"] {
+  const out = { ...DEFAULTS.settings };
+  if (!isPlainObject(raw)) return out;
+  if (
+    typeof raw.historySize === "number" &&
+    Number.isInteger(raw.historySize) &&
+    raw.historySize >= 0 &&
+    raw.historySize <= 10000
+  ) {
+    out.historySize = raw.historySize;
+  }
+  if (typeof raw.historyEnabled === "boolean") {
+    out.historyEnabled = raw.historyEnabled;
+  }
+  return out;
+}
+
+function coerceSkinHistory(
+  raw: unknown
+): { [championId: number]: HistoryEntry[] } {
+  if (!isPlainObject(raw)) return {};
+  const out: { [championId: number]: HistoryEntry[] } = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const championId = Number(key);
+    if (!Number.isInteger(championId) || championId < 0) continue;
+    if (!isArray(value)) continue;
+    const entries: HistoryEntry[] = [];
+    for (const entry of value) {
+      if (
+        isPlainObject(entry) &&
+        typeof entry.skinId === "number" &&
+        Number.isInteger(entry.skinId) &&
+        typeof entry.chromaId === "number" &&
+        Number.isInteger(entry.chromaId) &&
+        typeof entry.timestamp === "number" &&
+        Number.isFinite(entry.timestamp)
+      ) {
+        entries.push({
+          skinId: entry.skinId,
+          chromaId: entry.chromaId,
+          timestamp: entry.timestamp,
+        });
+      }
+    }
+    out[championId] = entries;
+  }
+  return out;
+}
+
+function coerceChromaHistory(raw: unknown): { [skinId: number]: number[] } {
+  if (!isPlainObject(raw)) return {};
+  const out: { [skinId: number]: number[] } = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const skinId = Number(key);
+    if (!Number.isInteger(skinId) || skinId < 0) continue;
+    if (!isArray(value)) continue;
+    out[skinId] = value.filter(
+      (v): v is number => typeof v === "number" && Number.isInteger(v)
+    );
+  }
+  return out;
+}
+
 export async function loadHistory(): Promise<HistoryData> {
   if (cache) return cache;
 
   try {
     const raw = await fs.readFile(historyPath, "utf-8");
-    const data = JSON.parse(raw) as Partial<HistoryData>;
+    const parsed = safeParseObject(raw);
+    if (!parsed) {
+      cache = { ...DEFAULTS };
+      return cache;
+    }
     cache = {
-      settings: { ...DEFAULTS.settings, ...data.settings },
-      skinHistory: data.skinHistory ?? {},
-      chromaHistory: data.chromaHistory ?? {},
+      settings: coerceHistorySettings(parsed.settings),
+      skinHistory: coerceSkinHistory(parsed.skinHistory),
+      chromaHistory: coerceChromaHistory(parsed.chromaHistory),
     };
     return cache;
   } catch {

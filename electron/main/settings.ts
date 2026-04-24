@@ -2,6 +2,7 @@ import { app } from "electron";
 import { join, dirname } from "node:path";
 import { promises as fs } from "node:fs";
 import { logger as log } from "../logger";
+import { safeParseObject } from "../utils/jsonGuards";
 
 type Settings = {
   displayId?: number;
@@ -12,10 +13,30 @@ type Settings = {
 
 const settingsPath = join(app.getPath("userData"), "settings.json");
 
+function coerceSettings(raw: Record<string, unknown>): Settings {
+  const out: Settings = {};
+  if (typeof raw.displayId === "number" && Number.isInteger(raw.displayId)) {
+    out.displayId = raw.displayId;
+  }
+  if (typeof raw.openAtLogin === "boolean") out.openAtLogin = raw.openAtLogin;
+  if (typeof raw.telemetryEnabled === "boolean") {
+    out.telemetryEnabled = raw.telemetryEnabled;
+  }
+  if (typeof raw.consentModalSeen === "boolean") {
+    out.consentModalSeen = raw.consentModalSeen;
+  }
+  return out;
+}
+
 export async function loadSettings(): Promise<Settings> {
   try {
     const data = await fs.readFile(settingsPath, "utf-8");
-    return JSON.parse(data) as Settings;
+    const parsed = safeParseObject(data);
+    if (!parsed) {
+      log.warn("[settings] settings.json is malformed, using defaults");
+      return {};
+    }
+    return coerceSettings(parsed);
   } catch (err) {
     log.debug("[settings] Could not load settings file, using defaults", err);
     return {};

@@ -1,7 +1,8 @@
 import { exec } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { promisify } from "node:util";
-import fetch from "node-fetch";
+import { lcuFetch } from "../utils/lcuFetch";
+import { isArray, isPlainObject } from "../utils/jsonGuards";
 import { logger } from "../logger";
 
 const execAsync = promisify(exec);
@@ -159,15 +160,31 @@ export class LcuWatcher extends EventEmitter {
 
   private parseCommandLine(cmd: string): LockCreds | null {
     try {
-      // Recherche des arguments --app-port et --remoting-auth-token
-      const portMatch = cmd.match(/--app-port=([0-9]+)/);
-      const tokenMatch = cmd.match(/--remoting-auth-token=([\w-]+)/);
+      // Anchor each capture on an end-of-argument boundary (whitespace, a
+      // closing quote, or end-of-string) so the regex cannot silently
+      // truncate a token mid-value or glue on neighbouring argument bytes.
+      // Port is numeric, token is URL-safe base64 (alphanumerics + _ -).
+      const portMatch = cmd.match(/--app-port=(\d+)(?=["\s]|$)/);
+      const tokenMatch = cmd.match(
+        /--remoting-auth-token=([A-Za-z0-9_-]+)(?=["\s]|$)/
+      );
 
       if (!portMatch || !tokenMatch) return null;
 
+      const port = portMatch[1];
+      const token = tokenMatch[1];
+      // Sanity bounds: LCU ports are 16-bit, tokens are ~22 base64 chars.
+      const portNum = parseInt(port, 10);
+      if (!Number.isFinite(portNum) || portNum < 1 || portNum > 65535) {
+        return null;
+      }
+      if (token.length < 8 || token.length > 128) {
+        return null;
+      }
+
       return {
-        port: portMatch[1],
-        password: tokenMatch[1],
+        port,
+        password: token,
         protocol: "https", // Toujours https pour le LCU
       };
     } catch {
@@ -187,7 +204,7 @@ export class LcuWatcher extends EventEmitter {
     const auth = Buffer.from(`riot:${password}`).toString("base64");
 
     try {
-      const res = await fetch(url, {
+      const res = await lcuFetch(url, {
         headers: { Authorization: `Basic ${auth}` },
       });
 
@@ -196,20 +213,25 @@ export class LcuWatcher extends EventEmitter {
         return null;
       }
 
-      const data = (await res.json()) as {
-        puuid?: string;
-        gameName?: string;
-        displayName?: string;
-      };
+      const data = (await res.json()) as unknown;
+      if (!isPlainObject(data)) {
+        logger.warn("[LCU] Identity response is not an object");
+        return null;
+      }
 
-      if (!data.puuid) {
+      const puuid = data.puuid;
+      if (typeof puuid !== "string" || puuid.length === 0) {
         logger.warn("[LCU] Identity response missing puuid");
         return null;
       }
 
+      const gameName = typeof data.gameName === "string" ? data.gameName : "";
+      const displayName =
+        typeof data.displayName === "string" ? data.displayName : "";
+
       return {
-        puuid: data.puuid,
-        summonerName: data.gameName || data.displayName || "",
+        puuid,
+        summonerName: gameName || displayName || "",
       };
     } catch (error) {
       logger.error("[LCU] Error fetching identity", error);
@@ -229,7 +251,7 @@ export class LcuWatcher extends EventEmitter {
     const auth = Buffer.from(`riot:${password}`).toString("base64");
 
     try {
-      const res = await fetch(url, {
+      const res = await lcuFetch(url, {
         headers: { Authorization: `Basic ${auth}` },
       });
 
@@ -238,25 +260,28 @@ export class LcuWatcher extends EventEmitter {
         return null;
       }
 
-      const data = (await res.json()) as Array<{
-        puuid?: string;
-        name?: string;
-        gameName?: string;
-        availability?: string;
-      }>;
-
-      if (!Array.isArray(data)) {
+      const data = (await res.json()) as unknown;
+      if (!isArray(data)) {
         logger.warn("[LCU] Friends response is not an array");
         return null;
       }
 
-      return data
-        .filter((f) => f.puuid)
-        .map((f) => ({
-          puuid: f.puuid!,
-          name: f.gameName || f.name || "",
-          availability: f.availability || "offline",
-        }));
+      const friends: LcuFriend[] = [];
+      for (const entry of data) {
+        if (!isPlainObject(entry)) continue;
+        const puuid = entry.puuid;
+        if (typeof puuid !== "string" || puuid.length === 0) continue;
+        const gameName = typeof entry.gameName === "string" ? entry.gameName : "";
+        const name = typeof entry.name === "string" ? entry.name : "";
+        const availability =
+          typeof entry.availability === "string" ? entry.availability : "offline";
+        friends.push({
+          puuid,
+          name: gameName || name || "",
+          availability,
+        });
+      }
+      return friends;
     } catch (error) {
       logger.error("[LCU] Error fetching friends", error);
       return null;
