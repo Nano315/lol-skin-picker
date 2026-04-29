@@ -6,15 +6,17 @@ interface ChromaSelectorProps {
   synergies: ColorSynergy[];
   onApply: (color: string | null) => void;
   activeColor: string | null;
+  totalMembers: number;
   disabled?: boolean;
 }
 
 /**
  * Chroma synergy picker. Default pill resets to "no chroma"; subsequent
- * bubbles are color-coded orbs with a combination counter badge and the
- * vitrine DA's gold ring when active.
+ * bubbles are color-coded orbs with a member-coverage badge (e.g. "2/3"
+ * = 2 of 3 room members own a skin in this color) and the vitrine DA's
+ * gold ring when active.
  */
-export function ChromaSelector({ synergies, onApply, activeColor, disabled }: ChromaSelectorProps) {
+export function ChromaSelector({ synergies, onApply, activeColor, totalMembers, disabled }: ChromaSelectorProps) {
   if (synergies.length === 0) return null;
 
   const defaultActive = activeColor === null;
@@ -60,8 +62,8 @@ export function ChromaSelector({ synergies, onApply, activeColor, disabled }: Ch
               )}
               aria-pressed={isActive}
             >
-              <span className="absolute -bottom-1 -right-1 rounded bg-black/80 px-1 py-[1px] text-[0.65rem] font-bold leading-tight text-white">
-                {s.combinationCount}
+              <span className="absolute -bottom-1 -right-1 rounded bg-black/80 px-1 py-[1px] text-[0.65rem] font-bold leading-tight tabular-nums text-white">
+                {s.members.length}/{totalMembers}
               </span>
             </button>
           );

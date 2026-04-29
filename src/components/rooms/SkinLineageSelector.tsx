@@ -6,14 +6,16 @@ interface SkinLineageSelectorProps {
   synergies: SkinLineSynergy[];
   onApply: (skinLineId: number | null) => void;
   activeId: number | null;
+  totalMembers: number;
   disabled?: boolean;
 }
 
 /**
  * Skin-line synergy picker. Same pill semantics as ChromaSelector but with
- * text labels and a compact combination counter badge.
+ * text labels and a member-coverage badge (e.g. "2/3" = 2 of 3 room members
+ * own a skin in this line).
  */
-export function SkinLineageSelector({ synergies, onApply, activeId, disabled }: SkinLineageSelectorProps) {
+export function SkinLineageSelector({ synergies, onApply, activeId, totalMembers, disabled }: SkinLineageSelectorProps) {
   if (synergies.length === 0) return null;
 
   const defaultActive = activeId === null;
@@ -57,11 +59,11 @@ export function SkinLineageSelector({ synergies, onApply, activeId, disabled }: 
               <span>{s.skinLineName}</span>
               <span
                 className={cn(
-                  "rounded-full px-1.5 py-[1px] text-xs font-bold",
+                  "rounded-full px-1.5 py-[1px] text-xs font-bold tabular-nums",
                   isActive ? "bg-black/25 text-white" : "bg-black/30 text-white/90"
                 )}
               >
-                {s.combinationCount}
+                {s.members.length}/{totalMembers}
               </span>
             </button>
           );

@@ -7,6 +7,7 @@ type SuggestionStatus = "idle" | "pending" | "success" | "error";
 type ColorSuggestionButtonProps = {
   synergy: ColorSynergy;
   skinOptions: GroupSkinOption[];
+  totalMembers: number;
   suggestColor: (skinId: number, chromaId: number) => Promise<{ success: boolean; error?: string }>;
   disabled?: boolean;
 };
@@ -57,6 +58,7 @@ const variants: Variants = {
 export function ColorSuggestionButton({
   synergy,
   skinOptions,
+  totalMembers,
   suggestColor,
   disabled = false,
 }: ColorSuggestionButtonProps) {
@@ -108,7 +110,7 @@ export function ColorSuggestionButton({
         } as React.CSSProperties
       }
       className="relative h-8 w-8 rounded-full border-2 border-white/10 transition-[filter] disabled:pointer-events-none disabled:opacity-50 disabled:grayscale"
-      title={`Click to suggest this color to the owner (${synergy.combinationCount} combinations)`}
+      title={`Click to suggest this color to the owner (${synergy.members.length}/${totalMembers} players)`}
       onClick={handleSuggest}
       disabled={disabled || isPending}
       aria-label={`Suggest ${synergy.color} color`}

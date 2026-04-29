@@ -721,12 +721,14 @@ export function PremadePage() {
                         synergies={room.synergy.skinLines}
                         onApply={handleApplySkinLine}
                         activeId={activeSkinLineId}
+                        totalMembers={room.members.length}
                         disabled={isSyncing}
                       />
                       <ChromaSelector
                         synergies={filteredChromaSynergies}
                         onApply={handleApplyChroma}
                         activeColor={activeChromaColor}
+                        totalMembers={room.members.length}
                         disabled={isSyncing}
                       />
                     </>

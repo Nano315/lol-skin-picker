@@ -155,6 +155,7 @@ export default function ControlBar({
                 key={synergy.color}
                 synergy={synergy}
                 skinOptions={skinOptions || []}
+                totalMembers={room?.members.length ?? 0}
                 suggestColor={suggestColor!}
                 disabled={isSyncing}
               />
