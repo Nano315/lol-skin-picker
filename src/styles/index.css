@@ -16,7 +16,6 @@
 @import "./footer.css";
 
 @import "./rooms.css";
-@import "./priority.css";
 
 @tailwind base;
 @tailwind components;

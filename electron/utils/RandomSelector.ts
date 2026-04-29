@@ -1,15 +1,7 @@
 import { webcrypto } from "node:crypto";
 
-export type Priority = "favorite" | "deprioritized" | null;
-
-export interface PriorityMap {
-  [skinId: number]: Priority;
-}
-
 export class RandomSelector {
-  /**
-   * RNG robuste base sur crypto.getRandomValues
-   */
+  /** Crypto-backed random integer in [0, max). */
   static randomInt(max: number): number {
     if (max <= 1) return 0;
     const buf = new Uint32Array(1);
@@ -17,9 +9,7 @@ export class RandomSelector {
     return buf[0] % max;
   }
 
-  /**
-   * Random float between 0 and max using crypto
-   */
+  /** Crypto-backed random float in [0, max). */
   static randomFloat(max: number): number {
     const buf = new Uint32Array(1);
     webcrypto.getRandomValues(buf);
@@ -27,21 +17,11 @@ export class RandomSelector {
   }
 
   /**
-   * Get priority weight multiplier
-   * favorite = 3x, deprioritized = 0.3x, normal = 1x
-   */
-  static getPriorityWeight(priority: Priority): number {
-    if (priority === "favorite") return 3;
-    if (priority === "deprioritized") return 0.3;
-    return 1;
-  }
-
-  /**
-   * Selection "intelligente" dans allChoices :
-   * - evite prevId
-   * - evite les N derniers (historyWindow)
-   * - si possible : privilegie les jamais vus
-   * - sinon : ponderation LRU (plus c'est ancien, plus c'est probable)
+   * Selection in `allChoices`:
+   * - skips `prevId`
+   * - skips the last `historyWindow` entries of `history`
+   * - prefers never-seen items
+   * - falls back to LRU-weighted random across the rest
    */
   static pickWithHistory(
     allChoices: number[],
@@ -51,117 +31,92 @@ export class RandomSelector {
   ): number | null {
     if (!allChoices.length) return null;
 
-    // 1) Construire l'ensemble des interdits (prev + N derniers)
     const banned = new Set<number>();
     if (prevId != null) banned.add(prevId);
-
     const recent = history.slice(-historyWindow);
     for (const id of recent) banned.add(id);
 
     let pool = allChoices.filter((id) => !banned.has(id));
 
-    // 2) Si on a tout banni, on retombe sur "juste pas prevId"
     if (!pool.length) {
       pool = allChoices.filter((id) => id !== prevId);
-      if (!pool.length) {
-        // 1 seul choix possible -> on le prend
-        return allChoices[0];
-      }
+      if (!pool.length) return allChoices[0];
     }
 
-    // 3) Priorite aux jamais vus
     const neverSeen = pool.filter((id) => !history.includes(id));
     if (neverSeen.length) {
-      const idx = this.randomInt(neverSeen.length);
-      return neverSeen[idx];
+      return neverSeen[this.randomInt(neverSeen.length)];
     }
 
-    // 4) Ponderation LRU : plus c'est ancien dans l'historique, plus le poids est grand
     const weights = pool.map((id) => {
       const lastIndex = history.lastIndexOf(id);
       if (lastIndex === -1) return 1;
-      const distance = history.length - lastIndex; // 1 = dernier, 2 = avant-dernier, etc.
+      const distance = history.length - lastIndex;
       return distance > 0 ? distance : 1;
     });
 
     const total = weights.reduce((a, b) => a + b, 0);
     let r = this.randomInt(total);
-
     for (let i = 0; i < pool.length; i++) {
       r -= weights[i];
       if (r < 0) return pool[i];
     }
-
     return pool[pool.length - 1];
   }
 
   /**
-   * Selection with priority weights AND history:
-   * 1. Apply history exclusion (ban recent skins)
-   * 2. Apply priority weights to remaining pool
-   * 3. Weighted random selection
-   *
-   * Priority weights: favorite = 3x, deprioritized = 0.3x, normal = 1x
+   * Selection that respects user-defined exclusions and skin history:
+   *  1. drop user-excluded ids; if everything ends up excluded, fall back to
+   *     the unfiltered pool so the random never blocks
+   *  2. ban prevId + the last `historyWindow` entries of history
+   *  3. prefer never-seen items
+   *  4. otherwise LRU-weighted random
    */
-  static pickWithPriorityAndHistory(
+  static pickWithExclusionsAndHistory(
     allChoices: number[],
-    priorities: PriorityMap,
+    excluded: ReadonlySet<number>,
     history: number[],
     historyWindow: number,
     prevId: number | null
   ): number | null {
     if (!allChoices.length) return null;
 
-    // 1) Construire l'ensemble des interdits (prev + N derniers)
+    const filtered = allChoices.filter((id) => !excluded.has(id));
+    const baseChoices = filtered.length > 0 ? filtered : allChoices;
+
     const banned = new Set<number>();
     if (prevId != null) banned.add(prevId);
-
     if (historyWindow > 0) {
       const recent = history.slice(-historyWindow);
       for (const id of recent) banned.add(id);
     }
 
-    let pool = allChoices.filter((id) => !banned.has(id));
-
-    // 2) Si on a tout banni, on retombe sur "juste pas prevId"
+    let pool = baseChoices.filter((id) => !banned.has(id));
     if (!pool.length) {
-      pool = allChoices.filter((id) => id !== prevId);
-      if (!pool.length) {
-        return allChoices[0];
-      }
+      pool = baseChoices.filter((id) => id !== prevId);
+      if (!pool.length) return baseChoices[0];
     }
 
-    // 3) Calculate weights combining priority and LRU
+    const neverSeen = pool.filter((id) => !history.includes(id));
+    if (neverSeen.length) {
+      return neverSeen[this.randomInt(neverSeen.length)];
+    }
+
     const weights = pool.map((id) => {
-      // Base priority weight
-      const priorityWeight = this.getPriorityWeight(priorities[id] ?? null);
-
-      // LRU weight (older = higher)
-      let lruWeight = 1;
       const lastIndex = history.lastIndexOf(id);
-      if (lastIndex !== -1) {
-        const distance = history.length - lastIndex;
-        lruWeight = distance > 0 ? distance : 1;
-      } else {
-        // Never seen = bonus weight
-        lruWeight = history.length + 1;
-      }
-
-      // Combine: priority * LRU
-      return priorityWeight * lruWeight;
+      if (lastIndex === -1) return history.length + 1;
+      const distance = history.length - lastIndex;
+      return distance > 0 ? distance : 1;
     });
 
-    // 4) Weighted random selection
     const total = weights.reduce((a, b) => a + b, 0);
     if (total <= 0) return pool[0];
 
     let r = this.randomFloat(total);
-
     for (let i = 0; i < pool.length; i++) {
       r -= weights[i];
       if (r <= 0) return pool[i];
     }
-
     return pool[pool.length - 1];
   }
 }

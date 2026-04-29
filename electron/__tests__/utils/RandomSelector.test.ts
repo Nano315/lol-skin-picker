@@ -5,7 +5,6 @@ vi.mock("node:crypto", () => ({
   default: {
     webcrypto: {
       getRandomValues: (arr: Uint32Array) => {
-        // Deterministic mock for testing
         arr[0] = 12345;
         return arr;
       },
@@ -13,7 +12,6 @@ vi.mock("node:crypto", () => ({
   },
   webcrypto: {
     getRandomValues: (arr: Uint32Array) => {
-      // Deterministic mock for testing
       arr[0] = 12345;
       return arr;
     },
@@ -24,15 +22,15 @@ import { RandomSelector } from "../../utils/RandomSelector";
 
 describe("RandomSelector", () => {
   describe("randomInt", () => {
-    it("should return 0 when max is 0", () => {
+    it("returns 0 when max is 0", () => {
       expect(RandomSelector.randomInt(0)).toBe(0);
     });
 
-    it("should return 0 when max is 1", () => {
+    it("returns 0 when max is 1", () => {
       expect(RandomSelector.randomInt(1)).toBe(0);
     });
 
-    it("should return value less than max", () => {
+    it("returns a value strictly less than max", () => {
       const result = RandomSelector.randomInt(100);
       expect(result).toBeGreaterThanOrEqual(0);
       expect(result).toBeLessThan(100);
@@ -40,285 +38,170 @@ describe("RandomSelector", () => {
   });
 
   describe("pickWithHistory", () => {
-    it("should return null for empty choices", () => {
-      const result = RandomSelector.pickWithHistory([], [], 3, null);
-      expect(result).toBeNull();
+    it("returns null for empty choices", () => {
+      expect(RandomSelector.pickWithHistory([], [], 3, null)).toBeNull();
     });
 
-    it("should return the only choice when single option", () => {
-      const result = RandomSelector.pickWithHistory([100], [], 3, null);
-      expect(result).toBe(100);
+    it("returns the only choice when there is one option", () => {
+      expect(RandomSelector.pickWithHistory([100], [], 3, null)).toBe(100);
     });
 
-    it("should avoid prevId when possible", () => {
-      // With deterministic random, test that prevId is filtered
+    it("avoids prevId when other options exist", () => {
       const choices = [100, 200, 300];
-      const prevId = 100;
-
-      // Run multiple times to verify exclusion
       for (let i = 0; i < 10; i++) {
-        const result = RandomSelector.pickWithHistory(choices, [], 0, prevId);
-        if (result !== prevId || choices.length === 1) {
-          // Either avoided prevId or it was the only choice
-          expect(result).not.toBeNull();
-        }
+        const result = RandomSelector.pickWithHistory(choices, [], 0, 100);
+        expect(result).not.toBe(100);
       }
     });
 
-    it("should exclude recent history items based on historyWindow", () => {
-      const choices = [100, 200, 300, 400, 500];
-      const history = [100, 200, 300]; // 3 recent
-      const historyWindow = 2; // Only exclude last 2 (200, 300)
-
-      // With window=2, only 200 and 300 should be banned
-      // 100 is old enough to be allowed
+    it("excludes recent history items based on historyWindow", () => {
       const result = RandomSelector.pickWithHistory(
-        choices,
-        history,
-        historyWindow,
+        [100, 200, 300, 400, 500],
+        [100, 200, 300],
+        2,
         null
       );
-
-      expect(result).not.toBeNull();
-      // Result should not be 200 or 300 (recent within window)
       expect(result).not.toBe(200);
       expect(result).not.toBe(300);
     });
 
-    it("should prioritize never-seen items", () => {
-      const choices = [100, 200, 300, 400];
-      const history = [100, 200]; // 100, 200 have been seen
-      const historyWindow = 1; // Only ban last 1 (200)
-
-      // 300, 400 are never seen, should be prioritized
+    it("prioritizes never-seen items", () => {
       const result = RandomSelector.pickWithHistory(
-        choices,
-        history,
-        historyWindow,
+        [100, 200, 300, 400],
+        [100, 200],
+        1,
         null
       );
-
-      // Should pick from never seen (300 or 400)
       expect([300, 400]).toContain(result);
     });
 
-    it("should fallback to all choices if all are banned", () => {
-      const choices = [100, 200];
-      const history = [100, 200];
-      const historyWindow = 3; // Bans both
-
-      const result = RandomSelector.pickWithHistory(
-        choices,
-        history,
-        historyWindow,
-        100 // Also try to exclude 100
-      );
-
-      // Should still return something
-      expect(result).not.toBeNull();
+    it("falls back to all choices if every option is banned", () => {
+      const result = RandomSelector.pickWithHistory([100, 200], [100, 200], 3, 100);
       expect([100, 200]).toContain(result);
     });
 
-    it("should handle historyWindow of 0 (no exclusion)", () => {
-      const choices = [100, 200, 300];
-      const history = [100, 200, 300];
-      const historyWindow = 0; // No history exclusion
-
+    it("does not exclude any history when historyWindow is 0", () => {
       const result = RandomSelector.pickWithHistory(
-        choices,
-        history,
-        historyWindow,
+        [100, 200, 300],
+        [100, 200, 300],
+        0,
         null
       );
-
-      expect(result).not.toBeNull();
-      expect(choices).toContain(result);
-    });
-
-    it("should use LRU weighting when all items have been seen", () => {
-      const choices = [100, 200, 300];
-      const history = [100, 200, 300]; // All seen, 100 is oldest
-      const historyWindow = 0; // Don't ban any
-
-      // Oldest (100) should have higher weight
-      // This is statistical, so we just verify it returns a valid choice
-      const result = RandomSelector.pickWithHistory(
-        choices,
-        history,
-        historyWindow,
-        null
-      );
-
-      expect(result).not.toBeNull();
-      expect(choices).toContain(result);
+      expect([100, 200, 300]).toContain(result);
     });
   });
 
-  describe("getPriorityWeight", () => {
-    it("should return 3 for favorite", () => {
-      expect(RandomSelector.getPriorityWeight("favorite")).toBe(3);
+  describe("pickWithExclusionsAndHistory", () => {
+    const empty = new Set<number>();
+
+    it("returns null for empty choices", () => {
+      expect(
+        RandomSelector.pickWithExclusionsAndHistory([], empty, [], 3, null)
+      ).toBeNull();
     });
 
-    it("should return 0.3 for deprioritized", () => {
-      expect(RandomSelector.getPriorityWeight("deprioritized")).toBe(0.3);
+    it("returns the only choice when there is one option", () => {
+      expect(
+        RandomSelector.pickWithExclusionsAndHistory([100], empty, [], 3, null)
+      ).toBe(100);
     });
 
-    it("should return 1 for null (normal)", () => {
-      expect(RandomSelector.getPriorityWeight(null)).toBe(1);
-    });
-  });
-
-  describe("pickWithPriorityAndHistory", () => {
-    it("should return null for empty choices", () => {
-      const result = RandomSelector.pickWithPriorityAndHistory([], {}, [], 3, null);
-      expect(result).toBeNull();
-    });
-
-    it("should return the only choice when single option", () => {
-      const result = RandomSelector.pickWithPriorityAndHistory([100], {}, [], 3, null);
-      expect(result).toBe(100);
-    });
-
-    it("should avoid prevId when possible", () => {
-      const choices = [100, 200, 300];
-      const prevId = 100;
-
-      for (let i = 0; i < 10; i++) {
-        const result = RandomSelector.pickWithPriorityAndHistory(
-          choices,
-          {},
+    it("excludes user-excluded ids from the pool", () => {
+      const excluded = new Set([200, 300]);
+      for (let i = 0; i < 20; i++) {
+        const result = RandomSelector.pickWithExclusionsAndHistory(
+          [100, 200, 300, 400],
+          excluded,
           [],
           0,
-          prevId
+          null
         );
-        if (choices.length > 1) {
-          expect(result).not.toBe(prevId);
-        }
+        expect(result).not.toBe(200);
+        expect(result).not.toBe(300);
       }
     });
 
-    it("should exclude recent history items based on historyWindow", () => {
-      const choices = [100, 200, 300, 400, 500];
-      const history = [100, 200, 300];
-      const historyWindow = 2; // Only exclude last 2 (200, 300)
-
-      const result = RandomSelector.pickWithPriorityAndHistory(
-        choices,
-        {},
-        history,
-        historyWindow,
+    it("locks onto the only remaining choice when exclusions narrow the pool", () => {
+      const excluded = new Set([100, 200, 300]);
+      const result = RandomSelector.pickWithExclusionsAndHistory(
+        [100, 200, 300, 400],
+        excluded,
+        [],
+        0,
         null
       );
+      expect(result).toBe(400);
+    });
 
-      expect(result).not.toBeNull();
+    it("falls back to all choices when every option is excluded (safety net)", () => {
+      const excluded = new Set([100, 200]);
+      const result = RandomSelector.pickWithExclusionsAndHistory(
+        [100, 200],
+        excluded,
+        [],
+        0,
+        null
+      );
+      expect([100, 200]).toContain(result);
+    });
+
+    it("avoids prevId when other options exist", () => {
+      for (let i = 0; i < 10; i++) {
+        const result = RandomSelector.pickWithExclusionsAndHistory(
+          [100, 200, 300],
+          empty,
+          [],
+          0,
+          100
+        );
+        expect(result).not.toBe(100);
+      }
+    });
+
+    it("excludes recent history items based on historyWindow", () => {
+      const result = RandomSelector.pickWithExclusionsAndHistory(
+        [100, 200, 300, 400, 500],
+        empty,
+        [100, 200, 300],
+        2,
+        null
+      );
       expect(result).not.toBe(200);
       expect(result).not.toBe(300);
     });
 
-    it("should handle priorities with empty history", () => {
-      const choices = [100, 200, 300];
-      const priorities = { 100: "favorite" as const, 300: "deprioritized" as const };
-
-      const result = RandomSelector.pickWithPriorityAndHistory(
-        choices,
-        priorities,
-        [],
-        0,
+    it("prioritizes never-seen items", () => {
+      const result = RandomSelector.pickWithExclusionsAndHistory(
+        [100, 200, 300, 400],
+        empty,
+        [100, 200],
+        1,
         null
       );
-
-      expect(result).not.toBeNull();
-      expect(choices).toContain(result);
+      expect([300, 400]).toContain(result);
     });
 
-    it("should fallback to all choices if all are banned", () => {
-      const choices = [100, 200];
-      const history = [100, 200];
-      const historyWindow = 3;
-
-      const result = RandomSelector.pickWithPriorityAndHistory(
-        choices,
-        {},
-        history,
-        historyWindow,
+    it("falls back to all choices when prev + history bans everything", () => {
+      const result = RandomSelector.pickWithExclusionsAndHistory(
+        [100, 200],
+        empty,
+        [100, 200],
+        3,
         100
       );
-
-      expect(result).not.toBeNull();
       expect([100, 200]).toContain(result);
     });
 
-    it("should handle historyWindow of 0 (no exclusion)", () => {
-      const choices = [100, 200, 300];
-      const history = [100, 200, 300];
-      const historyWindow = 0;
-
-      const result = RandomSelector.pickWithPriorityAndHistory(
-        choices,
-        {},
-        history,
-        historyWindow,
+    it("combines exclusions with history exclusion", () => {
+      const excluded = new Set([100]);
+      const result = RandomSelector.pickWithExclusionsAndHistory(
+        [100, 200, 300, 400],
+        excluded,
+        [200, 300],
+        2,
         null
       );
-
-      expect(result).not.toBeNull();
-      expect(choices).toContain(result);
-    });
-
-    it("should combine priority weights with LRU weights", () => {
-      const choices = [100, 200, 300];
-      const priorities = { 100: "favorite" as const };
-      const history = [100, 200, 300]; // All seen, 100 is oldest
-
-      const result = RandomSelector.pickWithPriorityAndHistory(
-        choices,
-        priorities,
-        history,
-        0,
-        null
-      );
-
-      expect(result).not.toBeNull();
-      expect(choices).toContain(result);
-    });
-
-    it("should handle all skins deprioritized", () => {
-      const choices = [100, 200];
-      const priorities = {
-        100: "deprioritized" as const,
-        200: "deprioritized" as const,
-      };
-
-      const result = RandomSelector.pickWithPriorityAndHistory(
-        choices,
-        priorities,
-        [],
-        0,
-        null
-      );
-
-      expect(result).not.toBeNull();
-      expect(choices).toContain(result);
-    });
-
-    it("should handle mixed priorities correctly", () => {
-      const choices = [100, 200, 300, 400];
-      const priorities = {
-        100: "favorite" as const,
-        200: "deprioritized" as const,
-        // 300 and 400 are normal (null)
-      };
-
-      const result = RandomSelector.pickWithPriorityAndHistory(
-        choices,
-        priorities,
-        [],
-        0,
-        null
-      );
-
-      expect(result).not.toBeNull();
-      expect(choices).toContain(result);
+      expect(result).toBe(400);
     });
   });
 });

@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   Sparkles,
   Info,
+  SlidersHorizontal,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import OptionsPanel from "@/components/controls/OptionsPanel";
@@ -21,6 +22,10 @@ import {
 } from "@/components/ui";
 
 import { usePrefs } from "@/features/hooks/usePrefs";
+import {
+  useWidgetSide,
+  type WidgetSide,
+} from "@/features/matchLock/widgetSide";
 import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
 import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
@@ -32,6 +37,7 @@ export default function Settings() {
   const phase = useGameflow();
 
   const { save, read } = usePrefs();
+  const [widgetSide, setWidgetSide] = useWidgetSide();
   const {
     enabled: telemetryEnabled,
     setConsent: setTelemetryEnabled,
@@ -120,6 +126,29 @@ export default function Settings() {
                   setHistorySize={setHistorySize}
                   savePref={save}
                 />
+              </GlassCard>
+            </Reveal>
+
+            {/* ---------- Quick Controls ---------- */}
+            <Reveal delay={0.025} className="col-span-12">
+              <GlassCard className="flex flex-col gap-5">
+                <CardHeader
+                  eyebrow="Layout"
+                  title="Quick Controls"
+                  trailing={
+                    <SectionIcon>
+                      <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+                    </SectionIcon>
+                  }
+                />
+                <div className="flex flex-col">
+                  <SettingRow
+                    label="Position"
+                    description="Side of the screen where the floating match controls sit."
+                  >
+                    <SidePicker side={widgetSide} onChange={setWidgetSide} />
+                  </SettingRow>
+                </div>
               </GlassCard>
             </Reveal>
 
@@ -272,6 +301,38 @@ function SettingRow({
         )}
       </div>
       <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function SidePicker({
+  side,
+  onChange,
+}: {
+  side: WidgetSide;
+  onChange: (s: WidgetSide) => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] p-1">
+      {(["left", "right"] as const).map((opt) => {
+        const active = side === opt;
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(opt)}
+            aria-pressed={active}
+            className={cn(
+              "rounded-full border px-3.5 py-1 text-xs font-medium transition-colors duration-150",
+              active
+                ? "border-accent/40 bg-gradient-to-br from-accent/20 to-accent-strong/10 text-white"
+                : "border-transparent text-white/60 hover:text-white"
+            )}
+          >
+            {opt === "left" ? "Left" : "Right"}
+          </button>
+        );
+      })}
     </div>
   );
 }

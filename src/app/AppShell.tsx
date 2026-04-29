@@ -2,9 +2,11 @@ import { RouterProvider } from "react-router-dom";
 import { router } from "./routes";
 import { useSyncPrefsWithBackend } from "@/features/hooks/useSyncPrefsWithBackend";
 import MascotsLayer from "@/components/overlays/MascotsLayer";
+import MatchControls from "@/components/overlays/MatchControls";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { RoomsClientConnector } from "./RoomsClientConnector";
 import { IdentityConnector } from "./IdentityConnector";
+import { MatchLockSyncConnector } from "./MatchLockSyncConnector";
 import { TelemetryConsentModal } from "@/components/TelemetryConsentModal";
 import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
 import { isFirstLaunch } from "@/features/api";
@@ -72,9 +74,11 @@ export default function AppShell() {
       )}
       <RoomsClientConnector />
       <IdentityConnector />
+      <MatchLockSyncConnector />
       <div>
         <RouterProvider router={router} />
         <MascotsLayer />
+        <MatchControls />
       </div>
     </ToastProvider>
   );

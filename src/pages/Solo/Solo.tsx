@@ -1,6 +1,7 @@
 import Header from "@/components/layout/Header";
 import SkinPreview from "@/components/skin/SkinPreview";
-import ControlBar from "@/components/controls/ControlBar";
+import RerollActions from "@/components/controls/RerollActions";
+import AutoRollPill from "@/components/controls/AutoRollPill";
 import { GlassCard, Reveal, GradientText, CardHeader } from "@/components/ui";
 
 import { useConnection } from "@/features/hooks/useConnection";
@@ -42,7 +43,7 @@ function AnimatedValue({ value }: { value: string }) {
   );
 }
 
-export default function Home() {
+export default function Solo() {
   const { status, iconId } = useConnection();
   const phase = useGameflow();
   const skins = useOwnedSkins();
@@ -79,6 +80,14 @@ export default function Home() {
         ? selection.championAlias
         : "Waiting for lock-in"
       : "...";
+
+  const previewChromas = activeSkin?.chromas ?? [];
+
+  const handleSelectChroma = async (variantId: number) => {
+    // variantId = skinId (base) OU chromaId.
+    await api.applySkinId(variantId);
+    api.getSelection().then(setSelection);
+  };
 
   return (
     <div className="app">
@@ -118,7 +127,11 @@ export default function Home() {
                     </StatusPill>
                   }
                 />
-                <SkinPreview selection={selection} />
+                <SkinPreview
+                  selection={selection}
+                  chromas={hasLockedChampion ? previewChromas : []}
+                  onSelectChroma={hasLockedChampion ? handleSelectChroma : undefined}
+                />
               </GlassCard>
             </Reveal>
 
@@ -144,11 +157,15 @@ export default function Home() {
               </GlassCard>
             </Reveal>
 
-            {/* ---------- Actions Card (Reroll Lab) ---------- */}
+            {/* ---------- Actions Card (Reroll) ---------- */}
             <Reveal delay={0.16} className="col-span-12">
               <GlassCard className="flex flex-col gap-4">
-                <CardHeader eyebrow="Actions" title="Reroll Lab" />
-                <ControlBar
+                <CardHeader
+                  eyebrow="Actions"
+                  title="Reroll"
+                  trailing={<AutoRollPill />}
+                />
+                <RerollActions
                   phase={phase}
                   status={status}
                   selection={selection}
@@ -215,3 +232,4 @@ function StatusPill({
     </span>
   );
 }
+

@@ -1,4 +1,5 @@
 // src/components/RoomMemberCard.tsx
+import { Lock } from "lucide-react";
 import { useChromaColor } from "@/features/hooks/useChromaColor";
 import type { RoomMember } from "@/features/roomsClient";
 import fallbackSkin from "/fallback-skin.png?url";
@@ -91,6 +92,18 @@ export function RoomMemberCard({
         </div>
       ) : (
         <div className="room-member-placeholder">Empty slot</div>
+      )}
+
+      {/* Skin held badge — visible to everyone, neutral wording so it reads as
+          a status pill rather than a flag. */}
+      {isOccupied && member!.lockedSkin && (
+        <span
+          title="Skin held for this match"
+          aria-label="Skin held for this match"
+          className="absolute left-2 top-2 z-[5] flex h-6 w-6 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white/80 backdrop-blur"
+        >
+          <Lock className="h-3 w-3" aria-hidden />
+        </span>
       )}
 
       {/* Suggestion Badge (Owner only) */}

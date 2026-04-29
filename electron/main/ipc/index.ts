@@ -2,13 +2,15 @@
 import type { BrowserWindow } from "electron";
 import type { LcuWatcher } from "../../services/lcuWatcher";
 import type { GameflowService } from "../../services/gameflow.service";
+import type { ChampionLibraryService } from "../../services/championLibrary.service";
 import { registerLcuIpc } from "./lcu.ipc";
 import { registerGameflowIpc } from "./gameflow.ipc";
 import { registerSkinsIpc } from "./skins.ipc";
 import { registerMiscIpc } from "./misc.ipc";
 import { registerLogIpc } from "./log.ipc";
 import { registerHistoryIpc } from "./history.ipc";
-import { registerPriorityIpc } from "./priority.ipc";
+import { registerExclusionsIpc } from "./exclusions.ipc";
+import { registerChampionLibraryIpc } from "./championLibrary.ipc";
 import { registerTelemetryIpc } from "./telemetry.ipc";
 import { registerWindowIpc } from "./window.ipc";
 import { registerUpdatesIpc } from "./updates.ipc";
@@ -17,6 +19,7 @@ export function registerAllIpc(opts: {
   lcu: LcuWatcher;
   gameflow: GameflowService;
   skins: any; // SkinsService (avoid circular import in type-only)
+  championLibrary: ChampionLibraryService;
   getWin: () => BrowserWindow | null;
 }) {
   registerLcuIpc(opts.lcu);
@@ -25,7 +28,8 @@ export function registerAllIpc(opts: {
   registerMiscIpc();
   registerLogIpc();
   registerHistoryIpc(opts.skins);
-  registerPriorityIpc();
+  registerExclusionsIpc();
+  registerChampionLibraryIpc(opts.championLibrary);
   registerTelemetryIpc();
   registerWindowIpc(opts.getWin);
   registerUpdatesIpc();

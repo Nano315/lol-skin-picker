@@ -47,7 +47,14 @@ export const api = {
 
   // actions
   rerollSkin: () => lcu.rerollSkin(),
+  rerollSkinOnly: () => lcu.rerollSkinOnly(),
   rerollChroma: () => lcu.rerollChroma(),
+
+  // match lock
+  getMatchLock: () => lcu.getMatchLock(),
+  setMatchLock: (locked: boolean) => lcu.setMatchLock(locked),
+  getSkinChromaColors: (championId: number, skinId: number) =>
+    lcu.getSkinChromaColors({ championId, skinId }),
 
   // selection
   getSelection: () => lcu.getSelection() as Promise<Selection>,
@@ -77,15 +84,14 @@ export const api = {
     lcu.addToHistory(championId, skinId, chromaId),
   clearHistory: (championId?: number) => lcu.clearHistory(championId),
 
-  // priority
-  setPriority: (championId: number, skinId: number, priority: "favorite" | "deprioritized" | null) =>
-    lcu.setPriority(championId, skinId, priority),
-  getPriority: (championId: number, skinId: number) =>
-    lcu.getPriority(championId, skinId),
-  getAllPriorities: (championId: number) => lcu.getAllPriorities(championId),
-  clearPriorities: (championId?: number) => lcu.clearPriorities(championId),
-  bulkSetPriority: (championId: number, skinIds: number[], priority: "favorite" | "deprioritized" | null) =>
-    lcu.bulkSetPriority(championId, skinIds, priority),
+  // exclusions (skin/chroma random pool)
+  getExclusions: (championId: number) => lcu.getExclusions(championId),
+  getAllExclusions: () => lcu.getAllExclusions(),
+  setExcluded: (championId: number, id: number, excluded: boolean) =>
+    lcu.setExcluded(championId, id, excluded),
+  bulkSetExcluded: (championId: number, ids: number[], excluded: boolean) =>
+    lcu.bulkSetExcluded(championId, ids, excluded),
+  clearExclusions: (championId?: number) => lcu.clearExclusions(championId),
 };
 
 // Telemetry exports

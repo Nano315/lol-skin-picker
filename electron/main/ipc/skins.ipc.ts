@@ -39,7 +39,15 @@ export function registerSkinsIpc(
   });
 
   ipcMain.handle("reroll-skin", () => svc.rerollSkin());
+  ipcMain.handle("reroll-skin-only", () => svc.rerollSkinOnly());
   ipcMain.handle("reroll-chroma", () => svc.rerollChroma());
+
+  ipcMain.handle("get-match-lock", () => svc.getMatchLock());
+  ipcMain.handle("set-match-lock", (_e, locked: unknown) => {
+    const next = !!locked;
+    svc.setMatchLock(next);
+    track("match_lock_toggled", { locked: next });
+  });
 
   ipcMain.handle("get-selection", () => svc.getSelection());
   ipcMain.handle("get-summoner-icon", () => svc.getProfileIcon());

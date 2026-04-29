@@ -27,6 +27,12 @@ declare global {
         chromaId: number;
       }) => Promise<string | null>;
 
+      // Batch chroma colors for a skin (used by ChromaBalls overlay)
+      getSkinChromaColors: (params: {
+        championId: number;
+        skinId: number;
+      }) => Promise<Record<number, string | null>>;
+
       getSummonerIcon: () => Promise<number>;
       onSummonerIcon: (cb: (id: number) => void) => Unsub;
 
@@ -54,7 +60,11 @@ declare global {
       setPerformanceMode: (v: boolean) => Promise<void>;
 
       rerollSkin: () => Promise<void>;
+      rerollSkinOnly: () => Promise<void>;
       rerollChroma: () => Promise<void>;
+
+      getMatchLock: () => Promise<boolean>;
+      setMatchLock: (locked: boolean) => Promise<void>;
 
       getSelection: () => Promise<{
         championId: number;
@@ -99,25 +109,33 @@ declare global {
       ) => Promise<void>;
       clearHistory: (championId?: number) => Promise<void>;
 
-      // Priority
-      setPriority: (
+      // Exclusions (skin/chroma random pool)
+      getExclusions: (championId: number) => Promise<number[]>;
+      getAllExclusions: () => Promise<{ [championId: number]: number[] }>;
+      setExcluded: (
         championId: number,
-        skinId: number,
-        priority: "favorite" | "deprioritized" | null
+        id: number,
+        excluded: boolean
       ) => Promise<void>;
-      getPriority: (
+      bulkSetExcluded: (
         championId: number,
-        skinId: number
-      ) => Promise<"favorite" | "deprioritized" | null>;
-      getAllPriorities: (championId: number) => Promise<{
-        [skinId: number]: "favorite" | "deprioritized" | null;
-      }>;
-      clearPriorities: (championId?: number) => Promise<void>;
-      bulkSetPriority: (
-        championId: number,
-        skinIds: number[],
-        priority: "favorite" | "deprioritized" | null
+        ids: number[],
+        excluded: boolean
       ) => Promise<void>;
+      clearExclusions: (championId?: number) => Promise<void>;
+
+      // Champion Library (browse all owned champions + their skins)
+      getOwnedChampions: () => Promise<
+        Array<{
+          id: number;
+          alias: string;
+          name: string;
+          mastery: number;
+          skinCount: number;
+        }>
+      >;
+      getChampionSkins: (championId: number) => Promise<OwnedSkin[]>;
+      invalidateChampionLibrary: () => Promise<void>;
 
       // Telemetry
       getTelemetryConsent: () => Promise<boolean>;

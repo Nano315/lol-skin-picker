@@ -20,7 +20,7 @@ const ROOMS_SERVER_URL = import.meta.env.VITE_ROOMS_SERVER_URL;
 const log = window.log;
 
 // Socket.io Event Versioning
-const CLIENT_VERSION = 2;
+const CLIENT_VERSION = 3;
 
 if (!ROOMS_SERVER_URL) {
   log.warn("[roomsClient] No ROOMS_SERVER_URL configured, requests will fail.");
@@ -70,6 +70,8 @@ export type RoomMember = {
   skinId: number;
   chromaId: number;
   isReady?: boolean;
+  /** v3+: this member has held their skin for the current match. */
+  lockedSkin?: boolean;
 };
 
 export type RoomState = {
@@ -108,6 +110,12 @@ class RoomsClient {
   // leaks from enabling impersonation).
   private memberToken: string | null = null;
   private isLeaving = false;
+
+  // Latest match-lock value the renderer asked us to broadcast. Buffered so a
+  // setSkinLock() call placed before the socket finishes connecting (typical
+  // when the user joins/creates a room while already locked) is replayed on
+  // the "connect" handler instead of silently dropped.
+  private pendingLock: boolean | null = null;
 
   private room: RoomState | null = null;
   private listeners = new Set<(room: RoomState | null) => void>();
@@ -309,6 +317,10 @@ class RoomsClient {
         memberId: this.memberId,
         memberToken: this.memberToken,
       });
+      // Replay the lock state buffered while we were still wiring the socket.
+      // This is what makes "join a room while already locked" actually push
+      // the lock to the server on the very first try.
+      this.flushPendingLock();
     });
 
     this.socket.on("disconnect", (reason) => {
@@ -360,6 +372,7 @@ class RoomsClient {
       this.roomId = null;
       this.memberId = null;
       this.memberToken = null;
+      this.pendingLock = null;
       this.emitRoom(null);
       this.socket?.disconnect();
       this.socket = null;
@@ -384,6 +397,7 @@ class RoomsClient {
       this.roomId = null;
       this.memberId = null;
       this.memberToken = null;
+      this.pendingLock = null;
       this.emitRoom(null);
       log.info("[roomsClient] Left room", { reason: "manual" });
     }
@@ -434,6 +448,38 @@ class RoomsClient {
       });
     } catch (err) {
       log.error('[roomsClient] Error applying skin line synergy', err);
+    }
+  }
+
+  /**
+   * Broadcast the current match-lock state to the room. Buffered until the
+   * socket is connected — the connector can call this freely the moment a
+   * room exists (REST join), even before `connect()` has wired the socket.
+   * Latest call wins.
+   */
+  setSkinLock(locked: boolean) {
+    if (!this.roomId || !this.memberId || !this.memberToken) return;
+    this.pendingLock = !!locked;
+    this.flushPendingLock();
+  }
+
+  private flushPendingLock() {
+    if (this.pendingLock === null) return;
+    if (!this.socket || !this.socket.connected) return;
+    if (!this.roomId || !this.memberId || !this.memberToken) return;
+
+    const locked = this.pendingLock;
+    this.pendingLock = null;
+
+    try {
+      this.socket.emit("set-skin-lock", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+        memberToken: this.memberToken,
+        locked,
+      });
+    } catch (err) {
+      log.error('[roomsClient] Error sending skin lock state', err);
     }
   }
 

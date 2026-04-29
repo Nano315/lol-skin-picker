@@ -44,9 +44,8 @@ export function InvitationHandler() {
       // Remove from queue
       removeInvitation(currentInvitation.fromPuuid);
 
-      // Navigate to rooms page if not already there
-      if (location.pathname !== "/rooms") {
-        navigate("/rooms");
+      if (location.pathname !== "/premade") {
+        navigate("/premade");
       }
 
       showToast({

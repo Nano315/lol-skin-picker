@@ -31,6 +31,8 @@ const api = {
   /* Chroma Color (fixes CORS) */
   getChromaColor: (params: { championId: number; skinId: number; chromaId: number }) =>
     ipcRenderer.invoke("lcu:getChromaColor", params) as Promise<string | null>,
+  getSkinChromaColors: (params: { championId: number; skinId: number }) =>
+    ipcRenderer.invoke("lcu:getSkinChromaColors", params) as Promise<Record<number, string | null>>,
 
   /* Summoner Icon */
   getSummonerIcon: () => ipcRenderer.invoke("get-summoner-icon"),
@@ -83,7 +85,12 @@ const api = {
 
   /* Actions & Selection */
   rerollSkin: () => ipcRenderer.invoke("reroll-skin"),
+  rerollSkinOnly: () => ipcRenderer.invoke("reroll-skin-only"),
   rerollChroma: () => ipcRenderer.invoke("reroll-chroma"),
+
+  getMatchLock: () => ipcRenderer.invoke("get-match-lock") as Promise<boolean>,
+  setMatchLock: (locked: boolean) =>
+    ipcRenderer.invoke("set-match-lock", locked),
   getSelection: () => ipcRenderer.invoke("get-selection"),
   onSelection: (
     cb: (s: {
@@ -118,17 +125,37 @@ const api = {
   clearHistory: (championId?: number) =>
     ipcRenderer.invoke("clear-history", championId),
 
-  /* Priority */
-  setPriority: (championId: number, skinId: number, priority: "favorite" | "deprioritized" | null) =>
-    ipcRenderer.invoke("set-priority", championId, skinId, priority),
-  getPriority: (championId: number, skinId: number) =>
-    ipcRenderer.invoke("get-priority", championId, skinId),
-  getAllPriorities: (championId: number) =>
-    ipcRenderer.invoke("get-all-priorities", championId),
-  clearPriorities: (championId?: number) =>
-    ipcRenderer.invoke("clear-priorities", championId),
-  bulkSetPriority: (championId: number, skinIds: number[], priority: "favorite" | "deprioritized" | null) =>
-    ipcRenderer.invoke("bulk-set-priority", championId, skinIds, priority),
+  /* Exclusions (skin/chroma random pool) */
+  getExclusions: (championId: number) =>
+    ipcRenderer.invoke("exclusions:get", championId) as Promise<number[]>,
+  getAllExclusions: () =>
+    ipcRenderer.invoke("exclusions:get-all") as Promise<{
+      [championId: number]: number[];
+    }>,
+  setExcluded: (championId: number, id: number, excluded: boolean) =>
+    ipcRenderer.invoke("exclusions:set", championId, id, excluded),
+  bulkSetExcluded: (championId: number, ids: number[], excluded: boolean) =>
+    ipcRenderer.invoke("exclusions:bulk-set", championId, ids, excluded),
+  clearExclusions: (championId?: number) =>
+    ipcRenderer.invoke("exclusions:clear", championId),
+
+  /* Champion Library (browse all owned champions + their skins) */
+  getOwnedChampions: () =>
+    ipcRenderer.invoke("championLibrary:getOwned") as Promise<
+      Array<{
+        id: number;
+        alias: string;
+        name: string;
+        mastery: number;
+        skinCount: number;
+      }>
+    >,
+  getChampionSkins: (championId: number) =>
+    ipcRenderer.invoke("championLibrary:getSkins", championId) as Promise<
+      OwnedSkin[]
+    >,
+  invalidateChampionLibrary: () =>
+    ipcRenderer.invoke("championLibrary:invalidate"),
 
   /* Telemetry */
   getTelemetryConsent: () => ipcRenderer.invoke("telemetry:getConsent"),

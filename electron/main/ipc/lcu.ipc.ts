@@ -24,6 +24,41 @@ export function registerLcuIpc(lcu: LcuWatcher) {
     return skinLineService.getSkinLines();
   });
 
+  // Bulk chroma colors for a skin — utilisé par l'overlay ChromaBalls.
+  // Une seule requête champion au lieu de N (une par chroma) : on évite
+  // de marteler CommunityDragon quand un skin a 8+ chromas.
+  ipcMain.handle(
+    "lcu:getSkinChromaColors",
+    async (
+      _event,
+      params: { championId: number; skinId: number }
+    ): Promise<Record<number, string | null>> => {
+      const { championId, skinId } = params;
+      if (!championId || !skinId) return {};
+
+      try {
+        type CChroma = { id: number; colors?: string[] };
+        type CSkin = { id: number; chromas?: CChroma[] };
+        type CChamp = { skins?: CSkin[] };
+
+        const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champions/${championId}.json`;
+        const response = await fetch(url);
+        if (!response.ok) return {};
+
+        const champ = (await response.json()) as CChamp;
+        const skin = champ.skins?.find((s) => s.id === skinId);
+        const out: Record<number, string | null> = {};
+        for (const c of skin?.chromas ?? []) {
+          out[c.id] = c.colors?.[0] || null;
+        }
+        return out;
+      } catch (err) {
+        logger.debug("[SkinChromaColors] Fetch failed", championId, skinId, err);
+        return {};
+      }
+    }
+  );
+
   // Chroma Color fetch via main process (fixes CORS issue)
   ipcMain.handle(
     "lcu:getChromaColor",

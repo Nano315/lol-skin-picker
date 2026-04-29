@@ -31,7 +31,8 @@ The installer is currently unsigned, so Windows SmartScreen will display a warni
 - **Auto-roll on lock-in** — the moment you lock a champion, Skin Picker picks a random skin and chroma from what you own and applies it via the LCU.
 - **Manual re-roll** — dedicated *Reroll Skin* and *Reroll Chroma* buttons, usable at any point in champ select.
 - **History-aware picks** — each champion keeps a rolling window of recent rolls (configurable, default 5) so the same skin doesn't come back two games in a row.
-- **Priority weighting** — right-click any skin to mark it *Favorite* (×3 roll weight) or *Deprioritized* (×0.3). Priorities are stored locally per champion and persist across sessions.
+- **Library** — browse every owned champion (mastery / A–Z / skin-count sort, fuzzy search), drill down to per-skin and per-chroma include/exclude. Excluded entries never come up in random rolls; restrict a champion to a single skin and the random will lock onto it. Persists across sessions.
+- **Match Lock** *(new)* — a floating widget (bottom-left or bottom-right, configurable in *Settings → Quick Controls*) that holds your skin for a single game. While active: no auto-roll, no re-roll, and the owner of any premade you join cannot override your skin. Auto-resets at the end of each played game (a champ-select dodge does **not** disarm it).
 - **Dynamic theming** — borders, glows and ambient animations adapt to the dominant color of whatever chroma is currently equipped.
 - **Animated mascots layer** — Meeps, Poros and Lulu floating in parallax behind the UI.
 
@@ -85,7 +86,7 @@ The home screen is a responsive Bento-style grid:
 | Motion | Framer Motion |
 | Game client integration | Custom LCU watcher (lockfile auth, HTTPS polling) |
 | Real-time sync | Socket.IO client → Node.js + Express 5 + Socket.IO backend ([`skin-picker-rooms-server`](https://github.com/Nano315/skin-picker-rooms-server)) |
-| State | Custom stores (`presenceStore`, `invitationStore`, `priorityStore`, `historyStore`) — no Redux/Zustand/MobX |
+| State | Custom stores (`presenceStore`, `invitationStore`, `matchLockStore`, `historyStore`) — no Redux/Zustand/MobX |
 | Testing | Vitest + Testing Library (unit + integration) |
 | Logging | `electron-log` (rotating files) |
 | Telemetry | Aptabase (opt-in) |
@@ -202,7 +203,8 @@ MIT — see [LICENSE](LICENSE).
 ## Quick "how to use"
 
 1. **Launch the LoL Client**, then launch Skin Picker. The app connects automatically.
-2. **Solo:** lock a champion in champ select. Use the *Reroll* buttons or let *Auto-roll* decide. Right-click a skin to mark it *Favorite* or *Deprioritized*.
-3. **Premade:** open the *Rooms* tab, create a room and share the code (or invite a friend directly from the friends list). Once everyone has locked in, *Auto-Apply* coordinates the team based on the selected sync mode. As room owner, refine the result via the *Synergy Panel* or the step-by-step *Combination Builder*.
+2. **Solo:** lock a champion in champ select. Use the *Reroll* buttons or let *Auto-roll* decide. Visit the *Library* tab to curate which skins and chromas the random can pick from per champion, or click the inline ✘ button on the live preview to exclude the displayed variant.
+3. **Premade:** open the *Premade* tab, create a room and share the code (or invite a friend directly from the friends list). Once everyone has locked in, *Auto-Apply* coordinates the team based on the selected sync mode. As room owner, refine the result via the *Synergy Panel* or the step-by-step *Combination Builder*.
+4. **Hold your skin:** click the floating cadenas in the bottom corner to lock for a single game — others in the room see a small badge on your card and the owner's apply paths skip you. The lock auto-resets when the game ends.
 
 Enjoy 💙

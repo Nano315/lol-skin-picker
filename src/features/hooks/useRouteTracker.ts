@@ -3,9 +3,9 @@ import { useLocation } from "react-router-dom";
 import { trackScreenView } from "../analytics/tracker";
 
 const ROUTE_NAMES: Record<string, string> = {
-  "/": "Home",
-  "/rooms": "Rooms",
-  "/priority": "Priority",
+  "/": "Solo",
+  "/premade": "Premade",
+  "/library": "Library",
   "/settings": "Settings",
 };
 

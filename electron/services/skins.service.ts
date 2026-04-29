@@ -4,7 +4,7 @@ import type { LockCreds } from "./lcuWatcher";
 import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
 import { lcuFetch } from "../utils/lcuFetch";
 import { logger } from "../logger";
-import { RandomSelector, type PriorityMap } from "../utils/RandomSelector";
+import { RandomSelector } from "../utils/RandomSelector";
 import WebSocket from "ws";
 import {
   loadHistory,
@@ -13,7 +13,7 @@ import {
   addChromaToHistory,
   type HistoryEntry,
 } from "../main/history";
-import { getAllPriorities } from "../main/priority";
+import { getExclusions } from "../main/exclusions";
 
 /* ---- reponses API ---- */
 interface SummonerRes {
@@ -80,6 +80,12 @@ export class SkinsService extends EventEmitter {
   private profileIconId = 0;
   private autoRollEnabled = true;
   private performanceMode = false;
+
+  // Per-match lock — driven from the renderer via IPC. When true, every
+  // skin-changing path in this service short-circuits: the auto-apply on
+  // champion lock-in, every reroll variant, etc. Resets to false when the
+  // renderer detects the LCU phase leaving the in-match window.
+  private matchLock = false;
 
   private summonerName = "";
 
@@ -313,6 +319,13 @@ export class SkinsService extends EventEmitter {
     this.setPerformanceMode(!this.performanceMode);
   }
 
+  getMatchLock() {
+    return this.matchLock;
+  }
+  setMatchLock(v: boolean) {
+    this.matchLock = !!v;
+  }
+
   getSelection() {
     return {
       championId: this.currentChampion,
@@ -383,6 +396,7 @@ export class SkinsService extends EventEmitter {
 
   async rerollSkin() {
     if (!this.skins.length) return;
+    if (this.matchLock) return;
 
     const pool = this.includeDefaultSkin
       ? this.skins
@@ -393,12 +407,11 @@ export class SkinsService extends EventEmitter {
       ? (this.skinHistoryByChampion.get(this.currentChampion) ?? [])
       : [];
 
-    // Load priorities for this champion
-    const priorities: PriorityMap = await getAllPriorities(this.currentChampion);
+    const exclusions = new Set(await getExclusions(this.currentChampion));
 
-    const pickedSkinId = RandomSelector.pickWithPriorityAndHistory(
+    const pickedSkinId = RandomSelector.pickWithExclusionsAndHistory(
       skinIds,
-      priorities,
+      exclusions,
       history,
       this.historyEnabled ? this.historySize : 0,
       this.selectedSkinId || null
@@ -408,15 +421,18 @@ export class SkinsService extends EventEmitter {
     const pick = pool.find((s) => s.id === pickedSkinId);
     if (!pick) return;
 
-    // Variantes possibles : base ou chromas
     const variantChoices = pick.chromas.length
       ? [pick.id, ...pick.chromas.map((c) => c.id)]
       : [pick.id];
 
+    const filteredVariants = variantChoices.filter((id) => !exclusions.has(id));
+    const variantPool =
+      filteredVariants.length > 0 ? filteredVariants : variantChoices;
+
     const variantId =
-      variantChoices.length === 1
-        ? variantChoices[0]
-        : variantChoices[RandomSelector.randomInt(variantChoices.length)];
+      variantPool.length === 1
+        ? variantPool[0]
+        : variantPool[RandomSelector.randomInt(variantPool.length)];
 
     const applied = await this.applySkin(variantId);
     if (!applied) return;
@@ -434,7 +450,57 @@ export class SkinsService extends EventEmitter {
     this.lastAppliedChampion = this.currentChampion;
   }
 
+  /**
+   * Reroll uniquement le skin (base), sans sélectionner de chroma. Utilisé
+   * par le bouton "Skin only" de la refonte Reroll pour que l'utilisateur
+   * ait un contrôle explicite quand il veut un chroma vs la base.
+   */
+  async rerollSkinOnly() {
+    if (!this.skins.length) return;
+    if (this.matchLock) return;
+
+    const pool = this.includeDefaultSkin
+      ? this.skins
+      : this.skins.filter((s) => s.id % 1000 !== 0) || this.skins;
+
+    const skinIds = pool.map((s) => s.id);
+    const history = this.historyEnabled
+      ? (this.skinHistoryByChampion.get(this.currentChampion) ?? [])
+      : [];
+
+    const exclusions = new Set(await getExclusions(this.currentChampion));
+
+    const pickedSkinId = RandomSelector.pickWithExclusionsAndHistory(
+      skinIds,
+      exclusions,
+      history,
+      this.historyEnabled ? this.historySize : 0,
+      this.selectedSkinId || null
+    );
+    if (!pickedSkinId) return;
+
+    const pick = pool.find((s) => s.id === pickedSkinId);
+    if (!pick) return;
+
+    // Force la base (pas de chroma). C'est la distinction avec rerollSkin
+    // qui pouvait retomber sur un chroma aléatoire du skin choisi.
+    const applied = await this.applySkin(pick.id);
+    if (!applied) return;
+
+    this.selectedSkinId = pick.id;
+    this.selectedChromaId = 0;
+
+    if (this.historyEnabled) {
+      await this.pushSkinHistory(this.currentChampion, pick.id);
+      await this.pushChromaHistory(pick.id, pick.id);
+    }
+
+    this.emit("selection", this.getSelection());
+    this.lastAppliedChampion = this.currentChampion;
+  }
+
   async rerollChroma() {
+    if (this.matchLock) return;
     const skin = this.skins.find((s) => s.id === this.selectedSkinId);
     if (!skin || skin.chromas.length === 0) return;
 
@@ -630,7 +696,8 @@ export class SkinsService extends EventEmitter {
       if (
         this.autoRollEnabled &&
         this.currentChampion !== this.lastAppliedChampion &&
-        owned.length
+        owned.length &&
+        !this.matchLock
       ) {
         const pool = this.includeDefaultSkin
           ? owned
@@ -641,12 +708,13 @@ export class SkinsService extends EventEmitter {
           ? (this.skinHistoryByChampion.get(this.currentChampion) ?? [])
           : [];
 
-        // Load priorities for this champion
-        const priorities: PriorityMap = await getAllPriorities(this.currentChampion);
+        const exclusions = new Set(
+          await getExclusions(this.currentChampion)
+        );
 
-        const pickedSkinId = RandomSelector.pickWithPriorityAndHistory(
+        const pickedSkinId = RandomSelector.pickWithExclusionsAndHistory(
           skinIds,
-          priorities,
+          exclusions,
           history,
           this.historyEnabled ? this.historySize : 0,
           this.selectedSkinId || null
@@ -660,10 +728,16 @@ export class SkinsService extends EventEmitter {
           ? [picked.id, ...picked.chromas.map((c) => c.id)]
           : [picked.id];
 
+        const filteredVariants = variantChoices.filter(
+          (id) => !exclusions.has(id)
+        );
+        const variantPool =
+          filteredVariants.length > 0 ? filteredVariants : variantChoices;
+
         const finalId =
-          variantChoices.length === 1
-            ? variantChoices[0]
-            : variantChoices[RandomSelector.randomInt(variantChoices.length)];
+          variantPool.length === 1
+            ? variantPool[0]
+            : variantPool[RandomSelector.randomInt(variantPool.length)];
 
         const applied = await this.applySkin(finalId);
         if (!applied) return;

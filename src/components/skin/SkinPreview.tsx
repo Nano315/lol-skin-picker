@@ -1,19 +1,30 @@
 import fallbackSkin from "/fallback-skin.png?url";
-import PriorityButtons from "./PriorityButtons";
+import InclusionToggle from "./InclusionToggle";
+import ChromaBalls from "./ChromaBalls";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+
+type Chroma = { id: number; name: string };
+
+type Selection = {
+  championId: number;
+  championAlias: string;
+  skinId: number;
+  chromaId: number;
+};
+
+type SkinPreviewProps = {
+  selection: Selection;
+  chromas?: Chroma[];
+  onSelectChroma?: (chromaId: number) => void | Promise<void>;
+  showInclusionToggle?: boolean;
+};
 
 export default function SkinPreview({
   selection,
-  showPriorityButtons = true,
-}: {
-  selection: {
-    championId: number;
-    championAlias: string;
-    skinId: number;
-    chromaId: number;
-  };
-  showPriorityButtons?: boolean;
-}) {
+  chromas = [],
+  onSelectChroma,
+  showInclusionToggle = true,
+}: SkinPreviewProps) {
   const reduced = useReducedMotion();
   const splashUrl =
     selection.skinId && selection.championAlias
@@ -27,6 +38,8 @@ export default function SkinPreview({
 
   // Key combines champion+skin so both changes trigger the crossfade.
   const animKey = `${selection.championId}-${selection.skinId}`;
+
+  const showChromaBalls = hasSkin && chromas.length > 0 && !!onSelectChroma;
 
   return (
     <div className="skin-wrapper">
@@ -42,11 +55,25 @@ export default function SkinPreview({
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         />
       </AnimatePresence>
-      {showPriorityButtons && hasSkin && (
-        <div className="skin-priority-overlay">
-          <PriorityButtons
+
+      {showChromaBalls && (
+        <div className="skin-chroma-overlay">
+          <ChromaBalls
             championId={selection.championId}
             skinId={selection.skinId}
+            chromas={chromas}
+            currentChromaId={selection.chromaId}
+            onSelect={(id) => onSelectChroma?.(id)}
+          />
+        </div>
+      )}
+
+      {showInclusionToggle && hasSkin && (
+        <div className="skin-priority-overlay">
+          <InclusionToggle
+            championId={selection.championId}
+            skinId={selection.skinId}
+            chromaId={selection.chromaId}
           />
         </div>
       )}

@@ -1,4 +1,0 @@
-/* Priority page — fully migrated to Tailwind + DA primitives
-   (GlassCard / CardHeader / Button + Lucide icons).
-   This file is intentionally empty; keep the entry so `index.css` can
-   still `@import "./priority.css"` without breaking the chain. */

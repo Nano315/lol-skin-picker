@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 type NavItem = { to: string; label: string; withBadge?: boolean };
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Home" },
-  { to: "/rooms", label: "Rooms", withBadge: true },
-  { to: "/priority", label: "Priority" },
+  { to: "/", label: "Solo" },
+  { to: "/premade", label: "Premade", withBadge: true },
+  { to: "/library", label: "Library" },
   { to: "/settings", label: "Settings" },
 ];
 
@@ -27,7 +27,7 @@ export default function Header({
   const location = useLocation();
   const invitationCount = useInvitationBadgeCount();
   const reduced = useReducedMotion();
-  const showBadge = invitationCount > 0 && location.pathname !== "/rooms";
+  const showBadge = invitationCount > 0 && location.pathname !== "/premade";
   const iconUrl = iconId
     ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`
     : fallbackIcon;

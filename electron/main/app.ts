@@ -7,6 +7,7 @@ import {
 } from "../services/lcuWatcher";
 import { GameflowService } from "../services/gameflow.service";
 import { SkinsService } from "../services/skins.service";
+import { ChampionLibraryService } from "../services/championLibrary.service";
 import { skinLineService } from "../services/skinLineService";
 import { logger } from "../logger";
 
@@ -41,6 +42,7 @@ initTelemetry();
 const lcu = new LcuWatcher();
 const gameflow = new GameflowService();
 const skins = new SkinsService();
+const championLibrary = new ChampionLibraryService(lcu);
 
 // AUTO-UPDATE: Interval reference for cleanup on quit
 let updateCheckInterval: NodeJS.Timeout | null = null;
@@ -176,7 +178,13 @@ if (!gotTheLock) {
     // Initialize skin line service (Story 6.1) - fetches CDragon data if cache expired
     await skinLineService.initialize();
 
-    registerAllIpc({ lcu, gameflow, skins, getWin: getMainWindow });
+    registerAllIpc({
+      lcu,
+      gameflow,
+      skins,
+      championLibrary,
+      getWin: getMainWindow,
+    });
     wireDomainEvents();
     updaterHooks(getMainWindow);
 

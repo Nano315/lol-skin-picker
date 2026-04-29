@@ -1,4 +1,3 @@
-// src/pages/Rooms/Rooms.tsx
 import { useSelection } from "@/features/hooks/useSelection";
 import { useRooms } from "@/features/hooks/useRooms";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
@@ -10,6 +9,7 @@ import { RoomMemberCard } from "@/components/RoomMemberCard";
 import { useSummonerName } from "@/features/hooks/useSummonerName";
 import type { RoomMember } from "@/features/roomsClient";
 import ControlBar from "@/components/controls/ControlBar";
+import AutoRollPill from "@/components/controls/AutoRollPill";
 import { api } from "@/features/api";
 import { roomsClient } from "@/features/roomsClient";
 import { useOwnedSkins } from "@/features/hooks/useOwnedSkins";
@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function RoomsPage() {
+export function PremadePage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { status, iconId } = useConnection();
@@ -706,6 +706,7 @@ export function RoomsPage() {
                 <CardHeader
                   eyebrow={isOwner ? "Command" : "Actions"}
                   title="Room Controls"
+                  trailing={<AutoRollPill />}
                 />
                 <div className="flex flex-col gap-3">
                   {isSyncing && (
