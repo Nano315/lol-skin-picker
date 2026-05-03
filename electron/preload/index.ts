@@ -114,6 +114,10 @@ const api = {
   getOpenAtLogin: () => ipcRenderer.invoke("get-open-at-login"),
   setOpenAtLogin: (v: boolean) => ipcRenderer.invoke("set-open-at-login", v),
 
+  getAutoAcceptMatch: () => ipcRenderer.invoke("get-auto-accept-match"),
+  setAutoAcceptMatch: (v: boolean) =>
+    ipcRenderer.invoke("set-auto-accept-match", v),
+
   /* History */
   getHistorySettings: () => ipcRenderer.invoke("get-history-settings"),
   setHistorySettings: (settings: { historySize?: number; historyEnabled?: boolean }) =>

@@ -9,6 +9,7 @@ type Settings = {
   openAtLogin?: boolean;
   telemetryEnabled?: boolean;
   consentModalSeen?: boolean;
+  autoAcceptMatch?: boolean;
 };
 
 const settingsPath = join(app.getPath("userData"), "settings.json");
@@ -24,6 +25,9 @@ function coerceSettings(raw: Record<string, unknown>): Settings {
   }
   if (typeof raw.consentModalSeen === "boolean") {
     out.consentModalSeen = raw.consentModalSeen;
+  }
+  if (typeof raw.autoAcceptMatch === "boolean") {
+    out.autoAcceptMatch = raw.autoAcceptMatch;
   }
   return out;
 }

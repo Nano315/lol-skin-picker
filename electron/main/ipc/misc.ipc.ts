@@ -2,6 +2,7 @@ import { app, ipcMain, shell } from "electron";
 import path from "node:path";
 import { loadSettings, saveSettings } from "../settings";
 import { track } from "../telemetry";
+import type { ReadyCheckService } from "../../services/readyCheck.service";
 
 const OPEN_EXTERNAL_ALLOWED_HOSTS = new Set<string>([
   "discord.com",
@@ -28,7 +29,7 @@ function isAllowedExternalUrl(url: string): boolean {
   return OPEN_EXTERNAL_ALLOWED_HOSTS.has(parsed.hostname.toLowerCase());
 }
 
-export function registerMiscIpc() {
+export function registerMiscIpc(readyCheck: ReadyCheckService) {
   ipcMain.handle("open-external", (_e, url: string) => {
     if (typeof url !== "string" || !isAllowedExternalUrl(url)) {
       console.warn(`[Security] open-external blocked: ${url}`);
@@ -62,5 +63,14 @@ export function registerMiscIpc() {
     settings.openAtLogin = openAtLogin;
     await saveSettings(settings);
     track("setting_changed", { key: "open_at_login", value: openAtLogin });
+  });
+
+  ipcMain.handle("get-auto-accept-match", () => readyCheck.getAutoAccept());
+
+  ipcMain.handle("set-auto-accept-match", async (_e, enabled: boolean) => {
+    const next = !!enabled;
+    readyCheck.setAutoAccept(next);
+    await saveSettings({ autoAcceptMatch: next });
+    track("setting_changed", { key: "auto_accept_match", value: next });
   });
 }

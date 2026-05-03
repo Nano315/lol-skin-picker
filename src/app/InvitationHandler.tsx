@@ -50,11 +50,11 @@ export function InvitationHandler() {
 
       showToast({
         type: "success",
-        message: `Vous avez rejoint la room de ${currentInvitation.fromName}`,
+        message: `You joined ${currentInvitation.fromName}'s room`,
         duration: 3000,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Impossible de rejoindre la room";
+      const errorMessage = error instanceof Error ? error.message : "Failed to join the room";
       showToast({
         type: "error",
         message: errorMessage,

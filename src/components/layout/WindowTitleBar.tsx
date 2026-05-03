@@ -13,9 +13,8 @@ export default function WindowTitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
-    let unsub: (() => void) | undefined;
     void window.windowControls?.isMaximized().then(setIsMaximized);
-    unsub = window.windowControls?.onMaximizeChange(setIsMaximized);
+    const unsub = window.windowControls?.onMaximizeChange(setIsMaximized);
     return () => unsub?.();
   }, []);
 

@@ -45,6 +45,7 @@ export default function Settings() {
   } = useTelemetryConsent();
   const [includeDefault, setIncludeDefault] = useState(true);
   const [autoRoll, setAutoRoll] = useState(true);
+  const [autoAcceptMatch, setAutoAcceptMatch] = useState(false);
   const [performanceMode, setPerformanceMode] = useState(false);
   const [openAtLogin, setOpenAtLogin] = useState(false);
   const [historyEnabled, setHistoryEnabled] = useState(true);
@@ -58,31 +59,35 @@ export default function Settings() {
       api.getPerformanceMode(),
       api.getOpenAtLogin(),
       api.getHistorySettings(),
-    ]).then(([incSrv, autoSrv, perfSrv, openAtLoginSrv, historySrv]) => {
-      const incPref = read("includeDefault");
-      const autoPref = read("autoRoll");
-      const perfPref = read("performanceMode");
-      const soundPref = read("notificationSound");
+      api.getAutoAcceptMatch(),
+    ]).then(
+      ([incSrv, autoSrv, perfSrv, openAtLoginSrv, historySrv, autoAcceptSrv]) => {
+        const incPref = read("includeDefault");
+        const autoPref = read("autoRoll");
+        const perfPref = read("performanceMode");
+        const soundPref = read("notificationSound");
 
-      setIncludeDefault(incPref ?? incSrv);
-      setAutoRoll(autoPref ?? autoSrv);
-      setPerformanceMode(perfPref ?? perfSrv);
-      setOpenAtLogin(openAtLoginSrv);
-      setHistoryEnabled(historySrv.historyEnabled);
-      setHistorySize(historySrv.historySize);
-      // notificationSound defaults to true if not set
-      setNotificationSound(soundPref ?? true);
+        setIncludeDefault(incPref ?? incSrv);
+        setAutoRoll(autoPref ?? autoSrv);
+        setPerformanceMode(perfPref ?? perfSrv);
+        setOpenAtLogin(openAtLoginSrv);
+        setHistoryEnabled(historySrv.historyEnabled);
+        setHistorySize(historySrv.historySize);
+        setAutoAcceptMatch(autoAcceptSrv);
+        // notificationSound defaults to true if not set
+        setNotificationSound(soundPref ?? true);
 
-      if (incPref !== null && incPref !== incSrv) {
-        void api.setIncludeDefault(incPref).catch(() => {});
+        if (incPref !== null && incPref !== incSrv) {
+          void api.setIncludeDefault(incPref).catch(() => {});
+        }
+        if (autoPref !== null && autoPref !== autoSrv) {
+          void api.setAutoRoll(autoPref).catch(() => {});
+        }
+        if (perfPref !== null && perfPref !== perfSrv) {
+          void api.setPerformanceMode(perfPref).catch(() => {});
+        }
       }
-      if (autoPref !== null && autoPref !== autoSrv) {
-        void api.setAutoRoll(autoPref).catch(() => {});
-      }
-      if (perfPref !== null && perfPref !== perfSrv) {
-        void api.setPerformanceMode(perfPref).catch(() => {});
-      }
-    });
+    );
   }, [read]);
 
   return (
@@ -113,6 +118,8 @@ export default function Settings() {
                     setAutoRoll(v);
                     save("autoRoll", v);
                   }}
+                  autoAcceptMatch={autoAcceptMatch}
+                  setAutoAcceptMatch={setAutoAcceptMatch}
                   performanceMode={performanceMode}
                   setPerformanceMode={(v) => {
                     setPerformanceMode(v);

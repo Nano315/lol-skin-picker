@@ -24,6 +24,7 @@ function sanitizeArg(arg: unknown): unknown {
       : arg;
   // Replace ASCII control chars (0x00-0x1F except tab) with spaces so a renderer
   // cannot inject fake log lines via embedded "\n".
+  // eslint-disable-next-line no-control-regex -- matching control chars is the goal
   return truncated.replace(/[\x00-\x08\x0A-\x1F]/g, " ");
 }
 

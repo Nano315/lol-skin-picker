@@ -10,6 +10,8 @@ type OptionsPanelProps = {
   setIncludeDefault: (v: boolean) => void;
   autoRoll: boolean;
   setAutoRoll: (v: boolean) => void;
+  autoAcceptMatch: boolean;
+  setAutoAcceptMatch: (v: boolean) => void;
   performanceMode: boolean;
   setPerformanceMode: (v: boolean) => void;
   openAtLogin: boolean;
@@ -26,6 +28,8 @@ export default function OptionsPanel({
   setIncludeDefault,
   autoRoll,
   setAutoRoll,
+  autoAcceptMatch,
+  setAutoAcceptMatch,
   savePref,
   performanceMode,
   setPerformanceMode,
@@ -46,6 +50,11 @@ export default function OptionsPanel({
     setAutoRoll(v);
     savePref("autoRoll", v);
     void api.setAutoRoll(v).catch(() => {});
+  };
+
+  const onAutoAcceptMatchChange = (v: boolean) => {
+    setAutoAcceptMatch(v);
+    void api.setAutoAcceptMatch(v).catch(() => {});
   };
 
   const onPerformanceModeChange = (v: boolean) => {
@@ -71,77 +80,122 @@ export default function OptionsPanel({
   };
 
   return (
-    <div className="flex flex-col">
-      <Row
-        label="Include default skin"
-        description="Consider the default (classic) skin as a valid reroll outcome."
-      >
-        <Toggle
-          checked={includeDefault}
-          onChange={onIncludeChange}
-          aria-label="Include default skin"
-        />
-      </Row>
+    <div className="flex flex-col gap-7">
+      <Section title="Match & Reroll">
+        <Row
+          label="Auto-accept match"
+          description="Automatically accept the ready check when a match is found."
+        >
+          <Toggle
+            checked={autoAcceptMatch}
+            onChange={onAutoAcceptMatchChange}
+            aria-label="Auto-accept match"
+          />
+        </Row>
 
-      <Row
-        label="Auto roll on champion lock"
-        description="Trigger a reroll automatically when you lock in a champion."
-      >
-        <Toggle
-          checked={autoRoll}
-          onChange={onAutoRollChange}
-          aria-label="Auto roll on champion lock"
-        />
-      </Row>
+        <Row
+          label="Auto roll on champion lock"
+          description="Trigger a reroll automatically when you lock in a champion."
+        >
+          <Toggle
+            checked={autoRoll}
+            onChange={onAutoRollChange}
+            aria-label="Auto roll on champion lock"
+          />
+        </Row>
 
-      <Row
-        label="Low spec mode"
-        description="Disable heavy effects to reduce lag on older machines."
-      >
-        <Toggle
-          checked={performanceMode}
-          onChange={onPerformanceModeChange}
-          aria-label="Low spec mode"
-        />
-      </Row>
+        <Row
+          label="Include default skin"
+          description="Consider the default (classic) skin as a valid reroll outcome."
+        >
+          <Toggle
+            checked={includeDefault}
+            onChange={onIncludeChange}
+            aria-label="Include default skin"
+          />
+        </Row>
+      </Section>
 
-      <Row
-        label="Run on startup"
-        description="Launch Skin Picker automatically when your computer starts."
-      >
-        <Toggle
-          checked={openAtLogin}
-          onChange={onOpenAtLoginChange}
-          aria-label="Run on startup"
-        />
-      </Row>
+      <Section title="History">
+        <Row
+          label="Avoid recent skins"
+          description="Exclude recently rolled skins from future rerolls."
+        >
+          <Toggle
+            checked={historyEnabled}
+            onChange={onHistoryEnabledChange}
+            aria-label="Avoid recent skins"
+          />
+        </Row>
 
-      <Row
-        label="Avoid recent skins"
-        description="Exclude recently rolled skins from future rerolls."
-      >
-        <Toggle
-          checked={historyEnabled}
-          onChange={onHistoryEnabledChange}
-          aria-label="Avoid recent skins"
-        />
-      </Row>
+        <Row
+          label="History size"
+          description="Number of recent skins to remember when avoiding repeats."
+        >
+          <HistorySelect
+            value={historySize}
+            onChange={onHistorySizeChange}
+            disabled={!historyEnabled}
+          />
+        </Row>
+      </Section>
 
-      <Row
-        label="History size"
-        description="Number of recent skins to remember when avoiding repeats."
-      >
-        <HistorySelect
-          value={historySize}
-          onChange={onHistorySizeChange}
-          disabled={!historyEnabled}
-        />
-      </Row>
+      <Section title="Application">
+        <Row
+          label="Run on startup"
+          description="Launch Skin Picker automatically when your computer starts."
+        >
+          <Toggle
+            checked={openAtLogin}
+            onChange={onOpenAtLoginChange}
+            aria-label="Run on startup"
+          />
+        </Row>
+
+        <Row
+          label="Low spec mode"
+          description="Disable heavy effects to reduce lag on older machines."
+        >
+          <Toggle
+            checked={performanceMode}
+            onChange={onPerformanceModeChange}
+            aria-label="Low spec mode"
+          />
+        </Row>
+      </Section>
     </div>
   );
 }
 
 /* ---------- Local primitives (scoped to OptionsPanel) ---------- */
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="mb-2 flex items-center gap-2">
+        <span
+          className="h-3 w-[3px] rounded-full bg-accent"
+          aria-hidden
+        />
+        <h3
+          className={cn(
+            "text-xs font-bold uppercase tracking-[0.2em]",
+            "text-accent"
+          )}
+        >
+          {title}
+        </h3>
+      </div>
+      <div className="flex flex-col">{children}</div>
+    </div>
+  );
+}
 
 function Row({
   label,

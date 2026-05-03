@@ -90,6 +90,9 @@ declare global {
       getOpenAtLogin: () => Promise<boolean>;
       setOpenAtLogin: (v: boolean) => Promise<void>;
 
+      getAutoAcceptMatch: () => Promise<boolean>;
+      setAutoAcceptMatch: (v: boolean) => Promise<void>;
+
       // History
       getHistorySettings: () => Promise<{
         historySize: number;

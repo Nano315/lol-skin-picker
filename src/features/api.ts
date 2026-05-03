@@ -44,6 +44,8 @@ export const api = {
   setPerformanceMode: (v: boolean) => lcu.setPerformanceMode(v),
   getOpenAtLogin: () => lcu.getOpenAtLogin(),
   setOpenAtLogin: (v: boolean) => lcu.setOpenAtLogin(v),
+  getAutoAcceptMatch: () => lcu.getAutoAcceptMatch(),
+  setAutoAcceptMatch: (v: boolean) => lcu.setAutoAcceptMatch(v),
 
   // actions
   rerollSkin: () => lcu.rerollSkin(),

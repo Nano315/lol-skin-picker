@@ -8,6 +8,7 @@ import {
 import { GameflowService } from "../services/gameflow.service";
 import { SkinsService } from "../services/skins.service";
 import { ChampionLibraryService } from "../services/championLibrary.service";
+import { ReadyCheckService } from "../services/readyCheck.service";
 import { skinLineService } from "../services/skinLineService";
 import { logger } from "../logger";
 
@@ -43,6 +44,7 @@ const lcu = new LcuWatcher();
 const gameflow = new GameflowService();
 const skins = new SkinsService();
 const championLibrary = new ChampionLibraryService(lcu);
+const readyCheck = new ReadyCheckService();
 
 // AUTO-UPDATE: Interval reference for cleanup on quit
 let updateCheckInterval: NodeJS.Timeout | null = null;
@@ -112,6 +114,7 @@ function wireDomainEvents() {
       gameflow.setCreds(creds);
       skins.setCreds(creds);
       skins.start();
+      readyCheck.setCreds(creds);
 
       // On affiche la fenetre au demarrage (sauf si une game est deja en cours,
       // ce qui sera corrige une fraction de seconde plus tard par l'event 'phase')
@@ -125,6 +128,7 @@ function wireDomainEvents() {
       // Le client s'est ferme : on arrete tout et on cache l'app
       gameflow.stop();
       skins.stop();
+      readyCheck.setCreds(null);
       getMainWindow()?.hide();
     }
   });
@@ -133,6 +137,8 @@ function wireDomainEvents() {
   // 2. AJOUT : Gestion de la visibilite selon la phase de jeu
   // ---------------------------------------------------------
   gameflow.on("phase", (phase: string) => {
+    readyCheck.onPhase(phase);
+
     const win = getMainWindow();
     if (!win || win.isDestroyed()) return;
 
@@ -178,11 +184,16 @@ if (!gotTheLock) {
     // Initialize skin line service (Story 6.1) - fetches CDragon data if cache expired
     await skinLineService.initialize();
 
+    // Restore the persisted auto-accept preference before any phase event fires.
+    const persistedSettings = await loadSettings();
+    readyCheck.setAutoAccept(persistedSettings.autoAcceptMatch ?? false);
+
     registerAllIpc({
       lcu,
       gameflow,
       skins,
       championLibrary,
+      readyCheck,
       getWin: getMainWindow,
     });
     wireDomainEvents();
