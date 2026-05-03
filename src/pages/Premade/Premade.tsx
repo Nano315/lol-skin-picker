@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { SkinLineageSelector } from "@/components/rooms/SkinLineageSelector";
 import { ChromaSelector } from "@/components/rooms/ChromaSelector";
+import { KickConfirmModal } from "@/components/rooms/KickConfirmModal";
 import { useToast } from "@/features/hooks/useToast";
 import { trackSkinergy } from "@/features/analytics/tracker";
 import { useOnlineFriends } from "@/features/hooks/useOnlineFriends";
@@ -71,13 +72,22 @@ export function PremadePage() {
     clearGroupCombo,
   } = useRooms(selection);
   const [code, setCode] = useState("");
+  // Pending kick target: when set, the confirmation modal is open. Cleared on
+  // cancel or after the kick socket call fires. Tracks the full RoomMember so
+  // the modal can show the name even if the underlying member is removed
+  // mid-render.
+  const [pendingKick, setPendingKick] = useState<RoomMember | null>(null);
 
   // Handle fatal errors - redirect to home
   useEffect(() => {
     if (isFatalError && joined) {
+      const message =
+        error?.code === "KICKED"
+          ? "You were removed from the room. Redirecting to home..."
+          : "Room closed. Redirecting to home...";
       showToast({
         type: "error",
-        message: "Room closed. Redirecting to home...",
+        message,
         duration: 3000,
       });
       leave();
@@ -87,7 +97,7 @@ export function PremadePage() {
       }, 1500);
       return () => clearTimeout(timeout);
     }
-  }, [isFatalError, joined, leave, navigate, showToast]);
+  }, [isFatalError, error?.code, joined, leave, navigate, showToast]);
 
   const [skinOptions, setSkinOptions] = useState<GroupSkinOption[]>([]);
 
@@ -677,11 +687,24 @@ export function PremadePage() {
                       })();
                     };
 
+                    const cardIsOwner =
+                      !!member && !!room && room.ownerId === member.id;
+                    // Owner sees a kick button on every other member's card.
+                    // Self-card and empty slots get no button.
+                    const canKickThisMember =
+                      isOwner &&
+                      !!member &&
+                      !cardIsOwner; // never kick the owner (yourself)
+
                     return (
                       <RoomMemberCard
                         key={member?.id ?? `empty-${slotIndex}`}
                         member={member ?? undefined}
                         slotIndex={slotIndex}
+                        isOwner={cardIsOwner}
+                        onKick={
+                          canKickThisMember ? (m) => setPendingKick(m) : undefined
+                        }
                         suggestedSkinId={
                           isOwner && suggestion ? suggestion.skinId : undefined
                         }
@@ -769,6 +792,20 @@ export function PremadePage() {
         <SyncFlashOverlay
           color={showSyncFlash}
           onComplete={() => setShowSyncFlash(null)}
+        />
+      )}
+
+      {/* Owner-triggered kick confirmation. Closes on cancel; on confirm, the
+          server emits room-closed → kicked to the target's socket and a fresh
+          room-state to everyone else, so we just fire-and-forget. */}
+      {pendingKick && (
+        <KickConfirmModal
+          memberName={pendingKick.name}
+          onCancel={() => setPendingKick(null)}
+          onConfirm={() => {
+            roomsClient.kickMember(pendingKick.id);
+            setPendingKick(null);
+          }}
         />
       )}
     </div>

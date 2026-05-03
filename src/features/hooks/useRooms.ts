@@ -12,7 +12,7 @@ export type GroupComboNotification = {
 };
 
 // Error codes that are fatal and require leaving the room
-const FATAL_ERROR_CODES = ["ROOM_NOT_FOUND", "MEMBER_NOT_FOUND"];
+const FATAL_ERROR_CODES = ["ROOM_NOT_FOUND", "MEMBER_NOT_FOUND", "KICKED"];
 
 // Error codes that can be retried
 const RETRYABLE_ERROR_CODES = ["NETWORK_ERROR", "INTERNAL_ERROR"];

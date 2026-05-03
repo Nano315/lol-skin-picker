@@ -5,6 +5,7 @@ export const errorMessages: Record<string, string> = {
   UNAUTHORIZED: "You are not authorized to perform this action.",
   INTERNAL_ERROR: "An unexpected error occurred.",
   NETWORK_ERROR: "Connection issue. Please check your network.",
+  KICKED: "You were removed from the room by the owner.",
 };
 
 export const inviteErrorMessages: Record<string, string> = {

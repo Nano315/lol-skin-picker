@@ -368,7 +368,14 @@ class RoomsClient {
 
     this.socket.on("room-closed", (payload: { reason?: string }) => {
       log.warn("[roomsClient] room closed", payload);
-      this.emitError({ code: 'ROOM_NOT_FOUND', message: 'The room was closed.' });
+      // Toast wording maps to the server-provided reason. "kicked" gets a
+      // dedicated copy so the user understands the room is fine, *they* were
+      // removed; everything else collapses to the generic "closed" path.
+      if (payload?.reason === "kicked") {
+        this.emitError({ code: "KICKED", message: "You were removed from the room by the owner." });
+      } else {
+        this.emitError({ code: "ROOM_NOT_FOUND", message: "The room was closed." });
+      }
       this.roomId = null;
       this.memberId = null;
       this.memberToken = null;
@@ -480,6 +487,26 @@ class RoomsClient {
       });
     } catch (err) {
       log.error('[roomsClient] Error sending skin lock state', err);
+    }
+  }
+
+  /**
+   * Owner-only: ask the server to remove another member from the room. The
+   * server validates auth and ownership; on success it emits `room-closed`
+   * with `reason: "kicked"` to the target's socket and a fresh `room-state`
+   * to everyone else.
+   */
+  kickMember(targetMemberId: string) {
+    try {
+      if (!this.socket || !this.roomId || !this.memberId || !this.memberToken) return;
+      this.socket.emit("kick-member", {
+        roomId: this.roomId,
+        memberId: this.memberId,
+        memberToken: this.memberToken,
+        targetMemberId,
+      });
+    } catch (err) {
+      log.error('[roomsClient] Error kicking member', err);
     }
   }
 

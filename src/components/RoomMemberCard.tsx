@@ -1,5 +1,5 @@
 // src/components/RoomMemberCard.tsx
-import { Lock } from "lucide-react";
+import { Crown, Lock, UserMinus } from "lucide-react";
 import { useChromaColor } from "@/features/hooks/useChromaColor";
 import type { RoomMember } from "@/features/roomsClient";
 import fallbackSkin from "/fallback-skin.png?url";
@@ -11,6 +11,10 @@ type Props = {
   suggestedSkinId?: number;
   suggestedChromaId?: number;
   onApplySuggestion?: () => void;
+  /** True when this card represents the room owner. Shows a crown badge. */
+  isOwner?: boolean;
+  /** When provided, renders a kick button on hover; called with the member. */
+  onKick?: (member: RoomMember) => void;
 };
 
 export function RoomMemberCard({
@@ -19,6 +23,8 @@ export function RoomMemberCard({
   suggestedSkinId,
   suggestedChromaId,
   onApplySuggestion,
+  isOwner = false,
+  onKick,
 }: Props) {
   const isOccupied = !!member;
 
@@ -61,6 +67,7 @@ export function RoomMemberCard({
 
   const classes = [
     "room-member-card",
+    "group/card",
     `room-member-card--slot-${slotIndex + 1}`,
     !isOccupied ? "room-member-card--empty" : "",
   ]
@@ -104,6 +111,36 @@ export function RoomMemberCard({
         >
           <Lock className="h-3 w-3" aria-hidden />
         </span>
+      )}
+
+      {/* Owner crown — visible to everyone so the leader is recognizable at
+          a glance. Sits opposite the lock badge when both are present. */}
+      {isOccupied && isOwner && (
+        <span
+          title="Room owner"
+          aria-label="Room owner"
+          className="absolute right-2 top-2 z-[5] flex h-6 w-6 items-center justify-center rounded-full border border-amber-300/40 bg-amber-500/25 text-amber-200 backdrop-blur"
+        >
+          <Crown className="h-3 w-3" aria-hidden />
+        </span>
+      )}
+
+      {/* Kick button — only the room owner sees it, only on other members'
+          cards. Triggers a confirmation modal upstream rather than removing
+          immediately. */}
+      {isOccupied && onKick && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onKick(member!);
+          }}
+          title={`Remove ${member!.name}`}
+          aria-label={`Remove ${member!.name}`}
+          className="absolute bottom-2 right-2 z-[6] flex h-7 w-7 items-center justify-center rounded-full border border-rose-300/30 bg-rose-500/30 text-rose-100 opacity-0 transition-opacity duration-150 hover:bg-rose-500/55 group-hover/card:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300/60"
+        >
+          <UserMinus className="h-3.5 w-3.5" aria-hidden />
+        </button>
       )}
 
       {/* Suggestion Badge (Owner only) */}
