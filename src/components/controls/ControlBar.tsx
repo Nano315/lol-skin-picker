@@ -52,6 +52,10 @@ export default function ControlBar({
   const synergyColors = (room?.synergy?.colors ?? []).filter(
     (c) => c.combinationCount > 0
   );
+  // Denominator for synergy badges = members who actually submitted
+  // owned-options (not just everyone in the room). Updates automatically on
+  // every room-state push since `member.isReady` flips with `owned-options`.
+  const readyMembersCount = (room?.members ?? []).filter((m) => m.isReady).length;
 
   const showSuggestionStrip =
     !isOwner &&
@@ -155,7 +159,7 @@ export default function ControlBar({
                 key={synergy.color}
                 synergy={synergy}
                 skinOptions={skinOptions || []}
-                totalMembers={room?.members.length ?? 0}
+                totalMembers={readyMembersCount}
                 suggestColor={suggestColor!}
                 disabled={isSyncing}
               />

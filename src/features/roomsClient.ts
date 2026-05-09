@@ -70,6 +70,14 @@ export type RoomMember = {
   skinId: number;
   chromaId: number;
   isReady?: boolean;
+  /**
+   * Owned skin/chroma options the member submitted for their currently locked
+   * champion. The server broadcasts these to every room peer (only `token` is
+   * stripped from the public payload), so the renderer can derive contextual
+   * synergy counts (e.g. "2/5 own this chroma within the active skin line")
+   * without needing extra wire-format fields.
+   */
+  options?: GroupSkinOption[];
   /** v3+: this member has held their skin for the current match. */
   lockedSkin?: boolean;
 };

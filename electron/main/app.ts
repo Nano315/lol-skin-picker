@@ -137,8 +137,6 @@ function wireDomainEvents() {
   // 2. AJOUT : Gestion de la visibilite selon la phase de jeu
   // ---------------------------------------------------------
   gameflow.on("phase", (phase: string) => {
-    readyCheck.onPhase(phase);
-
     const win = getMainWindow();
     if (!win || win.isDestroyed()) return;
 

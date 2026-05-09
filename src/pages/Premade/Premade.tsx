@@ -271,23 +271,70 @@ export function PremadePage() {
     }
   };
 
-  // Filter chroma synergies by active skin line when one is selected
+  // Number of room members who have submitted owned-options for their locked
+  // champion. This is the denominator used in synergy badges ("2/3" = 2 of 3
+  // ready players share this option). Auto-updates on every room-state push
+  // because `member.isReady` flips to true on `owned-options` and back to
+  // false when the member changes champion.
+  const readyMembersCount = useMemo(
+    () => (room?.members ?? []).filter((m) => m.isReady).length,
+    [room?.members]
+  );
+
+  // Filter chroma synergies by active skin line and recompute the per-color
+  // member count contextual to that skin line.
+  //
+  // Without an active skin line, the badge shows "X/Y" where X = ready members
+  // owning *any* skin in this color. With a skin line selected, the badge
+  // narrows to "X/Y" = ready members owning a skin in that color **AND** in
+  // the active skin line — because just owning a Coven skin AND a Star Guardian
+  // pink skin doesn't mean you have a pink Star Guardian skin.
   const filteredChromaSynergies = useMemo(() => {
     if (!room?.synergy?.colors) return [];
-    if (activeSkinLineId === null) return room.synergy.colors;
 
-    // Get the set of aura colors available within the active skin line's options
-    const skinLineColors = new Set<string>();
-    for (const opt of skinOptions) {
-      if (opt.skinLineId === activeSkinLineId && opt.auraColor) {
-        skinLineColors.add(opt.auraColor);
+    if (activeSkinLineId === null) {
+      // No skin-line context: trust the server-computed members[] as-is.
+      return room.synergy.colors;
+    }
+
+    // Build a per-color contextual member set by walking each ready member's
+    // own options for ones matching (color × activeSkinLineId).
+    const readyMembers = (room.members ?? []).filter((m) => m.isReady);
+    const contextualMembersByColor = new Map<string, string[]>();
+    for (const m of readyMembers) {
+      const seen = new Set<string>();
+      for (const opt of m.options ?? []) {
+        if (
+          opt.skinLineId === activeSkinLineId &&
+          opt.auraColor &&
+          !seen.has(opt.auraColor)
+        ) {
+          seen.add(opt.auraColor);
+          const list = contextualMembersByColor.get(opt.auraColor) ?? [];
+          list.push(m.id);
+          contextualMembersByColor.set(opt.auraColor, list);
+        }
       }
     }
 
-    if (skinLineColors.size === 0) return [];
-
-    return room.synergy.colors.filter((c) => skinLineColors.has(c.color));
-  }, [room?.synergy?.colors, activeSkinLineId, skinOptions]);
+    return room.synergy.colors
+      .flatMap((c) => {
+        const contextual = contextualMembersByColor.get(c.color);
+        // Drop colors that no ready member owns within the active skin line.
+        if (!contextual || contextual.length === 0) return [];
+        // Override `members[]` with the contextual list so the badge shows the
+        // skin-line-aware count. Other fields (coverage, combinationCount) are
+        // preserved as-is — they're not displayed but kept stable for any
+        // future consumer that relies on them.
+        return [{ ...c, members: contextual }];
+      })
+      // Re-sort by the contextual member count (largest first) — the server's
+      // original sort was based on the *global* members[], so once we narrow
+      // it to the active skin line a color that was originally on top can
+      // legitimately drop below others. `sort` is stable, so colors with the
+      // same contextual count keep the server's tiebreaker order.
+      .sort((a, b) => b.members.length - a.members.length);
+  }, [room?.synergy?.colors, room?.members, activeSkinLineId]);
 
   // -> Appliquer le combo quand le serveur en choisit un
   useEffect(() => {
@@ -744,14 +791,14 @@ export function PremadePage() {
                         synergies={room.synergy.skinLines}
                         onApply={handleApplySkinLine}
                         activeId={activeSkinLineId}
-                        totalMembers={room.members.length}
+                        totalMembers={readyMembersCount}
                         disabled={isSyncing}
                       />
                       <ChromaSelector
                         synergies={filteredChromaSynergies}
                         onApply={handleApplyChroma}
                         activeColor={activeChromaColor}
-                        totalMembers={room.members.length}
+                        totalMembers={readyMembersCount}
                         disabled={isSyncing}
                       />
                     </>
