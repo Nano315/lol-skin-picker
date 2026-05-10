@@ -124,6 +124,8 @@ const api = {
     ipcRenderer.invoke("set-history-settings", settings),
   getRecentHistory: (championId: number) =>
     ipcRenderer.invoke("get-recent-history", championId),
+  getGlobalRecentHistory: (limit: number) =>
+    ipcRenderer.invoke("get-global-recent-history", limit),
   addToHistory: (championId: number, skinId: number, chromaId: number) =>
     ipcRenderer.invoke("add-to-history", championId, skinId, chromaId),
   clearHistory: (championId?: number) =>
@@ -170,6 +172,12 @@ const api = {
     name: string,
     props?: Record<string, string | number | boolean>
   ) => ipcRenderer.invoke("telemetry:track", name, props),
+
+  /* Onboarding */
+  onboardingGetState: () => ipcRenderer.invoke("onboarding:getState"),
+  onboardingMarkCompleted: (key: string) =>
+    ipcRenderer.invoke("onboarding:markCompleted", key),
+  onboardingReset: () => ipcRenderer.invoke("onboarding:reset"),
 };
 
 const windowControls = {

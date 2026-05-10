@@ -32,7 +32,16 @@ const DEFAULTS: HistoryData = {
   chromaHistory: {},
 };
 
-const historyPath = join(app.getPath("userData"), "skin-history.json");
+/**
+ * Resolved lazily, NOT at module load time. The dev override
+ * (`app.setPath("userData", ...lol-skin-picker-dev)` in `electron/main/app.ts`)
+ * runs AFTER all imports — capturing the path into a `const` would freeze
+ * the production path before the dev redirection is applied. Same pattern as
+ * `electron/main/onboardingState.ts`, `settings.ts`, and `exclusions.ts`.
+ */
+function getHistoryPath(): string {
+  return join(app.getPath("userData"), "skin-history.json");
+}
 
 let cache: HistoryData | null = null;
 
@@ -103,7 +112,7 @@ export async function loadHistory(): Promise<HistoryData> {
   if (cache) return cache;
 
   try {
-    const raw = await fs.readFile(historyPath, "utf-8");
+    const raw = await fs.readFile(getHistoryPath(), "utf-8");
     const parsed = safeParseObject(raw);
     if (!parsed) {
       cache = { ...DEFAULTS };
@@ -124,7 +133,11 @@ export async function loadHistory(): Promise<HistoryData> {
 export async function saveHistory(data: HistoryData): Promise<void> {
   cache = data;
   try {
-    await fs.writeFile(historyPath, JSON.stringify(data, null, 2), "utf-8");
+    await fs.writeFile(
+      getHistoryPath(),
+      JSON.stringify(data, null, 2),
+      "utf-8"
+    );
   } catch {
     /* ignore write errors */
   }
@@ -201,6 +214,43 @@ export async function getRecentHistory(
 ): Promise<HistoryEntry[]> {
   const data = await loadHistory();
   return data.skinHistory[championId] ?? [];
+}
+
+export interface GlobalHistoryEntry extends HistoryEntry {
+  championId: number;
+}
+
+/**
+ * All-champion view of the recent history, used by the Solo standby
+ * carousel. Flattens `skinHistory` across champions, sorts by timestamp
+ * descending, then dedupes by (champion + skin + chroma) so the carousel
+ * doesn't show the same skin five times in a row when the user has
+ * locked into the same look across multiple games.
+ */
+export async function getGlobalRecent(
+  limit: number
+): Promise<GlobalHistoryEntry[]> {
+  const data = await loadHistory();
+  const all: GlobalHistoryEntry[] = [];
+  for (const [championIdKey, entries] of Object.entries(data.skinHistory)) {
+    const championId = Number(championIdKey);
+    if (!Number.isInteger(championId) || championId < 0) continue;
+    for (const entry of entries) {
+      all.push({ ...entry, championId });
+    }
+  }
+  all.sort((a, b) => b.timestamp - a.timestamp);
+
+  const seen = new Set<string>();
+  const deduped: GlobalHistoryEntry[] = [];
+  for (const entry of all) {
+    const key = `${entry.championId}:${entry.skinId}:${entry.chromaId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(entry);
+    if (deduped.length >= limit) break;
+  }
+  return deduped;
 }
 
 export async function clearHistory(championId?: number): Promise<void> {

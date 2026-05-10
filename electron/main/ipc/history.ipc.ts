@@ -3,6 +3,7 @@ import {
   getHistorySettings,
   setHistorySettings,
   getRecentHistory,
+  getGlobalRecent,
   clearHistory,
   addSkinToHistory,
   type HistoryEntry,
@@ -31,6 +32,16 @@ export function registerHistoryIpc(skins?: SkinsService) {
   ipcMain.handle("get-recent-history", (_e, championId: number) =>
     getRecentHistory(championId)
   );
+
+  ipcMain.handle("get-global-recent-history", (_e, limit: unknown) => {
+    // Bounded so a malicious renderer can't ask for an absurd number that
+    // would force us to walk the entire history map.
+    const safe =
+      typeof limit === "number" && Number.isInteger(limit) && limit > 0
+        ? Math.min(limit, 100)
+        : 10;
+    return getGlobalRecent(safe);
+  });
 
   ipcMain.handle(
     "add-to-history",

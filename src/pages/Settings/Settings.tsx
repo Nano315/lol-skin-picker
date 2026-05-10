@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   Bell,
   ChevronDown,
+  Compass,
   FolderOpen,
   ShieldCheck,
   Sparkles,
@@ -27,6 +28,7 @@ import {
   type WidgetSide,
 } from "@/features/matchLock/widgetSide";
 import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
+import { useOnboarding } from "@/features/onboarding/useOnboarding";
 import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
 import { api } from "@/features/api";
@@ -43,6 +45,8 @@ export default function Settings() {
     setConsent: setTelemetryEnabled,
     loading: telemetryLoading,
   } = useTelemetryConsent();
+  const { reset: resetOnboarding } = useOnboarding();
+  const [replayingTour, setReplayingTour] = useState(false);
   const [includeDefault, setIncludeDefault] = useState(true);
   const [autoRoll, setAutoRoll] = useState(true);
   const [autoAcceptMatch, setAutoAcceptMatch] = useState(false);
@@ -215,6 +219,44 @@ export default function Settings() {
                   </SettingRow>
                 </div>
                 <TelemetryDetails />
+              </GlassCard>
+            </Reveal>
+
+            {/* ---------- Onboarding ---------- */}
+            <Reveal delay={0.125} className="col-span-12">
+              <GlassCard className="flex flex-col gap-5">
+                <CardHeader
+                  eyebrow="Onboarding"
+                  title="Welcome tour"
+                  trailing={
+                    <SectionIcon>
+                      <Compass className="h-3.5 w-3.5" aria-hidden />
+                    </SectionIcon>
+                  }
+                />
+                <div className="flex flex-col">
+                  <SettingRow
+                    label="Replay tour"
+                    description="Show the 3-step welcome flow again at the next render."
+                  >
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      loading={replayingTour}
+                      onClick={async () => {
+                        setReplayingTour(true);
+                        try {
+                          await resetOnboarding();
+                        } finally {
+                          setReplayingTour(false);
+                        }
+                      }}
+                      icon={<Compass className="h-3.5 w-3.5" aria-hidden />}
+                    >
+                      Replay
+                    </Button>
+                  </SettingRow>
+                </div>
               </GlassCard>
             </Reveal>
 

@@ -10,6 +10,8 @@
 
 import { Ban } from "lucide-react";
 import { useChampionExclusions } from "@/features/exclusions/useExclusions";
+import { useOnboarding } from "@/features/onboarding/useOnboarding";
+import { useToast } from "@/features/hooks/useToast";
 import { cn } from "@/lib/utils";
 
 interface InclusionToggleProps {
@@ -26,16 +28,41 @@ export default function InclusionToggle({
   disabled = false,
 }: InclusionToggleProps) {
   const { isExcluded, toggle, loading } = useChampionExclusions(championId);
+  const { state, hydrated, markCompleted } = useOnboarding();
+  const { showToast } = useToast();
   const targetId = chromaId || skinId;
   const excluded = isExcluded(targetId);
   const isDisabled = disabled || loading || !championId || !targetId;
 
   const label = excluded ? "Include in random pool" : "Exclude from random pool";
 
+  // Couche 3 — first time the user EXCLUDES a skin/chroma, fire a one-shot
+  // toast that points them to the Library page where they can manage the
+  // full exclusion list. Shown once per install (post welcome flow), then
+  // muted forever — repeat clicks should feel snappy without a teaching
+  // moment every time.
+  const handleClick = () => {
+    const willExclude = !excluded;
+    void toggle(targetId);
+    if (
+      willExclude &&
+      hydrated &&
+      state.welcomeCompleted &&
+      !state.exclusionToastSeen
+    ) {
+      showToast({
+        type: "info",
+        message: "Excluded from rolls — manage every skin from the Library tab.",
+        duration: 5000,
+      });
+      void markCompleted("exclusionToastSeen");
+    }
+  };
+
   return (
     <button
       type="button"
-      onClick={() => void toggle(targetId)}
+      onClick={handleClick}
       disabled={isDisabled}
       title={label}
       aria-label={label}

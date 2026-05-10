@@ -13,6 +13,7 @@ import { registerHistoryIpc } from "./history.ipc";
 import { registerExclusionsIpc } from "./exclusions.ipc";
 import { registerChampionLibraryIpc } from "./championLibrary.ipc";
 import { registerTelemetryIpc } from "./telemetry.ipc";
+import { registerOnboardingIpc } from "./onboarding.ipc";
 import { registerWindowIpc } from "./window.ipc";
 import { registerUpdatesIpc } from "./updates.ipc";
 
@@ -33,6 +34,7 @@ export function registerAllIpc(opts: {
   registerExclusionsIpc();
   registerChampionLibraryIpc(opts.championLibrary);
   registerTelemetryIpc();
+  registerOnboardingIpc();
   registerWindowIpc(opts.getWin);
   registerUpdatesIpc();
 }

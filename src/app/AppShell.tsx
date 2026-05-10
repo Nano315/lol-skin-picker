@@ -8,25 +8,19 @@ import { RoomsClientConnector } from "./RoomsClientConnector";
 import { IdentityConnector } from "./IdentityConnector";
 import { MatchLockSyncConnector } from "./MatchLockSyncConnector";
 import { TelemetryConsentModal } from "@/components/TelemetryConsentModal";
+import { WelcomeFlow } from "@/components/onboarding/WelcomeFlow";
 import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
-import { isFirstLaunch } from "@/features/api";
+import { useOnboarding } from "@/features/onboarding/useOnboarding";
 import { trackAppLaunch } from "@/features/analytics/tracker";
 
 import { usePrefs } from "@/features/hooks/usePrefs";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export default function AppShell() {
   useSyncPrefsWithBackend();
   const { read } = usePrefs();
-  const [showConsentModal, setShowConsentModal] = useState(false);
+  const { state: onboarding, hydrated, markCompleted } = useOnboarding();
   const { setConsent } = useTelemetryConsent();
-
-  // Check for first launch to show telemetry consent modal
-  useEffect(() => {
-    isFirstLaunch().then((isFirst) => {
-      if (isFirst) setShowConsentModal(true);
-    });
-  }, []);
 
   // Track app launch
   useEffect(() => {
@@ -58,17 +52,74 @@ export default function AppShell() {
     };
   }, [read]);
 
+  // ----- Onboarding gates -----
+  // Welcome flow takes priority over the standalone consent modal.
+  // After hydration:
+  //   • welcomeCompleted=false                   → show WelcomeFlow
+  //   • welcomeCompleted=true, consentRecorded=false → show TelemetryConsentModal (skip path)
+  //   • both true                                → app as usual
+  const showWelcome = hydrated && !onboarding.welcomeCompleted;
+  const showConsentFallback =
+    hydrated && onboarding.welcomeCompleted && !onboarding.consentRecorded;
+
+  // Step 3: user explicitly finished the flow.
+  //
+  //   • First-time path  (telemetryEnabled = true | false)
+  //       setConsent() flips both `telemetryEnabled` (settings.json) AND
+  //       `consentRecorded` (onboarding.json) atomically server-side. We
+  //       then mark the welcome as completed — that single call returns the
+  //       latest full state, so the local store ends up consistent with
+  //       both flags true in one round-trip.
+  //
+  //   • Replay path      (telemetryEnabled = undefined)
+  //       The user has already responded to the consent prompt at some
+  //       point. Step 3 hides the toggle and we MUST NOT touch `setConsent`
+  //       — otherwise a misclick would silently overwrite their pref.
+  const handleWelcomeComplete = async (
+    telemetryEnabled: boolean | undefined
+  ) => {
+    if (telemetryEnabled !== undefined) {
+      await setConsent(telemetryEnabled);
+    }
+    await markCompleted("welcomeCompleted");
+  };
+
+  // Skip path: dismiss the welcome but DON'T silently grant or refuse
+  // telemetry — fall back to the existing standalone consent modal so the
+  // user still gets the explicit accept/decline prompt (regulatory).
+  const handleWelcomeSkip = async () => {
+    await markCompleted("welcomeCompleted");
+  };
+
+  // Fallback consent modal handlers. setConsent() flips consentRecorded
+  // server-side, but the renderer store needs a separate sync — markCompleted
+  // is idempotent server-side (returns cached state without rewriting) and
+  // hands back the latest full state, which closes the modal locally.
+  const handleConsentAccept = async () => {
+    await setConsent(true);
+    await markCompleted("consentRecorded");
+  };
+  const handleConsentDecline = async () => {
+    await setConsent(false);
+    await markCompleted("consentRecorded");
+  };
+
   return (
     <ToastProvider>
-      {showConsentModal && (
+      {showWelcome && (
+        <WelcomeFlow
+          onComplete={handleWelcomeComplete}
+          onSkip={handleWelcomeSkip}
+          consentAlreadyRecorded={onboarding.consentRecorded}
+        />
+      )}
+      {showConsentFallback && (
         <TelemetryConsentModal
           onAccept={() => {
-            setConsent(true);
-            setShowConsentModal(false);
+            void handleConsentAccept();
           }}
           onDecline={() => {
-            setConsent(false);
-            setShowConsentModal(false);
+            void handleConsentDecline();
           }}
         />
       )}

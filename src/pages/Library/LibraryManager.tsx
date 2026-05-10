@@ -4,8 +4,9 @@ import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
 import { useOwnedChampions } from "@/features/championLibrary/useChampionLibrary";
 import { useAllExclusions } from "@/features/exclusions/useExclusions";
-import { GlassCard, Reveal, GradientText, CardHeader } from "@/components/ui";
-import { Sparkles } from "lucide-react";
+import { GradientText } from "@/components/ui";
+import { EmptyState } from "@/components/empty/EmptyState";
+import { BookOpen } from "lucide-react";
 import { ChampionList } from "./ChampionList";
 import { ChampionDetail } from "./ChampionDetail";
 
@@ -55,24 +56,25 @@ export default function LibraryManager() {
       <main className="relative flex flex-col items-center px-4 pb-12 pt-7">
         <div className="mx-auto w-full max-w-[1120px] px-2 sm:px-4">
           {!isReady ? (
-            <Reveal delay={0}>
-              <GlassCard className="flex flex-col gap-3">
-                <CardHeader
-                  eyebrow="Library"
-                  title={
-                    <>
-                      Connect your <GradientText>Client</GradientText>
-                    </>
-                  }
-                />
-                <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-                  <Sparkles className="h-8 w-8 text-muted" aria-hidden />
-                  <p className="m-0 text-sm text-white/60">
-                    Start the League client to load your champion library.
-                  </p>
-                </div>
-              </GlassCard>
-            </Reveal>
+            <div className="mx-auto max-w-[720px]">
+              <EmptyState
+                icon={<BookOpen className="h-6 w-6" aria-hidden />}
+                eyebrow="Library"
+                title={
+                  <>
+                    Connect your <GradientText>Client</GradientText>
+                  </>
+                }
+                description="Your owned champions and skins load in as soon as the League client is detected — then you can curate which skins the random pool can pick from."
+                status={{
+                  label:
+                    status === "checking"
+                      ? "Looking for the client…"
+                      : "Client not detected",
+                  tone: "warning",
+                }}
+              />
+            </div>
           ) : (
             <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
               <ChampionList

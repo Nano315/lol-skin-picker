@@ -82,6 +82,7 @@ export const api = {
   setHistorySettings: (settings: { historySize?: number; historyEnabled?: boolean }) =>
     lcu.setHistorySettings(settings),
   getRecentHistory: (championId: number) => lcu.getRecentHistory(championId),
+  getGlobalRecentHistory: (limit: number) => lcu.getGlobalRecentHistory(limit),
   addToHistory: (championId: number, skinId: number, chromaId: number) =>
     lcu.addToHistory(championId, skinId, chromaId),
   clearHistory: (championId?: number) => lcu.clearHistory(championId),
@@ -101,6 +102,15 @@ export const getTelemetryConsent = () => window.lcu.getTelemetryConsent();
 export const setTelemetryConsent = (enabled: boolean) =>
   window.lcu.setTelemetryConsent(enabled);
 export const isFirstLaunch = () => window.lcu.isFirstLaunch();
+
+// Onboarding exports — wraps the IPC bridge so the renderer never reaches
+// into `window.lcu` directly. Mirrors the pattern used by `updatesApi`.
+export const onboardingApi = {
+  getState: () => window.lcu.onboardingGetState(),
+  markCompleted: (key: OnboardingKey) =>
+    window.lcu.onboardingMarkCompleted(key),
+  reset: () => window.lcu.onboardingReset(),
+};
 
 // Updates exports — pilote la pastille in-app dans la title bar
 export const updatesApi = {

@@ -30,6 +30,8 @@ import {
 import { SkinLineageSelector } from "@/components/rooms/SkinLineageSelector";
 import { ChromaSelector } from "@/components/rooms/ChromaSelector";
 import { KickConfirmModal } from "@/components/rooms/KickConfirmModal";
+import { Coachmark } from "@/components/coachmark/Coachmark";
+import { useCoachmark } from "@/features/onboarding/useCoachmark";
 import { useToast } from "@/features/hooks/useToast";
 import { trackSkinergy } from "@/features/analytics/tracker";
 import { useOnlineFriends } from "@/features/hooks/useOnlineFriends";
@@ -43,7 +45,9 @@ import {
   KeyRound,
   AlertTriangle,
   RefreshCw,
+  WifiOff,
 } from "lucide-react";
+import { EmptyState } from "@/components/empty/EmptyState";
 import { cn } from "@/lib/utils";
 
 export function PremadePage() {
@@ -537,9 +541,55 @@ export function PremadePage() {
     prevSynergyCountRef.current = synergyCount;
   }, [room?.synergy?.colors]);
 
+  // Couche 3 — coachmark on the synergy panel. Owner-only feature, fired the
+  // first time the panel actually has something to act on (in champ select,
+  // synergies computed). Showing it earlier — e.g. just on entering the page
+  // — would point at empty selectors and confuse rather than teach.
+  const hasSynergiesToActOn =
+    isOwner &&
+    phase === "ChampSelect" &&
+    !!room?.synergy &&
+    ((room.synergy.colors?.length ?? 0) > 0 ||
+      (room.synergy.skinLines?.length ?? 0) > 0);
+  const synergyCoach = useCoachmark("synergyCoachSeen", hasSynergiesToActOn);
+
   /* ===================== VUE "PAS ENCORE DANS UNE ROOM" ===================== */
 
   if (!joined) {
+    // LoL must be running for any room action to do anything (we need a
+    // summonerName for create/join, and the friends presence list comes from
+    // the LCU). Replacing the disabled-buttons soup with a focused
+    // EmptyState makes the *why* explicit: nothing's broken, the client just
+    // isn't here yet.
+    if (!canUseRooms) {
+      return (
+        <div className="app">
+          <Header status={status} phase={phase} iconId={iconId} />
+          <main className="relative flex flex-col items-center px-4 pb-12 pt-7">
+            <div className="mx-auto w-full max-w-[720px] px-2 sm:px-4">
+              <EmptyState
+                icon={<WifiOff className="h-6 w-6" aria-hidden />}
+                eyebrow="Premade"
+                title={
+                  <>
+                    Launch <GradientText>League</GradientText> to play with
+                    friends
+                  </>
+                }
+                description="Rooms need your summoner identity from the client to sync skins across the team. Open League and you'll be able to create or join one."
+                status={{
+                  label: !isConnected
+                    ? "Client not detected"
+                    : "Loading your identity…",
+                  tone: !isConnected ? "warning" : "info",
+                }}
+              />
+            </div>
+          </main>
+        </div>
+      );
+    }
+
     return (
       <div className="app">
         <Header status={status} phase={phase} iconId={iconId} />
@@ -778,7 +828,7 @@ export function PremadePage() {
                   title="Room Controls"
                   trailing={<AutoRollPill />}
                 />
-                <div className="flex flex-col gap-3">
+                <div className="relative flex flex-col gap-3">
                   {isSyncing && (
                     <SyncProgressBar
                       progress={syncProgress}
@@ -787,6 +837,11 @@ export function PremadePage() {
                   )}
                   {isOwner && room && room.synergy && phase === "ChampSelect" && (
                     <>
+                      {/* No auto-dismiss on apply: like the rerollCoach,
+                          owners might brush the selectors before noticing
+                          the callout. "Got it" is the single dismissal
+                          path so the hint stays around long enough to be
+                          read. */}
                       <SkinLineageSelector
                         synergies={room.synergy.skinLines}
                         onApply={handleApplySkinLine}
@@ -800,6 +855,18 @@ export function PremadePage() {
                         activeColor={activeChromaColor}
                         totalMembers={readyMembersCount}
                         disabled={isSyncing}
+                      />
+                      {/* Inline below the selectors, centered. Same reason
+                          as rerollCoach — absolute-below-card placement is
+                          unreliable when the Actions card sits at the
+                          bottom of a scrollable page. */}
+                      <Coachmark
+                        visible={synergyCoach.visible}
+                        onDismiss={synergyCoach.dismiss}
+                        arrow="top"
+                        className="mx-auto mt-3"
+                        title="Match the team"
+                        description="Pick a Skin Line or color here and the whole squad rolls into a coordinated combo."
                       />
                     </>
                   )}

@@ -12,7 +12,18 @@ type Settings = {
   autoAcceptMatch?: boolean;
 };
 
-const settingsPath = join(app.getPath("userData"), "settings.json");
+/**
+ * Resolved lazily, NOT at module load time. In dev, `app.setPath("userData",
+ * ...lol-skin-picker-dev)` runs in `electron/main/app.ts` AFTER all imports
+ * — capturing the path into a `const` at import time would freeze the
+ * production path before the dev override is applied. Calling
+ * `app.getPath("userData")` from inside each function reads the current
+ * value, including the dev redirection. Same pattern as
+ * `electron/main/onboardingState.ts`.
+ */
+function getSettingsPath(): string {
+  return join(app.getPath("userData"), "settings.json");
+}
 
 function coerceSettings(raw: Record<string, unknown>): Settings {
   const out: Settings = {};
@@ -34,7 +45,7 @@ function coerceSettings(raw: Record<string, unknown>): Settings {
 
 export async function loadSettings(): Promise<Settings> {
   try {
-    const data = await fs.readFile(settingsPath, "utf-8");
+    const data = await fs.readFile(getSettingsPath(), "utf-8");
     const parsed = safeParseObject(data);
     if (!parsed) {
       log.warn("[settings] settings.json is malformed, using defaults");
@@ -49,12 +60,13 @@ export async function loadSettings(): Promise<Settings> {
 
 export async function saveSettings(s: Partial<Settings>) {
   try {
+    const target = getSettingsPath();
     // Ensure directory exists
-    await fs.mkdir(dirname(settingsPath), { recursive: true });
+    await fs.mkdir(dirname(target), { recursive: true });
     // Merge with existing settings instead of overwriting
     const existing = await loadSettings();
     const merged = { ...existing, ...s };
-    await fs.writeFile(settingsPath, JSON.stringify(merged, null, 2), "utf-8");
+    await fs.writeFile(target, JSON.stringify(merged, null, 2), "utf-8");
     log.debug("[settings] Settings saved successfully", merged);
   } catch (err) {
     log.error("[settings] Failed to save settings", err);

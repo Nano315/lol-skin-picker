@@ -105,6 +105,14 @@ declare global {
       getRecentHistory: (championId: number) => Promise<
         Array<{ skinId: number; chromaId: number; timestamp: number }>
       >;
+      getGlobalRecentHistory: (limit: number) => Promise<
+        Array<{
+          championId: number;
+          skinId: number;
+          chromaId: number;
+          timestamp: number;
+        }>
+      >;
       addToHistory: (
         championId: number,
         skinId: number,
@@ -148,6 +156,13 @@ declare global {
         name: string,
         props?: Record<string, string | number | boolean>
       ) => Promise<void>;
+
+      // Onboarding (couche 1: welcome flow + consent gate)
+      onboardingGetState: () => Promise<OnboardingState>;
+      onboardingMarkCompleted: (
+        key: OnboardingKey
+      ) => Promise<OnboardingState>;
+      onboardingReset: () => Promise<OnboardingState>;
     };
 
     log: {
@@ -191,5 +206,22 @@ declare global {
     channel: "latest" | "beta" | null;
     percent: number | null;
     errorMessage: string | null;
+  }
+
+  // Onboarding — kept in sync with electron/main/onboardingState.ts.
+  type OnboardingKey =
+    | "welcomeCompleted"
+    | "consentRecorded"
+    | "rerollCoachSeen"
+    | "matchLockCoachSeen"
+    | "synergyCoachSeen"
+    | "exclusionToastSeen";
+  interface OnboardingState {
+    welcomeCompleted: boolean;
+    consentRecorded: boolean;
+    rerollCoachSeen: boolean;
+    matchLockCoachSeen: boolean;
+    synergyCoachSeen: boolean;
+    exclusionToastSeen: boolean;
   }
 }

@@ -20,11 +20,19 @@ export interface ExclusionsData {
   migrated?: boolean;
 }
 
-const exclusionsPath = join(app.getPath("userData"), "skin-exclusions.json");
-const legacyPriorityPath = join(
-  app.getPath("userData"),
-  "skin-priorities.json"
-);
+/**
+ * Resolved lazily, NOT at module load time. The dev override
+ * (`app.setPath("userData", ...lol-skin-picker-dev)` in `electron/main/app.ts`)
+ * runs AFTER all imports — capturing the path into a `const` would freeze
+ * the production path before the dev redirection is applied. Same pattern as
+ * `electron/main/onboardingState.ts` and `electron/main/settings.ts`.
+ */
+function getExclusionsPath(): string {
+  return join(app.getPath("userData"), "skin-exclusions.json");
+}
+function getLegacyPriorityPath(): string {
+  return join(app.getPath("userData"), "skin-priorities.json");
+}
 
 let cache: ExclusionsData | null = null;
 
@@ -49,16 +57,21 @@ function coerceExclusions(raw: unknown): { [championId: number]: number[] } {
 async function persist(data: ExclusionsData): Promise<void> {
   cache = data;
   try {
-    await fs.writeFile(exclusionsPath, JSON.stringify(data, null, 2), "utf-8");
+    await fs.writeFile(
+      getExclusionsPath(),
+      JSON.stringify(data, null, 2),
+      "utf-8"
+    );
   } catch {
     /* ignore write errors */
   }
 }
 
 async function migrateFromPriorities(target: ExclusionsData): Promise<void> {
+  const legacyPath = getLegacyPriorityPath();
   let raw: string;
   try {
-    raw = await fs.readFile(legacyPriorityPath, "utf-8");
+    raw = await fs.readFile(legacyPath, "utf-8");
   } catch {
     target.migrated = true;
     await persist(target);
@@ -105,7 +118,7 @@ async function migrateFromPriorities(target: ExclusionsData): Promise<void> {
   await persist(target);
 
   try {
-    await fs.rename(legacyPriorityPath, legacyPriorityPath + ".bak");
+    await fs.rename(legacyPath, legacyPath + ".bak");
   } catch {
     /* old file already moved or deletion failed — non-fatal */
   }
@@ -115,7 +128,7 @@ export async function loadExclusions(): Promise<ExclusionsData> {
   if (cache) return cache;
 
   try {
-    const raw = await fs.readFile(exclusionsPath, "utf-8");
+    const raw = await fs.readFile(getExclusionsPath(), "utf-8");
     const parsed = safeParseObject(raw);
     cache = {
       exclusions: parsed ? coerceExclusions(parsed.exclusions) : {},

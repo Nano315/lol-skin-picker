@@ -14,7 +14,9 @@ import { Lock, Unlock, X, Clock } from "lucide-react";
 import { useMatchLock } from "@/features/matchLock/useMatchLock";
 import { useWidgetSide } from "@/features/matchLock/widgetSide";
 import { useGameflow } from "@/features/hooks/useGameflow";
+import { useCoachmark } from "@/features/onboarding/useCoachmark";
 import { Toggle } from "@/components/ui";
+import { Coachmark } from "@/components/coachmark/Coachmark";
 import { matchLockStore } from "@/features/matchLock/matchLockStore";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +50,12 @@ export default function MatchControls() {
   const prevPhaseRef = useRef<string | null>(null);
 
   const inMatch = IN_MATCH_PHASES.has(phase);
+
+  // Couche 3 — first time the user reaches a champ-select-or-later phase the
+  // floating widget shows a coachmark explaining what it does. We bind the
+  // ready flag to `inMatch` so it doesn't pop on lobby or in idle states
+  // (when the lock has no game to apply to anyway).
+  const matchLockCoach = useCoachmark("matchLockCoachSeen", inMatch);
 
   // Auto-reset when leaving the post-game phases (per-game default). A
   // ChampSelect → Lobby transition (dodge) intentionally does NOT reset:
@@ -175,7 +183,12 @@ export default function MatchControls() {
 
       <motion.button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setOpen((o) => !o);
+          // Opening the popover IS the explore action — once they've
+          // discovered the panel the coachmark has done its job.
+          if (matchLockCoach.visible) void matchLockCoach.dismiss();
+        }}
         whileHover={reduced ? undefined : { y: -2, scale: 1.05 }}
         whileTap={reduced ? undefined : { scale: 0.95 }}
         aria-label={
@@ -186,7 +199,11 @@ export default function MatchControls() {
           "flex items-center justify-center rounded-full border backdrop-blur-xl transition-all duration-200",
           locked
             ? "h-12 w-12 border-accent/40 bg-gradient-to-br from-accent/30 to-accent-strong/20 text-accent shadow-accent-glow animate-pulse-slow"
-            : "h-11 w-11 border-white/[0.08] bg-white/[0.04] text-white/60 hover:border-white/20 hover:text-white"
+            : "h-11 w-11 border-white/[0.08] bg-white/[0.04] text-white/60 hover:border-white/20 hover:text-white",
+          // Eye-catching ring while the coachmark is up so the user can tell
+          // *what* the callout is pointing at. Drops as soon as it's dismissed.
+          matchLockCoach.visible &&
+            "ring-2 ring-accent/60 ring-offset-2 ring-offset-bg animate-pulse-slow"
         )}
       >
         {locked ? (
@@ -195,6 +212,28 @@ export default function MatchControls() {
           <Unlock className="h-4 w-4" aria-hidden />
         )}
       </motion.button>
+
+      {/* Coachmark sits above the button regardless of side preference. The
+          arrow shifts to the side of the callout closest to the button —
+          the default centered arrow would point ~140px to the side of an
+          almost-corner-anchored coachmark. */}
+      <Coachmark
+        visible={matchLockCoach.visible}
+        onDismiss={matchLockCoach.dismiss}
+        arrow="bottom"
+        // `absolute` overrides the Coachmark's default `relative` so the
+        // callout floats above the lock button instead of pushing layout.
+        className={cn(
+          "absolute bottom-full mb-3",
+          side === "right" ? "right-0" : "left-0"
+        )}
+        arrowClassName={cn(
+          "-bottom-1.5 border-b border-r",
+          side === "right" ? "right-4" : "left-4"
+        )}
+        title="Keep this skin?"
+        description="Tap the lock to keep the current skin for one game. It auto-resets when the match ends."
+      />
     </div>
   );
 }
