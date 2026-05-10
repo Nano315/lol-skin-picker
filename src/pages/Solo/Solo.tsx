@@ -189,8 +189,12 @@ export default function Solo() {
               }
               description="SkinPicker hooks in the moment your client opens — just launch League."
               status={{
+                // `useConnection().status` is `"unknown" | "connected" |
+                // "disconnected"` — `"unknown"` is the boot-time state
+                // before the first IPC roundtrip resolves, which maps
+                // semantically to "we're still looking".
                 label:
-                  status === "checking"
+                  status === "unknown"
                     ? "Looking for the client…"
                     : "Client not detected",
                 tone: "warning",

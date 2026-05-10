@@ -16,9 +16,13 @@ vi.mock("../../logger", () => ({
 
 import { ReadyCheckService } from "../../services/readyCheck.service";
 
+// `port` must be a string per `LockCreds` — the LCU lockfile stores it as
+// such and the watcher passes it through verbatim. Earlier revisions of
+// this fixture used a number, which vitest tolerated but `tsc --noEmit`
+// (run by the release pipeline) rightly rejected.
 const FAKE_CREDS = {
   protocol: "https" as const,
-  port: 12345,
+  port: "12345",
   password: "secret",
   pid: 0,
 };

@@ -67,8 +67,11 @@ export default function LibraryManager() {
                 }
                 description="Your owned champions and skins load in as soon as the League client is detected — then you can curate which skins the random pool can pick from."
                 status={{
+                  // Same as Solo — `"unknown"` means we haven't resolved
+                  // the LCU IPC yet, which is the only "still looking"
+                  // state in the union (no "checking" literal exists).
                   label:
-                    status === "checking"
+                    status === "unknown"
                       ? "Looking for the client…"
                       : "Client not detected",
                   tone: "warning",
