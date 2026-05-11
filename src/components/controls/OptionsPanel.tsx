@@ -12,6 +12,8 @@ type OptionsPanelProps = {
   setAutoRoll: (v: boolean) => void;
   autoAcceptMatch: boolean;
   setAutoAcceptMatch: (v: boolean) => void;
+  wardAutoRoll: boolean;
+  setWardAutoRoll: (v: boolean) => void;
   performanceMode: boolean;
   setPerformanceMode: (v: boolean) => void;
   openAtLogin: boolean;
@@ -30,6 +32,8 @@ export default function OptionsPanel({
   setAutoRoll,
   autoAcceptMatch,
   setAutoAcceptMatch,
+  wardAutoRoll,
+  setWardAutoRoll,
   savePref,
   performanceMode,
   setPerformanceMode,
@@ -55,6 +59,11 @@ export default function OptionsPanel({
   const onAutoAcceptMatchChange = (v: boolean) => {
     setAutoAcceptMatch(v);
     void api.setAutoAcceptMatch(v).catch(() => {});
+  };
+
+  const onWardAutoRollChange = (v: boolean) => {
+    setWardAutoRoll(v);
+    void api.setWardAutoRoll(v).catch(() => {});
   };
 
   const onPerformanceModeChange = (v: boolean) => {
@@ -112,6 +121,17 @@ export default function OptionsPanel({
             checked={includeDefault}
             onChange={onIncludeChange}
             aria-label="Include default skin"
+          />
+        </Row>
+
+        <Row
+          label="Auto roll ward skin"
+          description="Randomize your ward skin in the background each time you lock a champion."
+        >
+          <Toggle
+            checked={wardAutoRoll}
+            onChange={onWardAutoRollChange}
+            aria-label="Auto roll ward skin"
           />
         </Row>
       </Section>

@@ -29,6 +29,7 @@ The installer is currently unsigned, so Windows SmartScreen will display a warni
 ### Solo queue
 
 - **Auto-roll on lock-in** — the moment you lock a champion, Skin Picker picks a random skin and chroma from what you own and applies it via the LCU.
+- **Auto-roll ward skins** *(new, opt-in)* — when enabled in *Settings → Match & Reroll*, a random ward skin from your inventory is silently applied each time you lock a champion (never the one you already have equipped, no UI noise). Respects the Match Lock.
 - **Manual re-roll** — dedicated *Reroll Skin* and *Reroll Chroma* buttons, usable at any point in champ select.
 - **History-aware picks** — each champion keeps a rolling window of recent rolls (configurable, default 5) so the same skin doesn't come back two games in a row.
 - **Library** — browse every owned champion (mastery / A–Z / skin-count sort, fuzzy search), drill down to per-skin and per-chroma include/exclude. Excluded entries never come up in random rolls; restrict a champion to a single skin and the random will lock onto it. Persists across sessions.

@@ -46,6 +46,8 @@ export const api = {
   setOpenAtLogin: (v: boolean) => lcu.setOpenAtLogin(v),
   getAutoAcceptMatch: () => lcu.getAutoAcceptMatch(),
   setAutoAcceptMatch: (v: boolean) => lcu.setAutoAcceptMatch(v),
+  getWardAutoRoll: () => lcu.getWardAutoRoll(),
+  setWardAutoRoll: (v: boolean) => lcu.setWardAutoRoll(v),
 
   // actions
   rerollSkin: () => lcu.rerollSkin(),

@@ -9,6 +9,7 @@ import { GameflowService } from "../services/gameflow.service";
 import { SkinsService } from "../services/skins.service";
 import { ChampionLibraryService } from "../services/championLibrary.service";
 import { ReadyCheckService } from "../services/readyCheck.service";
+import { WardsService } from "../services/wards.service";
 import { skinLineService } from "../services/skinLineService";
 import { logger } from "../logger";
 
@@ -45,6 +46,7 @@ const gameflow = new GameflowService();
 const skins = new SkinsService();
 const championLibrary = new ChampionLibraryService(lcu);
 const readyCheck = new ReadyCheckService();
+const wards = new WardsService();
 
 // AUTO-UPDATE: Interval reference for cleanup on quit
 let updateCheckInterval: NodeJS.Timeout | null = null;
@@ -115,6 +117,7 @@ function wireDomainEvents() {
       skins.setCreds(creds);
       skins.start();
       readyCheck.setCreds(creds);
+      wards.setCreds(creds);
 
       // On affiche la fenetre au demarrage (sauf si une game est deja en cours,
       // ce qui sera corrige une fraction de seconde plus tard par l'event 'phase')
@@ -129,8 +132,21 @@ function wireDomainEvents() {
       gameflow.stop();
       skins.stop();
       readyCheck.setCreds(null);
+      wards.setCreds(null);
       getMainWindow()?.hide();
     }
+  });
+
+  // Auto-roll du ward au lock du champion. Le SkinsService emet
+  // `champion-locked` sur l'edge montant (false → true). On respecte le
+  // matchLock global ici plutot que dans WardsService pour eviter le
+  // couplage inter-services.
+  skins.on("champion-locked", () => {
+    if (skins.getMatchLock()) {
+      logger.debug("[App] champion-locked reçu mais matchLock actif, skip ward auto-roll");
+      return;
+    }
+    void wards.rollAndApply();
   });
 
   // ---------------------------------------------------------
@@ -186,12 +202,17 @@ if (!gotTheLock) {
     const persistedSettings = await loadSettings();
     readyCheck.setAutoAccept(persistedSettings.autoAcceptMatch ?? false);
 
+    // Same idea for the ward auto-roll toggle — populates the service before
+    // the first champion-lock can fire.
+    await wards.initFromSettings();
+
     registerAllIpc({
       lcu,
       gameflow,
       skins,
       championLibrary,
       readyCheck,
+      wards,
       getWin: getMainWindow,
     });
     wireDomainEvents();

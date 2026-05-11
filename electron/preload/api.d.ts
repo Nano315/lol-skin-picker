@@ -93,6 +93,9 @@ declare global {
       getAutoAcceptMatch: () => Promise<boolean>;
       setAutoAcceptMatch: (v: boolean) => Promise<void>;
 
+      getWardAutoRoll: () => Promise<boolean>;
+      setWardAutoRoll: (v: boolean) => Promise<void>;
+
       // History
       getHistorySettings: () => Promise<{
         historySize: number;

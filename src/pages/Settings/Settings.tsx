@@ -50,6 +50,7 @@ export default function Settings() {
   const [includeDefault, setIncludeDefault] = useState(true);
   const [autoRoll, setAutoRoll] = useState(true);
   const [autoAcceptMatch, setAutoAcceptMatch] = useState(false);
+  const [wardAutoRoll, setWardAutoRoll] = useState(false);
   const [performanceMode, setPerformanceMode] = useState(false);
   const [openAtLogin, setOpenAtLogin] = useState(false);
   const [historyEnabled, setHistoryEnabled] = useState(true);
@@ -64,8 +65,17 @@ export default function Settings() {
       api.getOpenAtLogin(),
       api.getHistorySettings(),
       api.getAutoAcceptMatch(),
+      api.getWardAutoRoll(),
     ]).then(
-      ([incSrv, autoSrv, perfSrv, openAtLoginSrv, historySrv, autoAcceptSrv]) => {
+      ([
+        incSrv,
+        autoSrv,
+        perfSrv,
+        openAtLoginSrv,
+        historySrv,
+        autoAcceptSrv,
+        wardAutoRollSrv,
+      ]) => {
         const incPref = read("includeDefault");
         const autoPref = read("autoRoll");
         const perfPref = read("performanceMode");
@@ -78,6 +88,7 @@ export default function Settings() {
         setHistoryEnabled(historySrv.historyEnabled);
         setHistorySize(historySrv.historySize);
         setAutoAcceptMatch(autoAcceptSrv);
+        setWardAutoRoll(wardAutoRollSrv);
         // notificationSound defaults to true if not set
         setNotificationSound(soundPref ?? true);
 
@@ -124,6 +135,8 @@ export default function Settings() {
                   }}
                   autoAcceptMatch={autoAcceptMatch}
                   setAutoAcceptMatch={setAutoAcceptMatch}
+                  wardAutoRoll={wardAutoRoll}
+                  setWardAutoRoll={setWardAutoRoll}
                   performanceMode={performanceMode}
                   setPerformanceMode={(v) => {
                     setPerformanceMode(v);
@@ -434,7 +447,7 @@ function TelemetryDetails() {
           <p className="m-0 mb-1 font-semibold text-white/80">Events we send</p>
           <ul className="m-0 flex list-disc flex-col gap-1 pl-5">
             <li>Feature usage — rerolls, rooms (with squad size), priorities, skinergy matches</li>
-            <li>Settings you toggle (auto-roll, performance mode…)</li>
+            <li>Settings you toggle (auto-roll, performance mode, ward auto-roll…)</li>
             <li>App lifecycle — launch, screen views, updates applied</li>
             <li>League client connect / disconnect (no game data)</li>
           </ul>

@@ -852,8 +852,15 @@ export class SkinsService extends EventEmitter {
       }
 
       if (locked !== this.championLocked) {
+        const wasLocked = this.championLocked;
         this.championLocked = locked;
         this.emit("selection", this.getSelection());
+        // Edge montant uniquement (false → true) : sert de hook
+        // pour les features qui doivent agir au moment du lock-in
+        // (ex: WardsService.rollAndApply via app.ts).
+        if (locked && !wasLocked) {
+          this.emit("champion-locked");
+        }
       }
   }
 
@@ -940,6 +947,7 @@ export class SkinsService extends EventEmitter {
   ): this;
   on(event: "icon", fn: (id: number) => void): this;
   on(event: "summoner-name", fn: (name: string) => void): this;
+  on(event: "champion-locked", fn: () => void): this;
   override on(event: string, listener: (...args: any[]) => void): this {
     return super.on(event, listener);
   }
@@ -957,6 +965,7 @@ export class SkinsService extends EventEmitter {
   ): boolean;
   emit(event: "icon", id: number): boolean;
   emit(event: "summoner-name", name: string): boolean;
+  emit(event: "champion-locked"): boolean;
   override emit(event: string, ...args: any[]): boolean {
     return super.emit(event, ...args);
   }

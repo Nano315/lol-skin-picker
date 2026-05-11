@@ -4,6 +4,7 @@ import type { LcuWatcher } from "../../services/lcuWatcher";
 import type { GameflowService } from "../../services/gameflow.service";
 import type { ChampionLibraryService } from "../../services/championLibrary.service";
 import type { ReadyCheckService } from "../../services/readyCheck.service";
+import type { WardsService } from "../../services/wards.service";
 import { registerLcuIpc } from "./lcu.ipc";
 import { registerGameflowIpc } from "./gameflow.ipc";
 import { registerSkinsIpc } from "./skins.ipc";
@@ -16,6 +17,7 @@ import { registerTelemetryIpc } from "./telemetry.ipc";
 import { registerOnboardingIpc } from "./onboarding.ipc";
 import { registerWindowIpc } from "./window.ipc";
 import { registerUpdatesIpc } from "./updates.ipc";
+import { registerWardsIpc } from "./wards.ipc";
 
 export function registerAllIpc(opts: {
   lcu: LcuWatcher;
@@ -23,6 +25,7 @@ export function registerAllIpc(opts: {
   skins: any; // SkinsService (avoid circular import in type-only)
   championLibrary: ChampionLibraryService;
   readyCheck: ReadyCheckService;
+  wards: WardsService;
   getWin: () => BrowserWindow | null;
 }) {
   registerLcuIpc(opts.lcu);
@@ -37,4 +40,5 @@ export function registerAllIpc(opts: {
   registerOnboardingIpc();
   registerWindowIpc(opts.getWin);
   registerUpdatesIpc();
+  registerWardsIpc(opts.wards);
 }

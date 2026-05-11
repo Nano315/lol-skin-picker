@@ -118,6 +118,10 @@ const api = {
   setAutoAcceptMatch: (v: boolean) =>
     ipcRenderer.invoke("set-auto-accept-match", v),
 
+  getWardAutoRoll: () => ipcRenderer.invoke("get-ward-auto-roll"),
+  setWardAutoRoll: (v: boolean) =>
+    ipcRenderer.invoke("set-ward-auto-roll", v),
+
   /* History */
   getHistorySettings: () => ipcRenderer.invoke("get-history-settings"),
   setHistorySettings: (settings: { historySize?: number; historyEnabled?: boolean }) =>

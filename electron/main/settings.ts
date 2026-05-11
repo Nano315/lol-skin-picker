@@ -10,6 +10,7 @@ type Settings = {
   telemetryEnabled?: boolean;
   consentModalSeen?: boolean;
   autoAcceptMatch?: boolean;
+  wardAutoRollEnabled?: boolean;
 };
 
 /**
@@ -39,6 +40,9 @@ function coerceSettings(raw: Record<string, unknown>): Settings {
   }
   if (typeof raw.autoAcceptMatch === "boolean") {
     out.autoAcceptMatch = raw.autoAcceptMatch;
+  }
+  if (typeof raw.wardAutoRollEnabled === "boolean") {
+    out.wardAutoRollEnabled = raw.wardAutoRollEnabled;
   }
   return out;
 }
