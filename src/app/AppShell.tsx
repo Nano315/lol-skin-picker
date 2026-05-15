@@ -11,6 +11,7 @@ import { TelemetryConsentModal } from "@/components/TelemetryConsentModal";
 import { WelcomeFlow } from "@/components/onboarding/WelcomeFlow";
 import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
 import { useOnboarding } from "@/features/onboarding/useOnboarding";
+import { useConnection } from "@/features/hooks/useConnection";
 import { trackAppLaunch } from "@/features/analytics/tracker";
 
 import { usePrefs } from "@/features/hooks/usePrefs";
@@ -21,11 +22,26 @@ export default function AppShell() {
   const { read } = usePrefs();
   const { state: onboarding, hydrated, markCompleted } = useOnboarding();
   const { setConsent } = useTelemetryConsent();
+  const { status: lcuStatus } = useConnection();
 
   // Track app launch
   useEffect(() => {
     trackAppLaunch();
   }, []);
+
+  // Pre-warm caches that the Solo standby carousel depends on. Both IPCs
+  // are server-side cached (5min TTL on champion library); we just want to
+  // trigger the LCU fetch as soon as the client is up so by the time the
+  // user lands on Solo the data is already in memory and the carousel
+  // doesn't have to wait for the first IPC roundtrip to render. Pre-fix,
+  // the first Solo visit of a session would render an empty carousel for
+  // ~300-800ms (LCU champion-library fetch), making it look like the
+  // carousel didn't "start" until the user navigated and came back.
+  useEffect(() => {
+    if (lcuStatus !== "connected") return;
+    void window.lcu.getOwnedChampions().catch(() => {});
+    void window.lcu.getGlobalRecentHistory(10).catch(() => {});
+  }, [lcuStatus]);
 
   useEffect(() => {
     const applyPerf = (val: boolean) => {

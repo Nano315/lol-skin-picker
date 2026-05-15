@@ -365,33 +365,80 @@ export class SkinsService extends EventEmitter {
     }
   }
 
-  /** Push skin to history and persist to disk */
-  private async pushSkinHistory(championId: number, skinId: number) {
+  /**
+   * Anti-repeat tracking ONLY — updates the in-memory weighting Map so the
+   * next reroll won't pick the same skin again. NOT persisted to disk:
+   * during champ select the user typically rolls through a dozen options
+   * before deciding, and writing every transient pick to disk pollutes the
+   * "recently played" history shown in the Solo standby carousel with
+   * skins the user merely previewed. Persistent history is committed once
+   * per game in `commitSelectionToHistory`, gated on the LCU phase
+   * transitioning to "InProgress".
+   */
+  private pushSkinHistoryInMemory(championId: number, skinId: number) {
     this.pushHistory(
       this.skinHistoryByChampion,
       championId,
       skinId,
       this.historySize
     );
-    // Persist to disk
-    const entry: HistoryEntry = {
-      skinId,
-      chromaId: 0,
-      timestamp: Date.now(),
-    };
-    await addSkinToHistory(championId, entry, this.historySize);
   }
 
-  /** Push chroma to history and persist to disk */
-  private async pushChromaHistory(skinId: number, chromaId: number) {
+  /** Same intent as `pushSkinHistoryInMemory`, scoped to chroma anti-repeat. */
+  private pushChromaHistoryInMemory(skinId: number, chromaId: number) {
     this.pushHistory(
       this.chromaHistoryBySkin,
       skinId,
       chromaId,
       this.CHROMA_HISTORY_WINDOW
     );
-    // Persist to disk
-    await addChromaToHistory(skinId, chromaId, this.CHROMA_HISTORY_WINDOW);
+  }
+
+  /**
+   * Persist the CURRENT selection to disk history. Called once per game
+   * when the LCU phase becomes "InProgress" (loading screen / game start),
+   * which is the only moment we can confidently say the user "played"
+   * this skin. Idempotent within a single match because the phase only
+   * transitions to InProgress once.
+   *
+   * Stores `chromaId` correctly — the previous code always wrote 0, which
+   * broke chroma reconstruction in the Solo standby carousel.
+   */
+  async commitSelectionToHistory(): Promise<void> {
+    if (!this.historyEnabled) return;
+    const championId = this.currentChampion;
+    const skinId = this.selectedSkinId;
+    if (!championId || !skinId) {
+      logger.debug(
+        "[Skins] commitSelectionToHistory skipped — missing champion/skin",
+        { championId, skinId }
+      );
+      return;
+    }
+
+    const chromaId = this.selectedChromaId;
+    const entry: HistoryEntry = {
+      skinId,
+      chromaId,
+      timestamp: Date.now(),
+    };
+    try {
+      await addSkinToHistory(championId, entry, this.historySize);
+      if (chromaId) {
+        await addChromaToHistory(
+          skinId,
+          chromaId,
+          this.CHROMA_HISTORY_WINDOW
+        );
+      }
+      logger.info("[Skins] Committed played skin to history", {
+        championId,
+        skinId,
+        chromaId,
+      });
+    } catch (err) {
+      logger.warn("[Skins] Failed to commit selection to history", err);
+    }
   }
 
   async rerollSkin() {
@@ -442,8 +489,8 @@ export class SkinsService extends EventEmitter {
 
     // Historique skin + chroma (only if history enabled)
     if (this.historyEnabled) {
-      await this.pushSkinHistory(this.currentChampion, pick.id);
-      await this.pushChromaHistory(pick.id, variantId);
+      this.pushSkinHistoryInMemory(this.currentChampion, pick.id);
+      this.pushChromaHistoryInMemory(pick.id, variantId);
     }
 
     this.emit("selection", this.getSelection());
@@ -491,8 +538,8 @@ export class SkinsService extends EventEmitter {
     this.selectedChromaId = 0;
 
     if (this.historyEnabled) {
-      await this.pushSkinHistory(this.currentChampion, pick.id);
-      await this.pushChromaHistory(pick.id, pick.id);
+      this.pushSkinHistoryInMemory(this.currentChampion, pick.id);
+      this.pushChromaHistoryInMemory(pick.id, pick.id);
     }
 
     this.emit("selection", this.getSelection());
@@ -528,7 +575,7 @@ export class SkinsService extends EventEmitter {
     this.selectedChromaId = pickedId === skin.id ? 0 : pickedId;
 
     if (this.historyEnabled) {
-      await this.pushChromaHistory(skin.id, pickedId);
+      this.pushChromaHistoryInMemory(skin.id, pickedId);
     }
 
     this.emit("selection", this.getSelection());
@@ -746,8 +793,8 @@ export class SkinsService extends EventEmitter {
         this.selectedChromaId = finalId !== picked.id ? finalId : 0;
 
         if (this.historyEnabled) {
-          await this.pushSkinHistory(this.currentChampion, picked.id);
-          await this.pushChromaHistory(picked.id, finalId);
+          this.pushSkinHistoryInMemory(this.currentChampion, picked.id);
+          this.pushChromaHistoryInMemory(picked.id, finalId);
         }
 
         this.emit("selection", this.getSelection());

@@ -156,8 +156,18 @@ function wireDomainEvents() {
     const win = getMainWindow();
     if (!win || win.isDestroyed()) return;
 
-    // "InProgress" signifie que le joueur est en partie (ou ecran de chargement)
+    // "InProgress" signifie que le joueur est en partie (ou ecran de chargement).
+    // C'est aussi le seul moment où on peut affirmer que le skin sélectionné
+    // a vraiment été "joué" — pendant le champ select l'utilisateur peut
+    // reroll/hover une douzaine d'options avant de se décider, et persister
+    // chacune polluerait l'historique du carrousel standby de Solo. Le commit
+    // unique ici résout ça.
     if (phase === "InProgress") {
+      skins
+        .commitSelectionToHistory()
+        .catch((err) =>
+          logger.warn("[Skins] commitSelectionToHistory failed", err)
+        );
       if (win.isVisible()) {
         logger.info("[App] Partie detectee : Mise en veille de la fenetre");
         win.hide();
