@@ -49,8 +49,10 @@ export function registerMiscIpc(readyCheck: ReadyCheckService) {
   ipcMain.handle("get-open-at-login", async () => {
     const settings = await loadSettings();
     // On peut aussi verifier app.getLoginItemSettings().openAtLogin
-    // mais ici on se fie a notre config ou a defaut false
-    return settings.openAtLogin ?? false;
+    // mais ici on se fie a notre config ou a defaut true.
+    // Le defaut est applique (et persiste + propage a l'OS) au demarrage
+    // dans app.ts pour eviter le desync UI/registre.
+    return settings.openAtLogin ?? true;
   });
 
   ipcMain.handle("set-open-at-login", async (_e, openAtLogin: boolean) => {

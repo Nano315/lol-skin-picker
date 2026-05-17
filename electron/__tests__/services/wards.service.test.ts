@@ -137,16 +137,16 @@ describe("WardsService", () => {
       expect(service.getEnabled()).toBe(true);
     });
 
-    it("defaults to false when the key is missing", async () => {
+    it("defaults to true when the key is missing", async () => {
       loadSettingsMock.mockResolvedValue({});
       await service.initFromSettings();
-      expect(service.getEnabled()).toBe(false);
+      expect(service.getEnabled()).toBe(true);
     });
 
-    it("defaults to false when loadSettings throws", async () => {
+    it("defaults to true when loadSettings throws", async () => {
       loadSettingsMock.mockRejectedValue(new Error("io"));
       await service.initFromSettings();
-      expect(service.getEnabled()).toBe(false);
+      expect(service.getEnabled()).toBe(true);
     });
   });
 

@@ -55,10 +55,10 @@ export class WardsService extends EventEmitter {
   async initFromSettings(): Promise<boolean> {
     try {
       const settings = await loadSettings();
-      this.enabled = settings.wardAutoRollEnabled ?? false;
+      this.enabled = settings.wardAutoRollEnabled ?? true;
     } catch (err) {
-      logger.warn("[Wards] Echec lecture settings, defaut=desactive", err);
-      this.enabled = false;
+      logger.warn("[Wards] Echec lecture settings, defaut=active", err);
+      this.enabled = true;
     }
     return this.enabled;
   }

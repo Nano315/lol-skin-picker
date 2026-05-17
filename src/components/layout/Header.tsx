@@ -1,18 +1,25 @@
+import type { ComponentType, SVGProps } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
+import { Library, Settings as SettingsIcon, User, Users } from "lucide-react";
 import fallbackIcon from "/fallback-icon.png?url";
 import appIcon from "/icon.ico?url";
 import { useInvitationBadgeCount } from "@/features/hooks/useInvitationQueue";
 import { SocketConnectionIndicator } from "@/components/common/SocketConnectionIndicator";
 import { cn } from "@/lib/utils";
 
-type NavItem = { to: string; label: string; withBadge?: boolean };
+type NavItem = {
+  to: string;
+  label: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  withBadge?: boolean;
+};
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Solo" },
-  { to: "/premade", label: "Premade", withBadge: true },
-  { to: "/library", label: "Library" },
-  { to: "/settings", label: "Settings" },
+  { to: "/", label: "Solo", icon: User },
+  { to: "/premade", label: "Premade", icon: Users, withBadge: true },
+  { to: "/library", label: "Library", icon: Library },
+  { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 export default function Header({
@@ -66,42 +73,48 @@ export default function Header({
         </div>
 
         <nav className="flex items-center gap-1">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                cn(
-                  "relative rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-200",
-                  isActive
-                    ? "text-white"
-                    : "text-ink/70 hover:text-white"
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <motion.span
-                      layoutId="nav-active-pill"
-                      className="absolute inset-0 rounded-full border border-accent/50 bg-gradient-to-br from-accent/15 to-accent-strong/10"
-                      transition={
-                        reduced
-                          ? { duration: 0 }
-                          : { type: "spring", stiffness: 380, damping: 32 }
-                      }
-                    />
-                  )}
-                  <span className="relative z-10">{item.label}</span>
-                  {item.withBadge && showBadge && (
-                    <span className="absolute -right-1 -top-1 z-20 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-bg animate-pulse-slow">
-                      {invitationCount}
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  cn(
+                    "relative rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-200",
+                    isActive
+                      ? "text-white"
+                      : "text-ink/70 hover:text-white"
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.span
+                        layoutId="nav-active-pill"
+                        className="absolute inset-0 rounded-full border border-accent/50 bg-gradient-to-br from-accent/15 to-accent-strong/10"
+                        transition={
+                          reduced
+                            ? { duration: 0 }
+                            : { type: "spring", stiffness: 380, damping: 32 }
+                        }
+                      />
+                    )}
+                    <span className="relative z-10 inline-flex items-center gap-1.5">
+                      <Icon className="h-3.5 w-3.5" aria-hidden />
+                      {item.label}
                     </span>
-                  )}
-                </>
-              )}
-            </NavLink>
-          ))}
+                    {item.withBadge && showBadge && (
+                      <span className="absolute -right-1 -top-1 z-20 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-bg animate-pulse-slow">
+                        {invitationCount}
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
 

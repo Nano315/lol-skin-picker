@@ -216,6 +216,24 @@ if (!gotTheLock) {
     // the first champion-lock can fire.
     await wards.initFromSettings();
 
+    // Apply the persisted (or default) openAtLogin preference to the OS login
+    // items registry. Without this step, a fresh install would display "Run on
+    // startup = true" in Settings while the OS hasn't been told to launch the
+    // app — the toggle would be a lie. On first launch we also persist the
+    // default so subsequent reads are stable and the user can flip it off.
+    if (!app.isPackaged) {
+      logger.debug("[App] Dev build: skip openAtLogin OS sync");
+    } else {
+      const openAtLoginPref = persistedSettings.openAtLogin ?? true;
+      app.setLoginItemSettings({
+        openAtLogin: openAtLoginPref,
+        path: app.getPath("exe"),
+      });
+      if (persistedSettings.openAtLogin === undefined) {
+        await saveSettings({ openAtLogin: openAtLoginPref });
+      }
+    }
+
     registerAllIpc({
       lcu,
       gameflow,

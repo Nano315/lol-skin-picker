@@ -72,7 +72,7 @@ export class SkinsService extends EventEmitter {
   private currentChampion = 0;
   private lastAppliedChampion = 0;
 
-  private includeDefaultSkin = true;
+  private includeDefaultSkin = false;
 
   private selectedSkinId = 0;
   private selectedChromaId = 0;
