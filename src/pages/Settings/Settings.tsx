@@ -325,11 +325,20 @@ export default function Settings() {
                 <div className="flex flex-col gap-2">
                   <p className="m-0 flex items-center gap-2 text-sm leading-relaxed text-white/70">
                     <Info className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
-                    Not affiliated with Riot Games or DPM.lol. Crafted to make
-                    skin selection smoother and more delightful.
+                    Crafted to make skin selection smoother and more delightful.
+                    Not affiliated with DPM.lol.
+                  </p>
+                  {/* Disclaimer requis par les General Policies Riot (texte imposé, ne pas reformuler) */}
+                  <p className="m-0 pl-5 text-xs leading-relaxed text-muted">
+                    Skin Picker isn&apos;t endorsed by Riot Games and
+                    doesn&apos;t reflect the views or opinions of Riot Games or
+                    anyone officially involved in producing or managing Riot
+                    Games properties. Riot Games, and all associated properties
+                    are trademarks or registered trademarks of Riot Games, Inc.
                   </p>
                   <p className="m-0 pl-5 text-xs text-muted">
-                    © 2025 Skin Picker. All rights reserved.
+                    © {new Date().getFullYear()} Skin Picker. All rights
+                    reserved.
                   </p>
                 </div>
               </GlassCard>

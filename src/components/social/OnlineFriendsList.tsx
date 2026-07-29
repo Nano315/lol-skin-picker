@@ -39,7 +39,7 @@ export function OnlineFriendsList({
           <p className="m-0 text-sm font-medium text-white/70">
             Waiting for League of Legends...
           </p>
-          <p className="m-0 text-xs text-white/40">
+          <p className="m-0 text-xs text-white/55">
             Launch the LoL client to see your online friends and send
             invitations.
           </p>
@@ -54,7 +54,7 @@ export function OnlineFriendsList({
           <p className="m-0 text-sm font-medium text-white/70">
             No friends online
           </p>
-          <p className="m-0 text-xs text-white/40">
+          <p className="m-0 text-xs text-white/55">
             Friends using Skin Picker will appear here
           </p>
         </div>

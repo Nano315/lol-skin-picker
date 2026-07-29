@@ -345,7 +345,8 @@ function CTAAction({
         "shine group relative overflow-hidden rounded-3xl text-left text-white",
         "bg-gradient-to-b from-accent-strong to-accent",
         "ring-1 ring-white/20 shadow-accent-glow hover:shadow-accent-glow-strong",
-        "transition-shadow duration-300 focus-visible:outline-none",
+        "transition-shadow duration-300",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         "disabled:cursor-not-allowed disabled:opacity-60",
         compact ? "px-4 py-3" : "px-6 py-4",
         className
@@ -441,7 +442,8 @@ function SecondaryAction({
       className={cn(
         "group relative overflow-hidden rounded-3xl px-4 py-4",
         "glass border border-white/10 text-left text-ink/90",
-        "transition-colors duration-200 focus-visible:outline-none",
+        "transition-colors duration-200",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/90 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         !isDisabled && "hover:border-white/20 hover:bg-white/[0.06] hover:text-white",
         "disabled:cursor-not-allowed",
         dimmed && "opacity-45",

@@ -1,4 +1,9 @@
-/* -------- layout global -------- */
+/* -------- layout global --------
+   The bento/card/detail/status-pill classes that used to live here were a
+   pre-Tailwind layer; the React components now compose those styles with
+   Tailwind utilities (GlassCard, CardHeader, …). Only the rules still
+   referenced by live markup remain below. */
+
 .app {
   min-height: 100%;
   margin: 0 18px;
@@ -6,158 +11,8 @@
   flex-direction: column;
 }
 
-/* -------- main -------- */
-.main {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 28px 0 48px;
-}
-
-@media (max-width: 1550px) {
-  .main {
-    z-index: 10;
-  }
-}
-
-.page-shell {
-  width: min(1200px, 100% - 48px);
-  margin: 0 auto;
-}
-
-.bento-grid {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--card-gap);
-  align-items: start;
-}
-
-.card {
-  background: var(--panel-color);
-  border: 1px solid var(--panel-border);
-  border-radius: 26px;
-  padding: 24px;
-  box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-  transform: translateY(-1px);
-  box-shadow: 0 25px 90px rgba(0, 0, 0, 0.7);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-  gap: 12px;
-}
-
-.card-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #fff;
-  margin: 4px 0 0;
-}
-
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.7rem;
-  color: var(--muted-color);
-  margin: 0;
-}
-
-.status-pill {
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--panel-border);
-  background: rgba(255, 255, 255, 0.04);
-  color: #fff;
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.preview-card {
-  grid-column: span 8;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.details-card {
-  grid-column: span 4;
-}
-
-.actions-card {
-  grid-column: span 12;
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 16px;
-}
-
-.detail-item {
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid var(--panel-border);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.detail-label {
-  color: var(--muted-color);
-  font-size: 0.85rem;
-  margin: 0 0 6px;
-}
-
-.detail-value {
-  margin: 0;
-  font-weight: 600;
-  color: #fff;
-  font-size: 1.05rem;
-}
-
-.muted {
-  color: var(--muted-color);
-  margin: 0;
-}
-
-@media (max-width: 1100px) {
-  .page-shell {
-    width: min(100%, 100% - 32px);
-  }
-
-  .preview-card {
-    grid-column: span 12;
-  }
-
-  .details-card {
-    grid-column: span 12;
-  }
-}
-
-@media (max-width: 720px) {
-  .card {
-    padding: 18px;
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-/* Low Spec Mode overrides */
-body.low-spec .card,
-body.low-spec .header,
+/* Low Spec Mode: drop the glassy backdrop on room member cards (the only
+   non-Tailwind surface left that uses backdrop-filter). */
 body.low-spec .room-member-card {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;

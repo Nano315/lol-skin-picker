@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   ChevronDown,
@@ -17,6 +17,7 @@ import {
 import { useChampionSkins } from "@/features/championLibrary/useChampionLibrary";
 import { useChampionExclusions } from "@/features/exclusions/useExclusions";
 import { useToast } from "@/features/hooks/useToast";
+import { api } from "@/features/api";
 import { cn } from "@/lib/utils";
 import type { OwnedChampion } from "@/features/championLibrary/useChampionLibrary";
 
@@ -241,6 +242,27 @@ function SkinRow({
   const [chromasOpen, setChromasOpen] = useState(false);
   const reduced = useReducedMotion();
 
+  // Real chroma colors, fetched lazily the first time the row is expanded so a
+  // swatch can preview each variant (same source as the in-game ChromaBalls).
+  const [chromaColors, setChromaColors] = useState<Record<number, string | null>>(
+    {}
+  );
+  useEffect(() => {
+    if (!chromasOpen || skin.chromas.length === 0) return;
+    let cancelled = false;
+    api
+      .getSkinChromaColors(skin.championId, skin.id)
+      .then((map) => {
+        if (!cancelled) setChromaColors(map);
+      })
+      .catch(() => {
+        if (!cancelled) setChromaColors({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chromasOpen, skin.championId, skin.id, skin.chromas.length]);
+
   const skinNum = skin.id - skin.championId * 1000;
   const splashUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${championAlias}_${skinNum}.jpg`;
 
@@ -289,7 +311,7 @@ function SkinRow({
               {skin.chromas.length > 1 ? "s" : ""}
             </button>
           ) : (
-            <span className="text-[11px] font-medium uppercase tracking-wider text-white/30">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-white/50">
               No chroma
             </span>
           )}
@@ -322,6 +344,7 @@ function SkinRow({
                   <ChromaChip
                     key={chroma.id}
                     label={extractChromaLabel(chroma.name)}
+                    color={chromaColors[chroma.id] ?? null}
                     excluded={excluded}
                     onClick={() => onToggleChroma(chroma.id)}
                   />
@@ -346,10 +369,12 @@ function SkinRow({
 
 function ChromaChip({
   label,
+  color,
   excluded,
   onClick,
 }: {
   label: string;
+  color: string | null;
   excluded: boolean;
   onClick: () => void;
 }) {
@@ -366,6 +391,14 @@ function ChromaChip({
       aria-pressed={!excluded}
       title={excluded ? `${label} (excluded)` : label}
     >
+      <span
+        aria-hidden
+        className={cn(
+          "h-2.5 w-2.5 shrink-0 rounded-full border border-white/30",
+          excluded && "opacity-50"
+        )}
+        style={{ backgroundColor: color ?? "rgba(255,255,255,0.18)" }}
+      />
       {label}
     </button>
   );

@@ -45,7 +45,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         aria-label="Notifications"
-        className="pointer-events-none fixed right-4 top-4 z-[9999] flex max-w-sm flex-col gap-3"
+        className="pointer-events-none fixed right-4 top-12 z-[9999] flex max-w-sm flex-col gap-3"
       >
         <AnimatePresence initial={false}>
           {visibleToasts.map((toast) => (

@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ShieldCheck, Sparkles } from "lucide-react";
 import { Button, GradientText } from "@/components/ui";
+import { useModalA11y } from "@/features/hooks/useModalA11y";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -14,6 +16,11 @@ interface Props {
  */
 export function TelemetryConsentModal({ onAccept, onDecline }: Props) {
   const reduced = useReducedMotion();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap + initial focus + focus restore. No Escape: this first-run
+  // consent prompt intentionally forces an explicit choice.
+  useModalA11y(dialogRef, onDecline, { closeOnEscape: false });
 
   return (
     <>
@@ -29,6 +36,7 @@ export function TelemetryConsentModal({ onAccept, onDecline }: Props) {
       {/* Modal */}
       <div className="pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center p-6">
         <motion.div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="telemetry-title"

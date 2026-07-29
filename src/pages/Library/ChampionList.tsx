@@ -108,6 +108,7 @@ export function ChampionList({
                 key={opt.id}
                 type="button"
                 onClick={() => setSortMode(opt.id)}
+                aria-pressed={active}
                 className={cn(
                   "relative rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150",
                   active ? "text-white" : "text-ink/60 hover:text-white"
@@ -166,7 +167,10 @@ export function ChampionList({
                 exclusionsByChampion[c.id]?.length ?? 0;
               const active = c.id === selectedId;
               return (
-                <li key={c.id}>
+                <li
+                  key={c.id}
+                  className="[contain-intrinsic-size:auto_56px] [content-visibility:auto]"
+                >
                   <ChampionRow
                     champion={c}
                     active={active}
@@ -199,6 +203,7 @@ function ChampionRow({
     <button
       type="button"
       onClick={onClick}
+      aria-current={active ? "true" : undefined}
       className={cn(
         "group flex w-full items-center gap-3 rounded-2xl border px-2.5 py-2 text-left transition-colors duration-150",
         active

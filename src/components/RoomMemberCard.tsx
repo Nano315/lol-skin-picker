@@ -1,7 +1,8 @@
 // src/components/RoomMemberCard.tsx
-import { Crown, Lock, UserMinus } from "lucide-react";
+import { Check, Crown, Lock, UserMinus } from "lucide-react";
 import { useChromaColor } from "@/features/hooks/useChromaColor";
 import type { RoomMember } from "@/features/roomsClient";
+import { cn } from "@/lib/utils";
 import fallbackSkin from "/fallback-skin.png?url";
 
 type Props = {
@@ -61,7 +62,7 @@ export function RoomMemberCard({
   let portraitUrl = "";
   if (championId && skinId && championAlias) {
     const skinIndex = skinId - championId * 1000;
-    portraitUrl = `http://ddragon.leagueoflegends.com/cdn/img/champion/loading/${championAlias}_${skinIndex}.jpg`;
+    portraitUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${championAlias}_${skinIndex}.jpg`;
   }
   const displayedSkin = portraitUrl || fallbackSkin;
 
@@ -143,31 +144,27 @@ export function RoomMemberCard({
         </button>
       )}
 
-      {/* Suggestion Badge (Owner only) */}
+      {/* Suggestion badge (owner only) — a pulsing orb the owner taps to push
+          the suggested skin to this member. The orb's fill previews the target
+          color; the check icon makes the "apply" affordance explicit. */}
       {suggestedChromaId && onApplySuggestion && suggestionColor && (
         <button
-          className="suggestion-badge"
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             onApplySuggestion();
           }}
-          title="Click to accept suggestion"
-          style={{
-            position: 'absolute',
-            top: -10,
-            right: -10,
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            backgroundColor: suggestionColor,
-            border: '2px solid white',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-            cursor: 'pointer',
-            zIndex: 10,
-            animation: 'pulse 2s infinite'
-          }}
+          aria-label={`Apply suggested skin for ${member!.name}`}
+          title="Apply suggested skin"
+          style={{ backgroundColor: suggestionColor }}
+          className={cn(
+            "absolute -right-2.5 -top-2.5 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full",
+            "border-2 border-white text-white [animation:pulse_2s_infinite]",
+            "transition-transform duration-150 hover:scale-110",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          )}
         >
-           {/* Maybe a small icon inside? */}
+          <Check className="h-4 w-4 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]" aria-hidden />
         </button>
       )}
     </div>

@@ -138,8 +138,8 @@ export default function Solo() {
     phase === "ChampSelect"
       ? activeSkin
         ? activeSkin.name
-        : selection.skinId || "Lock in your pick"
-      : "...";
+        : "Lock in your pick"
+      : "—";
 
   const chromaLabel =
     phase === "ChampSelect"
@@ -148,14 +148,14 @@ export default function Solo() {
           ? extractChromaColor(activeChroma.name)
           : "Default"
         : "Lock in your pick"
-      : "...";
+      : "—";
 
   const championLabel =
     phase === "ChampSelect"
       ? hasLockedChampion
         ? selection.championAlias
         : "Lock in your pick"
-      : "...";
+      : "—";
 
   const previewChromas = activeSkin?.chromas ?? [];
 

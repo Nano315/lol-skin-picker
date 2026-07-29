@@ -432,8 +432,6 @@ export function PremadePage() {
 
       setIsSyncing(true);
       setSyncProgress(0);
-      console.time("[Rooms] Sync duration");
-      console.log("[Rooms] Computing skin colors for synergy (parallel)...");
 
       try {
         // Build list of all computations needed
@@ -453,9 +451,6 @@ export function PremadePage() {
           return;
         }
 
-        console.log(
-          `[Rooms] Processing ${computations.length} skin/chroma combinations...`,
-        );
         let completed = 0;
 
         // Process all computations in parallel
@@ -487,7 +482,6 @@ export function PremadePage() {
 
         setSkinOptions(options);
         if (options.length > 0) {
-          console.log(`[Rooms] Sending ${options.length} options to server.`);
           roomsClient.sendOwnedOptions({
             championId: selection.championId,
             championAlias: selection.championAlias,
@@ -495,7 +489,6 @@ export function PremadePage() {
           });
         }
       } finally {
-        console.timeEnd("[Rooms] Sync duration");
         if (isMounted) {
           setIsSyncing(false);
           setSyncProgress(100);
@@ -675,11 +668,13 @@ export function PremadePage() {
                   </p>
                   <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:items-stretch">
                     <input
+                      aria-label="Room code"
                       className={cn(
                         "flex-1 rounded-full border border-white/10 bg-black/30 px-5 py-3 text-sm text-white",
-                        "placeholder:text-white/30",
+                        "placeholder:text-white/45",
                         "outline-none transition-colors duration-200",
                         "focus:border-white/30 focus:bg-black/40",
+                        "focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
                         "disabled:cursor-not-allowed disabled:opacity-50"
                       )}
                       placeholder="Room code (e.g. ABC123)"

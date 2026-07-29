@@ -1,8 +1,9 @@
 // src/components/rooms/KickConfirmModal.tsx
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { UserMinus, X } from "lucide-react";
 import { Button } from "@/components/ui";
+import { useModalA11y } from "@/features/hooks/useModalA11y";
 import { cn } from "@/lib/utils";
 
 interface KickConfirmModalProps {
@@ -24,6 +25,7 @@ export function KickConfirmModal({
   onCancel,
 }: KickConfirmModalProps) {
   const reduced = useReducedMotion();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [isExiting, setIsExiting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
 
@@ -37,13 +39,8 @@ export function KickConfirmModal({
     onConfirm();
   }, [onConfirm]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleCancel();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleCancel]);
+  // Focus trap + initial focus + Escape-to-cancel + focus restore.
+  useModalA11y(dialogRef, handleCancel);
 
   const motionEnter = reduced
     ? { opacity: 1, scale: 1, y: 0 }
@@ -67,6 +64,7 @@ export function KickConfirmModal({
 
       <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-6">
         <motion.div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="kick-confirm-title"
@@ -132,9 +130,9 @@ export function KickConfirmModal({
               Cancel
             </Button>
             <Button
-              variant="primary"
+              variant="danger"
               size="md"
-              className="flex-1 !bg-gradient-to-b !from-rose-500 !to-rose-700 !shadow-[0_0_16px_rgba(244,63,94,0.45)]"
+              className="flex-1"
               onClick={handleConfirm}
               disabled={isConfirming}
               loading={isConfirming}

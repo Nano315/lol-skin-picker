@@ -28,7 +28,7 @@ export default function SkinPreview({
   const reduced = useReducedMotion();
   const splashUrl =
     selection.skinId && selection.championAlias
-      ? `http://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
+      ? `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
           selection.championAlias
         }_${selection.skinId - selection.championId * 1000}.jpg`
       : "";

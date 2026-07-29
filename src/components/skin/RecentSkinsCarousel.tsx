@@ -60,7 +60,7 @@ function thumbnailUrl(skin: RecentSkinEntry): string {
   // the splash here too matches the existing SkinPreview behaviour and
   // saves us another asset host.
   const skinIndex = skin.skinId - skin.championId * 1000;
-  return `http://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${skin.championAlias}_${skinIndex}.jpg`;
+  return `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${skin.championAlias}_${skinIndex}.jpg`;
 }
 
 export function RecentSkinsCarousel({
@@ -187,7 +187,7 @@ export function RecentSkinsCarousel({
               );
             })}
           </div>
-          <p className="m-0 text-center text-[11px] leading-relaxed text-white/40">
+          <p className="m-0 text-center text-[11px] leading-relaxed text-white/55">
             {helper}
           </p>
         </>

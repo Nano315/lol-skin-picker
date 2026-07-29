@@ -3,7 +3,7 @@ import { motion, useReducedMotion, type HTMLMotionProps } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "magic" | "ghost";
+type Variant = "primary" | "secondary" | "magic" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg" | "icon" | "icon-lg";
 
 type NativeProps = Omit<
@@ -31,6 +31,8 @@ const VARIANT_CLASSES: Record<Variant, string> = {
     "shine bg-gradient-to-br from-fuchsia-500 via-accent-strong to-accent text-white shadow-accent-glow ring-1 ring-white/25 hover:shadow-accent-glow-strong",
   ghost:
     "text-muted hover:text-white hover:bg-white/[0.04]",
+  danger:
+    "shine bg-gradient-to-b from-rose-500 to-rose-700 text-white shadow-[0_0_16px_rgba(244,63,94,0.45)] ring-1 ring-white/20 hover:shadow-[0_0_24px_rgba(244,63,94,0.6)]",
 };
 
 const SIZE_CLASSES: Record<Size, string> = {
@@ -82,7 +84,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       disabled={isDisabled}
       className={cn(
         "group relative inline-flex items-center justify-center font-semibold",
-        "transition-shadow duration-300 focus-visible:outline-none",
+        "transition-shadow duration-300",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/90 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         "disabled:cursor-not-allowed disabled:opacity-50",
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],

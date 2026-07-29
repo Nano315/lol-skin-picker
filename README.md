@@ -12,7 +12,9 @@ A desktop companion for League of Legends champion select that turns *"what skin
 
 Skin Picker is an Electron application that talks directly to the local League of Legends Client (LCU) to automatically roll, re-roll and coordinate skins during champion select. It runs standalone for solo queue and pairs with a dedicated real-time server to synchronize a whole team's skins by color, by thematic Skin Line, or a smart blend of both.
 
-> ⚠️ Skin Picker is not affiliated with or endorsed by Riot Games. It interacts only with the local LoL Client to modify cosmetic selection (skins and chromas). You remain responsible for compliance with Riot's Terms of Service.
+> ⚠️ Skin Picker isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
+>
+> Skin Picker interacts only with the local League Client (LCU) API to change cosmetic selection among skins and chromas **you already own** — it never modifies game files, never injects into the game process, and never unlocks content you don't own.
 
 ---
 

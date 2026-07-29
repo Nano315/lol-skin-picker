@@ -51,6 +51,7 @@ export function ChromaSelector({ synergies, onApply, activeColor, totalMembers, 
               type="button"
               onClick={() => onApply(s.color)}
               title={`Sync on ${s.color}`}
+              aria-label={`Sync the squad on color ${s.color} — ${s.members.length} of ${totalMembers} own a matching skin`}
               disabled={disabled}
               style={{ backgroundColor: s.color }}
               className={cn(

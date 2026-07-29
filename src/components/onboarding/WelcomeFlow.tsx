@@ -18,7 +18,7 @@
  * any state.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   AnimatePresence,
   motion,
@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { Button, GradientText } from "@/components/ui";
 import { useConnection } from "@/features/hooks/useConnection";
+import { useModalA11y } from "@/features/hooks/useModalA11y";
 import { cn } from "@/lib/utils";
 
 type Step = 1 | 2 | 3;
@@ -81,6 +82,10 @@ export function WelcomeFlow({
 }: Props) {
   const [step, setStep] = useState<Step>(1);
   const reduced = useReducedMotion();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap + initial focus + Escape (skips the tour) + focus restore.
+  useModalA11y(dialogRef, onSkip);
 
   const handleAccept = () => onComplete(true);
   const handleDecline = () => onComplete(false);
@@ -100,6 +105,7 @@ export function WelcomeFlow({
 
       <div className="pointer-events-none fixed inset-0 z-[9991] flex items-center justify-center p-6">
         <motion.div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="welcome-flow-title"

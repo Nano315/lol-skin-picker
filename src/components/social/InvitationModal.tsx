@@ -1,8 +1,9 @@
 // src/components/social/InvitationModal.tsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Gamepad2, LogIn, X } from "lucide-react";
 import { Button, GradientText } from "@/components/ui";
+import { useModalA11y } from "@/features/hooks/useModalA11y";
 import { cn } from "@/lib/utils";
 
 export interface Invitation {
@@ -37,6 +38,7 @@ export function InvitationModal({
   timeRemaining,
 }: InvitationModalProps) {
   const reduced = useReducedMotion();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [isExiting, setIsExiting] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
 
@@ -51,14 +53,8 @@ export function InvitationModal({
     onAccept();
   }, [onAccept]);
 
-  // Escape key closes the modal.
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleDismiss();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleDismiss]);
+  // Focus trap + initial focus + Escape-to-dismiss + focus restore.
+  useModalA11y(dialogRef, handleDismiss);
 
   const timerWidth =
     timeRemaining !== undefined
@@ -90,6 +86,7 @@ export function InvitationModal({
           backdrop stays clickable around it. */}
       <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-6">
         <motion.div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="invitation-title"

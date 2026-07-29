@@ -21,7 +21,7 @@ export default function CardHeader({ eyebrow, title, trailing }: CardHeaderProps
         <p className="m-0 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
           {eyebrow}
         </p>
-        <h3 className="m-0 mt-1 text-xl font-bold text-white">{title}</h3>
+        <h2 className="m-0 mt-1 text-xl font-bold text-white">{title}</h2>
       </div>
       {trailing}
     </div>

@@ -35,6 +35,11 @@ export default function Header({
   const invitationCount = useInvitationBadgeCount();
   const reduced = useReducedMotion();
   const showBadge = invitationCount > 0 && location.pathname !== "/premade";
+  // Per-page sr-only document heading so each route has a single H1 that names
+  // it, giving screen-reader heading navigation a top-level anchor.
+  const activePageLabel =
+    NAV_ITEMS.find((item) => item.to === location.pathname)?.label ??
+    "Skin Picker";
   const iconUrl = iconId
     ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`
     : fallbackIcon;
@@ -55,6 +60,7 @@ export default function Header({
 
   return (
     <header className="sticky top-3 z-20 mx-auto mt-3 flex w-[min(1200px,calc(100%-2rem))] items-center justify-between gap-4 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 shadow-glass backdrop-blur-xl">
+      <h1 className="sr-only">{activePageLabel}</h1>
       {/* Left: brand + nav */}
       <div className="flex items-center gap-5">
         <div className="flex items-center gap-2.5 pl-1">
