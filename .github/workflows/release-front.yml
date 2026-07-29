@@ -28,6 +28,20 @@ jobs:
           # `node >=22.12.0`. Sur Node 20, `npm ci` remontait des EBADENGINE et
           # le build natif n'etait pas garanti.
           node-version: "22"
+
+      # npm 11 OBLIGATOIRE (Node 22 embarque npm 10).
+      #
+      # `vite@8` — tiree comme dependance imbriquee par `vitest@4` — declare
+      # `esbuild` en peer OPTIONNEL (peerDependenciesMeta.esbuild.optional).
+      # npm 11 respecte ce marquage et n'installe pas esbuild ; npm 10 l'installe
+      # quand meme. Les deux produisent donc des lockfiles differents et
+      # MUTUELLEMENT INCOMPATIBLES : avec un lock npm 11, npm 10 echoue en
+      # `Missing: esbuild@0.28.1 from lock file` ; avec un lock npm 10, npm 11
+      # echoue en `Missing: lightningcss-*`.
+      # Le lock du depot est genere avec npm 11 : la CI doit utiliser la meme
+      # version majeure, sinon `npm ci` echoue quoi qu'il arrive.
+      - run: npm i -g npm@11
+
       - run: npm ci
       - run: npm test
 
@@ -45,6 +59,10 @@ jobs:
           # Doit rester aligne sur le job `test` ci-dessus (>=22.12 requis par
           # @electron/rebuild, tire par electron-builder 26).
           node-version: "22"
+
+      # Meme contrainte que dans le job `test` : le lock est genere avec npm 11,
+      # npm 10 le rejette. Voir le commentaire detaille plus haut.
+      - run: npm i -g npm@11
 
       - run: npm ci
 

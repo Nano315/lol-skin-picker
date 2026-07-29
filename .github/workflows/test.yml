@@ -20,5 +20,12 @@ jobs:
           # Aligne sur release-front.yml : @electron/rebuild (via
           # electron-builder 26) exige `node >=22.12.0`.
           node-version: '22'
+
+      # npm 11 obligatoire (Node 22 embarque npm 10). `vite@8`, tiree par
+      # `vitest@4`, declare `esbuild` en peer OPTIONNEL : npm 10 l'installe a
+      # tort, npm 11 non. Les lockfiles des deux versions sont mutuellement
+      # incompatibles et celui du depot est genere avec npm 11.
+      - run: npm i -g npm@11
+
       - run: npm ci
       - run: npm test -- --coverage
