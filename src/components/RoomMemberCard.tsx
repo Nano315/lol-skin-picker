@@ -2,6 +2,7 @@
 import { Check, Crown, Lock, UserMinus } from "lucide-react";
 import { useChromaColor } from "@/features/hooks/useChromaColor";
 import type { RoomMember } from "@/features/roomsClient";
+import { displayName } from "@/features/utils/displayText";
 import { cn } from "@/lib/utils";
 import fallbackSkin from "/fallback-skin.png?url";
 
@@ -96,7 +97,11 @@ export function RoomMemberCard({
 
       {isOccupied ? (
         <div className="room-member-name-wrapper">
-          <span className="room-member-name">{member!.name}</span>
+          {/* Pseudo fourni par un pair via le serveur : borne a l'affichage
+              pour qu'une chaine demesuree ne defigure pas la room. */}
+          <span className="room-member-name" title={member!.name}>
+            {displayName(member!.name)}
+          </span>
         </div>
       ) : (
         <div className="room-member-placeholder">Empty slot</div>

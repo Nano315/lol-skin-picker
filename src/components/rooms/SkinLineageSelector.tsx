@@ -1,5 +1,6 @@
 import { Ban } from "lucide-react";
 import type { SkinLineSynergy } from "@/features/roomsClient";
+import { displaySkinLineName } from "@/features/utils/displayText";
 import { cn } from "@/lib/utils";
 
 interface SkinLineageSelectorProps {
@@ -56,7 +57,8 @@ export function SkinLineageSelector({ synergies, onApply, activeId, totalMembers
               className={cn(baseOption, isActive ? activeOption : idleOption)}
               aria-pressed={isActive}
             >
-              <span>{s.skinLineName}</span>
+              {/* Nom issu des options d'un pair : borne a l'affichage. */}
+              <span>{displaySkinLineName(s.skinLineName)}</span>
               <span
                 className={cn(
                   "rounded-full px-1.5 py-[1px] text-xs font-bold tabular-nums",

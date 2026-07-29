@@ -167,14 +167,33 @@ export class SkinsService extends EventEmitter {
 
   private async loopTick() {
     if (!this.creds) return; // Condition d'arret
-    await this.tick();
-    // On attend la fin de tick() avant de programmer le suivant
-    // Polling general un peu plus lent car on a le WebSocket pour le reactif
-    this.poller = setTimeout(() => this.loopTick(), 2500);
+
+    // `tick()` DOIT etre protege : il appelle notamment `ensureAliasMap()`, qui
+    // interroge CommunityDragon. Sans ce try/catch, une simple coupure reseau
+    // (ou une reponse hostile) faisait remonter le rejet hors de loopTick : le
+    // `setTimeout` suivant n'etait jamais arme et la boucle s'arretait
+    // DEFINITIVEMENT — l'app cessait silencieusement de detecter les champion
+    // selects jusqu'au redemarrage.
+    try {
+      await this.tick();
+    } catch (err) {
+      logger.warn(
+        `[Skins] tick() en echec, la boucle continue: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+    } finally {
+      // On attend la fin de tick() avant de programmer le suivant
+      // Polling general un peu plus lent car on a le WebSocket pour le reactif
+      if (this.creds) {
+        this.poller = setTimeout(() => this.loopTick(), 2500);
+      }
+    }
   }
 
   stop() {
-    if (this.poller) clearInterval(this.poller);
+    // `poller` est un handle de setTimeout (boucle recursive), pas d'interval.
+    if (this.poller) clearTimeout(this.poller);
     this.stopFallbackPolling();
     this.disconnectWebSocket();
 

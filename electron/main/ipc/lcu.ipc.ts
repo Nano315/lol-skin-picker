@@ -3,6 +3,7 @@ import fetch from "node-fetch";
 import type { LcuWatcher } from "../../services/lcuWatcher";
 import { skinLineService } from "../../services/skinLineService";
 import { logger } from "../../logger";
+import { tryUrlId } from "../../utils/urlSafety";
 
 export function registerLcuIpc(lcu: LcuWatcher) {
   ipcMain.handle("get-lcu-status", () => lcu.status);
@@ -33,7 +34,10 @@ export function registerLcuIpc(lcu: LcuWatcher) {
       _event,
       params: { championId: number; skinId: number }
     ): Promise<Record<number, string | null>> => {
-      const { championId, skinId } = params;
+      // Valeurs venant du renderer : contraintes a des entiers avant toute
+      // interpolation dans un chemin d'URL.
+      const championId = tryUrlId(params?.championId);
+      const skinId = tryUrlId(params?.skinId);
       if (!championId || !skinId) return {};
 
       try {
@@ -66,7 +70,10 @@ export function registerLcuIpc(lcu: LcuWatcher) {
       _event,
       params: { championId: number; skinId: number; chromaId: number }
     ): Promise<string | null> => {
-      const { championId, skinId, chromaId } = params;
+      // Idem : entiers obligatoires avant interpolation dans l'URL.
+      const championId = tryUrlId(params?.championId);
+      const skinId = tryUrlId(params?.skinId);
+      const chromaId = tryUrlId(params?.chromaId);
 
       if (!chromaId) return null;
 

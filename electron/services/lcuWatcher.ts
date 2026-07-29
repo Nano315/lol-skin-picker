@@ -1,11 +1,31 @@
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { promisify } from "node:util";
+import path from "node:path";
 import { lcuFetch } from "../utils/lcuFetch";
 import { isArray, isPlainObject } from "../utils/jsonGuards";
 import { logger } from "../logger";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+/**
+ * Chemin ABSOLU de powershell.exe.
+ *
+ * L'appel se faisait via `exec("powershell ...")`, donc en resolvant le nom
+ * dans le PATH (et, sous Windows, dans le repertoire courant avant lui). Un
+ * `powershell.exe` malveillant depose au bon endroit etait alors execute a la
+ * place du binaire systeme — toutes les 2 secondes, puisque c'est la boucle de
+ * detection du client League.
+ *
+ * On resout depuis SystemRoot plutot que d'ecrire "C:\\Windows" en dur.
+ */
+const POWERSHELL_PATH = path.join(
+  process.env.SystemRoot ?? "C:\\Windows",
+  "System32",
+  "WindowsPowerShell",
+  "v1.0",
+  "powershell.exe"
+);
 
 /* -------- types -------- */
 export type LcuStatus = "connected" | "disconnected";
@@ -102,7 +122,15 @@ export class LcuWatcher extends EventEmitter {
       }
       this.adjustPollingSpeed(true);
     } catch (error) {
-      logger.error("[LCU] Erreur lors du scan du processus", error);
+      // On ne logge que le message, jamais l'objet d'erreur complet : sur un
+      // echec d'execFile, Node y attache `stdout`, qui contient la ligne de
+      // commande du client League — donc ses jetons d'authentification. Les logs
+      // electron-log sont ecrits sur disque.
+      logger.error(
+        `[LCU] Erreur lors du scan du processus: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
       this.toDisconnected();
       this.adjustPollingSpeed(false);
     } finally {
@@ -135,10 +163,18 @@ export class LcuWatcher extends EventEmitter {
   private async getLcuCommandLine(): Promise<string | null> {
     try {
       // Utilisation de PowerShell et Get-CimInstance pour remplacer wmic
-      // Get-CimInstance est la methode moderne recommandee sur Windows
-      const command = `powershell -NoProfile -NonInteractive -Command "Get-CimInstance Win32_Process -Filter \\"Name = 'LeagueClientUx.exe'\\" | Select-Object -ExpandProperty CommandLine"`;
-      
-      const { stdout } = await execAsync(command);
+      // Get-CimInstance est la methode moderne recommandee sur Windows.
+      //
+      // `execFile` avec un chemin absolu et un tableau d'arguments, au lieu de
+      // `exec` avec une chaine : plus de resolution via le PATH (ni via le
+      // repertoire courant), et plus de shell intermediaire qui interpreterait
+      // la ligne de commande.
+      const { stdout } = await execFileAsync(POWERSHELL_PATH, [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process -Filter \"Name = 'LeagueClientUx.exe'\" | Select-Object -ExpandProperty CommandLine",
+      ]);
       
       // La sortie peut contenir plusieurs lignes si plusieurs processus (rare pour LoL mais possible)
       // Ou simplement la ligne de commande

@@ -16,6 +16,7 @@
 
 import { lcuFetch } from "../utils/lcuFetch";
 import { logger } from "../logger";
+import { tryUrlId } from "../utils/urlSafety";
 import type { LcuWatcher, LockCreds } from "./lcuWatcher";
 import { ensureAliasMap, getChampionAlias } from "../utils/communityDragon";
 import type { OwnedSkin } from "./skins.service";
@@ -178,7 +179,9 @@ export class ChampionLibraryService {
       const r = (await lcuFetch(url, {
         headers: { Authorization: `Basic ${this.buildAuth(creds)}` },
       }).then((res) => res.json())) as SummonerRes;
-      this.summonerId = r.summonerId ?? r.accountId ?? r.id ?? null;
+      // La reponse du LCU est une entree externe : ce summonerId est reinjecte
+      // dans d'autres chemins d'URL authentifies, donc on le contraint aussi.
+      this.summonerId = tryUrlId(r.summonerId ?? r.accountId ?? r.id);
       return this.summonerId;
     } catch (err) {
       logger.debug("[ChampionLibrary] resolveSummonerId failed", err);
@@ -255,9 +258,22 @@ export class ChampionLibraryService {
     }
   }
 
-  async getSkinsForChampion(championId: number): Promise<OwnedSkin[]> {
+  async getSkinsForChampion(rawChampionId: number): Promise<OwnedSkin[]> {
     const creds = this.lcu.creds;
-    if (!creds || !championId || championId <= 0) return [];
+
+    // `rawChampionId` arrive du renderer via l'IPC `championLibrary:getSkins`,
+    // et se retrouve interpole dans une URL LCU AUTHENTIFIEE. Sans contrainte
+    // d'entier, une valeur du type "1/../../riotclient/..." sortait du endpoint
+    // prevu tout en emportant l'en-tete Basic.
+    const championId = tryUrlId(rawChampionId);
+    if (!creds || !championId || championId <= 0) {
+      if (creds && championId === null) {
+        logger.warn(
+          `[ChampionLibrary] championId rejete: ${JSON.stringify(rawChampionId)}`
+        );
+      }
+      return [];
+    }
 
     const cached = this.skinsCache.get(championId);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {

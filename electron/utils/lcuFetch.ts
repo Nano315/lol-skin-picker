@@ -36,7 +36,18 @@ export async function lcuFetch(
       `[lcuFetch] Refuse: URL hors LCU (attendu https://${LCU_HOST}, recu: ${urlStr})`
     );
   }
-  return fetch(url, { ...init, agent: lcuAgent });
+  return fetch(url, {
+    ...init,
+    agent: lcuAgent,
+    // La verification de l'URL ci-dessus ne couvre que la requete INITIALE.
+    // node-fetch suit les redirections par defaut, et le ferait avec ce meme
+    // agent : une reponse 302 du LCU vers un hote externe sortait donc du
+    // perimetre loopback avec la validation TLS desactivee (et l'en-tete
+    // Authorization attache). Aucun endpoint LCU utilise ici ne redirige :
+    // on ne suit rien, et un 3xx devient une reponse non-ok que les appelants
+    // traitent deja comme un echec.
+    redirect: "manual",
+  });
 }
 
 export { lcuAgent };

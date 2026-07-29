@@ -186,6 +186,24 @@ function wireDomainEvents() {
   });
 }
 
+// Filet de securite global : `createMainWindow` durcit deja son propre
+// webContents, mais tout webContents cree par la suite (nouvelle fenetre,
+// webview) passerait sinon sans controle. On refuse par defaut ici.
+app.on("web-contents-created", (_event, contents) => {
+  contents.setWindowOpenHandler(({ url }) => {
+    logger.warn(`[security] Ouverture de fenetre refusee par defaut: ${url}`);
+    return { action: "deny" };
+  });
+
+  contents.on("will-attach-webview", (event, webPreferences, params) => {
+    delete webPreferences.preload;
+    webPreferences.nodeIntegration = false;
+    webPreferences.contextIsolation = true;
+    event.preventDefault();
+    logger.warn(`[security] Attachement de webview refuse: ${params.src}`);
+  });
+});
+
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {

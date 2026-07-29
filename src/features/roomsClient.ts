@@ -13,6 +13,7 @@ import type {
   InviteFailureReason,
 } from "./types";
 import { errorMessages } from "./utils/errorMessages";
+import { redactPuuid, redactName } from "./utils/redact";
 import { trackRoomCreate, trackRoomJoin, trackGroupReroll } from "./analytics/tracker";
 import { presenceStore } from "./presence/presenceStore";
 
@@ -657,12 +658,12 @@ class RoomsClient {
     });
 
     this.identitySocket.on("friend-online", (payload: FriendOnlinePayload) => {
-      log.info("[roomsClient] Friend came online", { puuid: payload.puuid, name: payload.summonerName });
+      log.info("[roomsClient] Friend came online", { puuid: redactPuuid(payload.puuid), name: redactName(payload.summonerName) });
       this.identityCallbacks.onFriendOnline?.(payload.puuid, payload.summonerName);
     });
 
     this.identitySocket.on("friend-offline", (payload: FriendOfflinePayload) => {
-      log.info("[roomsClient] Friend went offline", { puuid: payload.puuid });
+      log.info("[roomsClient] Friend went offline", { puuid: redactPuuid(payload.puuid) });
       this.identityCallbacks.onFriendOffline?.(payload.puuid);
     });
 
@@ -704,12 +705,12 @@ class RoomsClient {
       this.identitySocket?.once("connect", () => {
         this.identitySocket?.emit("identify", { puuid, summonerName, friends });
         this.identifiedPuuid = puuid;
-        log.info("[roomsClient] Sent identify after connection", { puuid, friendsCount: friends.length });
+        log.info("[roomsClient] Sent identify after connection", { puuid: redactPuuid(puuid), friendsCount: friends.length });
       });
     } else {
       this.identitySocket.emit("identify", { puuid, summonerName, friends });
       this.identifiedPuuid = puuid;
-      log.info("[roomsClient] Sent identify", { puuid, friendsCount: friends.length });
+      log.info("[roomsClient] Sent identify", { puuid: redactPuuid(puuid), friendsCount: friends.length });
     }
   }
 
