@@ -86,11 +86,13 @@ jobs:
           if [[ "$VERSION" == *-beta.* ]]; then
             echo "BUILDER_CONFIG=electron-builder.beta.json5" >> "$GITHUB_ENV"
             echo "VITE_MODE=staging" >> "$GITHUB_ENV"
-            echo "CHANNEL=beta"
+            # CHANNEL etait seulement affiche, jamais ecrit dans $GITHUB_ENV :
+            # la variable n'existait donc pas dans les etapes suivantes.
+            echo "CHANNEL=beta" >> "$GITHUB_ENV"
           else
             echo "BUILDER_CONFIG=electron-builder.json5" >> "$GITHUB_ENV"
             echo "VITE_MODE=production" >> "$GITHUB_ENV"
-            echo "CHANNEL=stable"
+            echo "CHANNEL=stable" >> "$GITHUB_ENV"
           fi
 
       # .env.production / .env.staging are .gitignored. We rebuild the right
@@ -124,7 +126,63 @@ jobs:
       - name: Build renderer and main
         run: npx tsc && npx vite build --mode ${{ env.VITE_MODE }}
 
+      # La GitHub Release est creee ICI, avant electron-builder.
+      #
+      # electron-builder 26 lance un publisher PAR ARTEFACT (installeur,
+      # blockmap, manifeste). Chacun verifie si la release existe puis la cree
+      # si non : deux POST /releases concurrents, le second recoit
+      # `422 already_exists` et fait echouer le job. Sur la v9.5.3 l'installeur
+      # avait deja ete uploade, mais pas `latest.yml` — la release etait donc
+      # publique, incomplete, et invisible pour l'autoUpdater.
+      #
+      # En la creant en amont, les publishers la trouvent existante et se
+      # contentent d'uploader : plus de course.
+      #
+      # Durcissement possible si le probleme reapparait : creer en `--draft`,
+      # laisser electron-builder uploader, puis `gh release edit --draft=false`.
+      # Un echec en cours de route laisserait alors la release invisible au lieu
+      # d'incomplete.
+      - name: Ensure GitHub release exists
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v$VERSION"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG deja presente — rien a creer."
+          elif [[ "$CHANNEL" == "beta" ]]; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "$TAG" --generate-notes --prerelease
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "$TAG" --generate-notes
+          fi
+
       - name: Publish release
         run: npx electron-builder --config ${{ env.BUILDER_CONFIG }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Garde-fou : le manifeste de mise a jour est ce qui rend la release
+      # visible par l'autoUpdater. Son absence est passee inapercue sur la
+      # v9.5.3 parce que le job avait echoue pour une autre raison. On echoue
+      # explicitement ici si l'upload n'a pas eu lieu.
+      - name: Verify update manifest was published
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v$VERSION"
+          if [[ "$CHANNEL" == "beta" ]]; then MANIFEST="beta.yml"; else MANIFEST="latest.yml"; fi
+          ASSETS=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          echo "Assets publies :"
+          echo "$ASSETS" | sed 's/^/  - /'
+          if ! echo "$ASSETS" | grep -qx "$MANIFEST"; then
+            echo "::error::$MANIFEST absent de la release $TAG — l'autoUpdater ne verra pas cette version."
+            exit 1
+          fi
+          if ! echo "$ASSETS" | grep -q '\.exe$'; then
+            echo "::error::Aucun installeur .exe dans la release $TAG."
+            exit 1
+          fi
+          echo "Manifeste et installeur presents."
