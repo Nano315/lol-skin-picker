@@ -138,11 +138,18 @@ jobs:
       # En la creant en amont, les publishers la trouvent existante et se
       # contentent d'uploader : plus de course.
       #
-      # Durcissement possible si le probleme reapparait : creer en `--draft`,
-      # laisser electron-builder uploader, puis `gh release edit --draft=false`.
-      # Un echec en cours de route laisserait alors la release invisible au lieu
-      # d'incomplete.
-      - name: Ensure GitHub release exists
+      # La release est creee en DRAFT, puis publiee explicitement une fois tous
+      # les assets uploades (etape « Publish the release » plus bas).
+      #
+      # Deux raisons :
+      #  1. electron-builder 26 ramene la release en draft pendant l'upload et ne
+      #     la republie pas de maniere fiable, malgre `releaseType: "release"`
+      #     dans la config. Sur la v9.5.3, tous les assets etaient presents mais
+      #     la release restait en draft — donc invisible pour l'autoUpdater ET
+      #     pour l'API publique.
+      #  2. Un echec en cours de route laisse alors une release INVISIBLE plutot
+      #     qu'une release publique et incomplete. C'est le bon mode de defaut.
+      - name: Ensure GitHub release exists (draft)
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -150,12 +157,9 @@ jobs:
           TAG="v$VERSION"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $TAG deja presente — rien a creer."
-          elif [[ "$CHANNEL" == "beta" ]]; then
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
-              --title "$TAG" --generate-notes --prerelease
           else
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
-              --title "$TAG" --generate-notes
+              --title "$TAG" --generate-notes --draft
           fi
 
       - name: Publish release
@@ -163,26 +167,72 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Garde-fou : le manifeste de mise a jour est ce qui rend la release
-      # visible par l'autoUpdater. Son absence est passee inapercue sur la
-      # v9.5.3 parce que le job avait echoue pour une autre raison. On echoue
-      # explicitement ici si l'upload n'a pas eu lieu.
-      - name: Verify update manifest was published
+      # Bascule draft -> publie. C'est CETTE etape qui rend la version visible
+      # par les clients deja installes ; sans elle, electron-updater ne voit
+      # rien (les drafts ne sont pas exposes, meme pas sur l'API publique).
+      - name: Publish the release (draft -> public)
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v$VERSION"
-          if [[ "$CHANNEL" == "beta" ]]; then MANIFEST="beta.yml"; else MANIFEST="latest.yml"; fi
-          ASSETS=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
-          echo "Assets publies :"
+          if [[ "$CHANNEL" == "beta" ]]; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=true
+          else
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false
+          fi
+
+      # Garde-fou final. Une release n'est utilisable par les clients installes
+      # que si TROIS conditions sont reunies simultanement :
+      #   - le manifeste (latest.yml / beta.yml) est present,
+      #   - un installeur .exe est present,
+      #   - la release n'est PAS en draft, et son flag prerelease correspond au
+      #     canal.
+      #
+      # Les deux echecs de la v9.5.3 ont chacun viole une de ces conditions sans
+      # etre detecte : d'abord le manifeste manquant (job rouge, mais release
+      # publique et incomplete), puis l'etat draft (job VERT, release invisible).
+      # La verification de l'etat draft est ce qui manquait.
+      - name: Verify release is usable by installed clients
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v$VERSION"
+          if [[ "$CHANNEL" == "beta" ]]; then
+            MANIFEST="beta.yml"; WANT_PRE="true"
+          else
+            MANIFEST="latest.yml"; WANT_PRE="false"
+          fi
+
+          INFO=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,isPrerelease,assets)
+          IS_DRAFT=$(printf '%s' "$INFO" | jq -r '.isDraft')
+          IS_PRE=$(printf '%s' "$INFO" | jq -r '.isPrerelease')
+          ASSETS=$(printf '%s' "$INFO" | jq -r '.assets[].name')
+
+          echo "Canal        : $CHANNEL"
+          echo "isDraft      : $IS_DRAFT (attendu false)"
+          echo "isPrerelease : $IS_PRE (attendu $WANT_PRE)"
+          echo "Assets :"
           echo "$ASSETS" | sed 's/^/  - /'
+
+          FAIL=0
+          if [[ "$IS_DRAFT" != "false" ]]; then
+            echo "::error::Release $TAG encore en draft — invisible pour electron-updater."
+            FAIL=1
+          fi
+          if [[ "$IS_PRE" != "$WANT_PRE" ]]; then
+            echo "::error::Flag prerelease=$IS_PRE incoherent avec le canal $CHANNEL (attendu $WANT_PRE)."
+            FAIL=1
+          fi
           if ! echo "$ASSETS" | grep -qx "$MANIFEST"; then
-            echo "::error::$MANIFEST absent de la release $TAG — l'autoUpdater ne verra pas cette version."
-            exit 1
+            echo "::error::$MANIFEST absent — l'autoUpdater ne verra pas cette version."
+            FAIL=1
           fi
           if ! echo "$ASSETS" | grep -q '\.exe$'; then
             echo "::error::Aucun installeur .exe dans la release $TAG."
-            exit 1
+            FAIL=1
           fi
-          echo "Manifeste et installeur presents."
+          [[ "$FAIL" -eq 0 ]] || exit 1
+          echo "Release $TAG publiee et utilisable."
