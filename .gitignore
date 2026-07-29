@@ -13,6 +13,9 @@ dist-electron
 dist-ssr
 *.local
 
+# Rapports de couverture Vitest
+coverage/
+
 # Env files — contain per-environment keys (Aptabase, server URLs).
 # `.env.development` stays committed (no secrets, documents the shape).
 # `.env.example` is the canonical template for contributors.

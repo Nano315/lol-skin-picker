@@ -3,12 +3,19 @@ name: Tests
 
 on: [push, pull_request]
 
+# Ce workflow se declenche sur `pull_request`, donc potentiellement depuis un
+# fork : le job execute `npm ci` (scripts d'installation tiers) et les tests du
+# contributeur. Il ne doit disposer que de la lecture.
+permissions:
+  contents: read
+
 jobs:
   test-frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Epinglees par SHA : cf. release-front.yml.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
       - run: npm ci

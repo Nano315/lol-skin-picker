@@ -223,8 +223,13 @@ export function PremadePage() {
       }));
     }
 
+    // memberId d'abord (fiable) ; le pseudo ne sert que de repli quand le
+    // socket n'a pas encore rejoint la room.
+    const selfId = roomsClient.getMemberId();
     const selfMember: RoomMember =
-      findMemberBySummonerName(members, summonerName) ?? members[0];
+      (selfId ? members.find((m) => m.id === selfId) : undefined) ??
+      findMemberBySummonerName(members, summonerName) ??
+      members[0];
 
     const others = members.filter((m) => m !== selfMember);
 
@@ -245,8 +250,11 @@ export function PremadePage() {
 
   const isOwner =
     !!room &&
-    !!summonerName &&
     (() => {
+      const selfId = roomsClient.getMemberId();
+      if (selfId) return room.ownerId === selfId;
+      // Repli avant l'attachement du socket : sert uniquement a l'affichage,
+      // le serveur revalide toute action owner-only.
       const self = findMemberBySummonerName(room.members, summonerName);
       return !!self && room.ownerId === self.id;
     })();
@@ -342,13 +350,17 @@ export function PremadePage() {
 
   // -> Appliquer le combo quand le serveur en choisit un
   useEffect(() => {
-    if (!room || !summonerName) return;
+    if (!room) return;
 
-    const self = findMemberBySummonerName(room.members, summonerName);
-    if (!self) return;
+    // On s'identifie par memberId, jamais par pseudo : ce chemin declenche une
+    // ECRITURE sur le client League. Deux membres homonymes dans la meme room
+    // faisaient appliquer le pick de l'un a l'autre — et permettaient donc de
+    // contourner le match lock de sa victime.
+    const selfId = roomsClient.getMemberId();
+    if (!selfId) return;
 
     const unsubscribe = roomsClient.onGroupCombo((payload) => {
-      const pick = payload.picks.find((p) => p.memberId === self.id);
+      const pick = payload.picks.find((p) => p.memberId === selfId);
       if (!pick) return;
 
       const finalId = pick.chromaId || pick.skinId;
@@ -356,7 +368,7 @@ export function PremadePage() {
     });
 
     return unsubscribe;
-  }, [room, summonerName]);
+  }, [room]);
 
   const handleCopyCode = () => {
     if (!room?.code) return;

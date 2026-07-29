@@ -6,15 +6,23 @@ on:
     tags:
       - "v*"
 
-permissions:
-  contents: write
+# Aucune permission par defaut : chaque job declare le strict minimum.
+# Auparavant `contents: write` etait declare au niveau du workflow, si bien que
+# le job `test` — qui execute `npm ci`, donc du code de dependances tierces —
+# heritait d'un token capable de publier des releases.
+permissions: {}
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Actions epinglees par SHA : un tag comme @v4 est mutable et peut etre
+      # repointe par le mainteneur (ou par un compte compromis) vers du code
+      # arbitraire, execute ici avec acces aux secrets de publication.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
       - run: npm ci
@@ -23,10 +31,13 @@ jobs:
   build-and-release:
     needs: test
     runs-on: windows-latest
+    # Seul ce job publie la release.
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
 
