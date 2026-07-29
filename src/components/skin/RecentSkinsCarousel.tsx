@@ -60,7 +60,10 @@ function thumbnailUrl(skin: RecentSkinEntry): string {
   // the splash here too matches the existing SkinPreview behaviour and
   // saves us another asset host.
   const skinIndex = skin.skinId - skin.championId * 1000;
-  return `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${skin.championAlias}_${skinIndex}.jpg`;
+  // Alias issu de CommunityDragon : encode avant interpolation dans le chemin.
+  return `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${encodeURIComponent(
+    skin.championAlias
+  )}_${skinIndex}.jpg`;
 }
 
 export function RecentSkinsCarousel({

@@ -171,7 +171,9 @@ function ChampionHeader({
   loading: boolean;
   hasExclusions: boolean;
 }) {
-  const splashUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${champion.alias}_0.jpg`;
+  const splashUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${encodeURIComponent(
+    champion.alias
+  )}_0.jpg`;
 
   return (
     <GlassCard className="relative overflow-hidden p-0">
@@ -264,7 +266,9 @@ function SkinRow({
   }, [chromasOpen, skin.championId, skin.id, skin.chromas.length]);
 
   const skinNum = skin.id - skin.championId * 1000;
-  const splashUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${championAlias}_${skinNum}.jpg`;
+  const splashUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${encodeURIComponent(
+    championAlias
+  )}_${skinNum}.jpg`;
 
   const includedChromas = skin.chromas.filter(
     (c) => !isChromaExcluded(c.id)

@@ -25,6 +25,15 @@ type Listener = () => void;
 
 const RATE_LIMIT_MS = 10000; // 10 seconds
 
+/**
+ * Plafond de la file d'invitations recues.
+ *
+ * 5 est genereux au regard de l'usage reel (une room fait 5 joueurs) tout en
+ * bornant le harcelement : au-dela, l'UI ne peut plus etre noyee ni le son
+ * de notification declenche en boucle.
+ */
+const MAX_PENDING_INVITATIONS = 5;
+
 class InvitationStore {
   private invitations: Invitation[] = [];
   private listeners = new Set<Listener>();
@@ -79,6 +88,16 @@ class InvitationStore {
   addInvitation(invitation: Invitation): void {
     // Don't add duplicate from same sender
     if (this.invitations.some((i) => i.fromPuuid === invitation.fromPuuid)) {
+      return;
+    }
+    // File bornee. La deduplication par expediteur ci-dessus limite deja un
+    // spammeur unique a une entree, mais l'autorisation d'inviter repose sur une
+    // liste d'amis AUTO-DECLAREE cote serveur : un attaquant peut se declarer
+    // ami depuis autant de puuid distincts qu'il veut et remplir la file.
+    // Au-dela du plafond on ignore les nouvelles invitations plutot que
+    // d'evincer les anciennes : l'utilisateur traite sa file dans l'ordre, et
+    // un flood ne doit pas pouvoir chasser une invitation legitime.
+    if (this.invitations.length >= MAX_PENDING_INVITATIONS) {
       return;
     }
     this.invitations = [...this.invitations, invitation];

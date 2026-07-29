@@ -63,7 +63,12 @@ export function RoomMemberCard({
   let portraitUrl = "";
   if (championId && skinId && championAlias) {
     const skinIndex = skinId - championId * 1000;
-    portraitUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${championAlias}_${skinIndex}.jpg`;
+    // `championAlias` vient d'un pair via `room-state` : on l'encode avant de
+    // l'interpoler dans le chemin, pour qu'il ne puisse pas sortir du prefixe
+    // attendu (la CSP `img-src` borne deja l'hote, pas le chemin).
+    portraitUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${encodeURIComponent(
+      championAlias
+    )}_${skinIndex}.jpg`;
   }
   const displayedSkin = portraitUrl || fallbackSkin;
 
