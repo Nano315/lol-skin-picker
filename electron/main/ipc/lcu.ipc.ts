@@ -1,5 +1,5 @@
 import { ipcMain } from "electron";
-import fetch from "node-fetch";
+import { fetchWithTimeout } from "../../utils/fetchWithTimeout";
 import type { LcuWatcher } from "../../services/lcuWatcher";
 import { skinLineService } from "../../services/skinLineService";
 import { logger } from "../../logger";
@@ -46,7 +46,7 @@ export function registerLcuIpc(lcu: LcuWatcher) {
         type CChamp = { skins?: CSkin[] };
 
         const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champions/${championId}.json`;
-        const response = await fetch(url);
+        const response = await fetchWithTimeout(url);
         if (!response.ok) return {};
 
         const champ = (await response.json()) as CChamp;
@@ -93,7 +93,7 @@ export function registerLcuIpc(lcu: LcuWatcher) {
       // 1) Try direct chroma endpoint
       try {
         const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/chromas/${chromaId}.json`;
-        const response = await fetch(url);
+        const response = await fetchWithTimeout(url);
         if (response.ok) {
           const data = (await response.json()) as Record<string, unknown>;
           const hex =
@@ -117,7 +117,7 @@ export function registerLcuIpc(lcu: LcuWatcher) {
         type CChamp = { skins?: CSkin[] };
 
         const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champions/${championId}.json`;
-        const response = await fetch(url);
+        const response = await fetchWithTimeout(url);
         if (!response.ok) return null;
 
         const champ = (await response.json()) as CChamp;

@@ -57,6 +57,8 @@ export class LcuWatcher extends EventEmitter {
   // Intelligent polling (Story 4.9)
   private pollingInterval = 2000; // Start at 2s
   private timeWithoutClient = 0;
+  // Scans infructueux consecutifs alors qu'on est connecte (cf. handleScanMiss).
+  private consecutiveMisses = 0;
 
   public isConnected(): boolean {
     return this.creds !== null;
@@ -94,6 +96,51 @@ export class LcuWatcher extends EventEmitter {
     // Otherwise keep at 2s
   }
 
+  /**
+   * Nombre de scans infructueux consecutifs tolere avant de declarer le client
+   * deconnecte.
+   *
+   * Le scan repose sur `Get-CimInstance` : un service WMI momentanement occupe,
+   * une machine sous charge ou un timeout de PowerShell renvoient un resultat
+   * vide alors que le client tourne toujours. Deconnecter des le premier echec
+   * demontait tous les services et masquait la fenetre — potentiellement en
+   * plein champion select, au pire moment possible. On exige donc plusieurs
+   * echecs d'affilee, ce qui coute au plus quelques secondes de detection en
+   * plus sur une vraie fermeture du client.
+   */
+  private static readonly MISS_THRESHOLD = 3;
+
+  /**
+   * Traite un scan infructueux, quelle qu'en soit la cause (client absent,
+   * credentials illisibles, echec d'execution).
+   */
+  private handleScanMiss(reason: string) {
+    // Deja deconnecte : rien a amortir, on garde le comportement d'origine
+    // (et la temporisation progressive du polling).
+    if (this.status !== "connected") {
+      this.toDisconnected();
+      this.adjustPollingSpeed(false);
+      return;
+    }
+
+    this.consecutiveMisses += 1;
+
+    if (this.consecutiveMisses < LcuWatcher.MISS_THRESHOLD) {
+      // On reste connecte et on garde le poll rapide : si c'etait un hoquet,
+      // le prochain scan reussira et l'utilisateur n'aura rien vu.
+      logger.warn(
+        `[LCU] Scan infructueux (${reason}) — ${this.consecutiveMisses}/${LcuWatcher.MISS_THRESHOLD} avant deconnexion`
+      );
+      return;
+    }
+
+    logger.info(
+      `[LCU] ${this.consecutiveMisses} scans infructueux consecutifs (${reason}) — deconnexion`
+    );
+    this.toDisconnected();
+    this.adjustPollingSpeed(false);
+  }
+
   private async tick() {
     if (this.isScanning) return;
     this.isScanning = true;
@@ -102,24 +149,26 @@ export class LcuWatcher extends EventEmitter {
       const commandLine = await this.getLcuCommandLine();
 
       if (!commandLine) {
-        this.toDisconnected();
-        this.adjustPollingSpeed(false);
+        this.handleScanMiss("client introuvable");
         return;
       }
 
       if (commandLine !== this.lastCommandLine) {
-        this.lastCommandLine = commandLine;
         const parsed = this.parseCommandLine(commandLine);
 
         if (!parsed) {
           logger.warn("[LCU] Impossible de parser les credentials de la ligne de commande");
-          this.toDisconnected();
-          this.adjustPollingSpeed(false);
+          this.handleScanMiss("credentials illisibles");
           return;
         }
 
+        // Memorise APRES le parse : en le faisant avant, une ligne illisible
+        // devenait la reference, le scan suivant la trouvait "inchangee" et
+        // prenait le chemin nominal sans jamais s'etre connecte.
+        this.lastCommandLine = commandLine;
         this.toConnected(parsed);
       }
+      this.consecutiveMisses = 0;
       this.adjustPollingSpeed(true);
     } catch (error) {
       // On ne logge que le message, jamais l'objet d'erreur complet : sur un
@@ -131,8 +180,7 @@ export class LcuWatcher extends EventEmitter {
           error instanceof Error ? error.message : String(error)
         }`
       );
-      this.toDisconnected();
-      this.adjustPollingSpeed(false);
+      this.handleScanMiss("scan en echec");
     } finally {
       this.isScanning = false;
     }
@@ -151,6 +199,7 @@ export class LcuWatcher extends EventEmitter {
   }
 
   private toDisconnected() {
+    this.consecutiveMisses = 0;
     if (this.status !== "disconnected") {
       this.status = "disconnected";
       this.creds = null;
@@ -187,10 +236,16 @@ export class LcuWatcher extends EventEmitter {
           return trimmed;
         }
       }
+      // Sortie exploitable mais aucun processus League dedans : le client
+      // n'est pas lance. C'est le seul cas qui vaut "absent" avec certitude.
       return null;
     } catch (e) {
-      // Si le processus n'existe pas, ou erreur d'execution
-      return null;
+      // PowerShell lui-meme a echoue (WMI occupe, strategie d'execution,
+      // machine sous charge). Ce n'est PAS la meme chose que "client absent" :
+      // on laisse remonter pour que l'appelant l'amortisse via le compteur de
+      // scans infructueux, et pour que la cause reelle apparaisse dans les logs
+      // au lieu d'etre confondue avec une fermeture du client.
+      throw e instanceof Error ? e : new Error(String(e));
     }
   }
 

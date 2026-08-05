@@ -226,6 +226,12 @@ export class SkinsService extends EventEmitter {
 
       this.ws.on("open", () => {
         logger.info("[Skins] WebSocket LCU connecte.");
+        // Le WebSocket est de nouveau la source d'evenements : on coupe le
+        // polling de secours qu'une coupure precedente avait arme. Sans ca, le
+        // moindre hoquet du WS laissait un interval de secours tourner pour le
+        // RESTE de la session, en plus du WS reconnecte et de la boucle
+        // principale — soit un trafic LCU double jusqu'au redemarrage.
+        this.stopFallbackPolling();
         // Subscribe to Champ Select Session events
         // API LCU WAMP-like: [5, "OnJsonApiEvent_lol-champ-select_v1_session"]
         this.ws?.send(JSON.stringify([5, "OnJsonApiEvent_lol-champ-select_v1_session"]));

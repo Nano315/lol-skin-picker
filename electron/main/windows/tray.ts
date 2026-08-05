@@ -9,6 +9,7 @@ import type {
 } from "electron-updater";
 import { logger } from "../../logger";
 import { track } from "../telemetry";
+import { fetchWithTimeout } from "../../utils/fetchWithTimeout";
 
 const require = createRequire(import.meta.url);
 
@@ -246,8 +247,9 @@ const GITHUB_REPO = "lol-skin-picker";
 async function pinBetaFeedUrl(au: AutoUpdater): Promise<void> {
   if (updaterChannel !== "beta") return;
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases?per_page=30`,
+      undefined,
       { headers: { Accept: "application/vnd.github+json" } },
     );
     if (!res.ok) {
@@ -517,8 +519,11 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
 
   const refreshTrayMenu = () => {
     const w = getWin();
-    const visible = !!w && w.isVisible();
-    const label = visible ? "Hide App" : "Show App";
+    // Une fenetre reduite reste "visible" au sens d'Electron, alors que pour
+    // l'utilisateur elle est rangee : on la traite comme masquee, ce qui
+    // correspond aussi a ce que fera toggleWindow (restore + show).
+    const shown = !!w && w.isVisible() && !w.isMinimized();
+    const label = shown ? "Hide App" : "Show App";
     const menu = Menu.buildFromTemplate([
       { label, click: toggleWindow },
       { type: "separator" },
@@ -533,8 +538,18 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
   tray.on("double-click", toggleWindow);
   refreshTrayMenu();
 
-  const trayApi = setupTray as typeof setupTray & { refresh?: () => void };
-  trayApi.refresh = refreshTrayMenu;
+  // Le menu etait construit une seule fois, au demarrage : son libelle restait
+  // bloque sur l'etat initial de la fenetre pour toute la duree de la session.
+  // On le reconstruit a chaque changement de visibilite — ce qui couvre le
+  // toggle depuis le tray comme les show/hide pilotes par la phase de jeu
+  // (la fenetre se masque en partie et revient au lobby).
+  const win = getWin();
+  if (win) {
+    win.on("show", refreshTrayMenu);
+    win.on("hide", refreshTrayMenu);
+    win.on("minimize", refreshTrayMenu);
+    win.on("restore", refreshTrayMenu);
+  }
 }
 
 /**
