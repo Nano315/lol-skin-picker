@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/github/license/Nano315/lol-skin-picker)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-informational)]()
 
-**[Website](https://skin-picker-website.vercel.app)** · **[Download](https://github.com/Nano315/lol-skin-picker/releases/latest)** · **[Report an issue](https://github.com/Nano315/lol-skin-picker/issues)** · **[Rooms server](https://github.com/Nano315/skin-picker-rooms-server)**
+**[Website](https://lolskinpicker.nanodev.app)** · **[Download](https://github.com/Nano315/lol-skin-picker/releases/latest)** · **[Report an issue](https://github.com/Nano315/lol-skin-picker/issues)** · **[Rooms server](https://github.com/Nano315/skin-picker-rooms-server)**
 
 # Skin Picker — Desktop
 
@@ -20,7 +20,7 @@ Skin Picker is an Electron application that talks directly to the local League o
 
 ## Download
 
-Grab the latest Windows installer from the [releases page](https://github.com/Nano315/lol-skin-picker/releases/latest) or from the [website](https://skin-picker-website.vercel.app). Updates are delivered automatically via `electron-updater`.
+Grab the latest Windows installer from the [releases page](https://github.com/Nano315/lol-skin-picker/releases/latest) or from the [website](https://lolskinpicker.nanodev.app). Updates are delivered automatically via `electron-updater`.
 
 The installer is currently unsigned, so Windows SmartScreen will display a warning on first launch — click **More info** → **Run anyway**. Code signing is being put in place to remove this friction.
 
