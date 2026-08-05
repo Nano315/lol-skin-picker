@@ -1,0 +1,34 @@
+# Sans automatisation, les dependances d'une app desktop derivent en silence :
+# Electron a pris 13 versions majeures de retard sur une app distribuee, donc un
+# Chromium en fin de vie chez les utilisateurs.
+#
+# Strategie : les mises a jour mineures et correctives sont groupees en une seule
+# PR par semaine (peu de bruit, faciles a fusionner apres CI verte). Les majeures
+# arrivent une par une, parce qu'elles demandent un test manuel de l'app packagee
+# — ce que la CI ne peut pas faire.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      minor-et-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # Electron se met a jour deliberement, jamais par lot : chaque majeure
+      # change Chromium et Node embarques et exige un smoke test manuel.
+      - dependency-name: "electron"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore(ci)"

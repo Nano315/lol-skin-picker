@@ -28,4 +28,12 @@ jobs:
       - run: npm i -g npm@11
 
       - run: npm ci
+
+      # Lint et typecheck AVANT les tests : CLAUDE.md documente le lint comme
+      # bloquant (--max-warnings 0) et la release lance `tsc`, mais aucun des
+      # deux ne tournait sur PR. Une PR pouvait donc etre verte et casser la
+      # release. Ils passent en premier parce qu'ils echouent vite.
+      - run: npm run lint
+      - run: npx tsc --noEmit
+
       - run: npm test -- --coverage

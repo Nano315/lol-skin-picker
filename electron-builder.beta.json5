@@ -31,8 +31,14 @@
 
   asar: true,
 
+  // Cf. electron-builder.json5 : on paie du temps de build contre du poids
+  // de telechargement.
+  compression: "maximum",
+
+  // Doit rester different du `build.outDir` de Vite ("dist") —
+  // cf. le commentaire detaille dans electron-builder.json5.
   directories: {
-    output: "dist",
+    output: "release",
   },
 
   files: [

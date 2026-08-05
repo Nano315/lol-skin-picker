@@ -31,13 +31,25 @@
   // on empaquete tout dans un seul fichier .asar
   asar: true,
 
+  // Compression maximale : l'installateur se telecharge une fois par
+  // utilisateur mais se construit une fois par release. On paie en temps de
+  // build ce qu'on economise sur chaque telechargement.
+  compression: "maximum",
+
   /* ------------------------------------------------------------------ */
   /*  SORTIE / FICHIERS a INCLURE                                       */
   /* ------------------------------------------------------------------ */
 
-  // dossier où electron-builder placera les installeurs finaux
+  // Dossier ou electron-builder place les installeurs finaux.
+  //
+  // Il DOIT etre different du `build.outDir` de Vite (= "dist"). Quand les deux
+  // pointaient sur "dist", le motif "dist/**" ci-dessous avalait le propre
+  // repertoire de sortie d'electron-builder : tout `dist/win-unpacked`, soit le
+  // runtime Electron complet du build precedent, se retrouvait EMPAQUETE DANS
+  // l'app.asar (268 Mo constates pour ~10 Mo utiles), et chaque build empilait
+  // le precedent.
   directories: {
-    output: "dist",
+    output: "release",
   },
 
   // ce qui doit etre inclus dans l'appli avant empaquetage

@@ -123,8 +123,31 @@ jobs:
           } > "$ENV_FILE"
           echo "Wrote $ENV_FILE (values hidden)"
 
+          # Un secret vide ou renomme ne fait echouer aucune etape : le build
+          # reste vert et on publie une version ou les rooms premade ne peuvent
+          # PAS se connecter (cspPlugin omet silencieusement l'entree
+          # connect-src quand l'URL est vide). On echoue ici plutot que chez
+          # l'utilisateur.
+          if [[ -z "$ROOMS_URL" ]]; then
+            echo "::error::VITE_ROOMS_SERVER_URL est vide pour le canal $VITE_MODE — secret absent ou renomme."
+            exit 1
+          fi
+          echo "ROOMS_ORIGIN=$(printf '%s' "$ROOMS_URL" | sed -E 's#^(https?://[^/]+).*#\1#')" >> "$GITHUB_ENV"
+
       - name: Build renderer and main
         run: npx tsc && npx vite build --mode ${{ env.VITE_MODE }}
+
+      # Verifie que la CSP reellement produite autorise le serveur de rooms.
+      # C'est la seule preuve que le secret a bien traverse tout le build :
+      # la valeur est inlinee dans index.html au moment du build, pas au runtime.
+      - name: Verify rooms server allowed by CSP
+        shell: bash
+        run: |
+          if ! grep -q "$ROOMS_ORIGIN" dist/index.html; then
+            echo "::error::L'origine du serveur de rooms ($ROOMS_ORIGIN) est absente de la CSP de dist/index.html."
+            exit 1
+          fi
+          echo "CSP verifiee : $ROOMS_ORIGIN autorise."
 
       # La GitHub Release est creee ICI, avant electron-builder.
       #

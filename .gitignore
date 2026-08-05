@@ -11,6 +11,9 @@ node_modules
 dist
 dist-electron
 dist-ssr
+# Sortie d'electron-builder (installeurs). Volontairement distincte de "dist",
+# sinon elle serait empaquetee dans l'app.asar — cf. electron-builder.json5.
+release
 *.local
 
 # Rapports de couverture Vitest
