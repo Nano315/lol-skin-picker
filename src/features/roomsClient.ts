@@ -382,6 +382,15 @@ class RoomsClient {
       // removed; everything else collapses to the generic "closed" path.
       if (payload?.reason === "kicked") {
         this.emitError({ code: "KICKED", message: "You were removed from the room by the owner." });
+      } else if (payload?.reason === "server-restart") {
+        // Le serveur redemarre (deploiement). L'etat des rooms etant en
+        // memoire, il ne reviendra pas — mais c'est temporaire et sans rapport
+        // avec une action d'un joueur. On le dit, sinon l'utilisateur croit a
+        // un bug de l'app ou a une exclusion.
+        this.emitError({
+          code: "ROOM_NOT_FOUND",
+          message: "The rooms server is restarting. Create the room again in a moment.",
+        });
       } else {
         this.emitError({ code: "ROOM_NOT_FOUND", message: "The room was closed." });
       }
