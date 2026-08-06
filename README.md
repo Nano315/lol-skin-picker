@@ -22,7 +22,7 @@ Skin Picker is an Electron application that talks directly to the local League o
 
 Grab the latest Windows installer from the [releases page](https://github.com/Nano315/lol-skin-picker/releases/latest) or from the [website](https://lolskinpicker.nanodev.app). Updates are delivered automatically via `electron-updater`.
 
-The installer is currently unsigned, so Windows SmartScreen will display a warning on first launch — click **More info** → **Run anyway**. Code signing is being put in place to remove this friction.
+The installer is currently unsigned, so Windows SmartScreen shows a warning on first launch — click **More info** → **Run anyway**. That warning is about a certificate, not about what the app does: Windows shows it for any unsigned program. Every release is built from this public repository by GitHub Actions, so what you download corresponds to source code you can read, and the SHA-512 of each installer is published in the release's `latest.yml`.
 
 ---
 
