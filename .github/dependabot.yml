@@ -2,10 +2,23 @@
 # Electron a pris 13 versions majeures de retard sur une app distribuee, donc un
 # Chromium en fin de vie chez les utilisateurs.
 #
-# Strategie : les mises a jour mineures et correctives sont groupees en une seule
-# PR par semaine (peu de bruit, faciles a fusionner apres CI verte). Les majeures
-# arrivent une par une, parce qu'elles demandent un test manuel de l'app packagee
-# — ce que la CI ne peut pas faire.
+# STRATEGIE, apres le premier lot du 06/08/2026 qui a ouvert 6 PR rouges :
+#
+# 1. Les MAJEURES ne sont pas proposees automatiquement. Elles arrivaient en
+#    deux saveurs, toutes deux inutiles en PR :
+#    - impossibles a merger : vite 5->8 est bloque par le peer de
+#      @vitejs/plugin-react, typescript 5->7 par celui de ts-jest. Ces PR ne
+#      seraient jamais passees au vert, elles ne font que du bruit rouge.
+#    - vertes mais dangereuses : tailwindcss 3->4 et lucide-react 0.x->1 ont
+#      PASSE les tests. Tailwind 4 est une reecriture (nouveau moteur, nouvelle
+#      config) et il n'existe aucun test visuel : la CI verte n'aurait rien
+#      prouve. Une majeure se fait deliberement, avec un test manuel.
+#
+# 2. Les paquets en 0.x sont exclus du groupe. Sur un 0.y.z, un bump de `y` est
+#    une rupture, mais SemVer le classe "minor" : c'est ainsi que
+#    eslint-plugin-react-refresh 0.4->0.5 (qui exige eslint 9+) s'est glisse
+#    dans le lot et l'a fait echouer en entier. Exclus, ils obtiennent leur
+#    propre PR, ou un echec reste isole et lisible.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -18,10 +31,14 @@ updates:
       minor-et-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+        exclude-patterns:
+          - "eslint-plugin-react-refresh"
+          - "lucide-react"
+          - "vite-plugin-electron"
+          - "vite-plugin-electron-renderer"
+          - "@aptabase/electron"
     ignore:
-      # Electron se met a jour deliberement, jamais par lot : chaque majeure
-      # change Chromium et Node embarques et exige un smoke test manuel.
-      - dependency-name: "electron"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(deps)"
@@ -30,5 +47,8 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
     commit-message:
       prefix: "chore(ci)"

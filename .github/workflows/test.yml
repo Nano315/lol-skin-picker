@@ -1,7 +1,14 @@
 # .github/workflows/test.yml
 name: Tests
 
-on: [push, pull_request]
+# Le push n'est ecoute que sur main. Avec `on: [push, pull_request]`, chaque PR
+# declenchait DEUX runs identiques : un pour le push de la branche, un pour la
+# PR. Avec une dizaine de PR dependabot ouvertes d'un coup, ca double le bruit
+# et la consommation de minutes pour zero information supplementaire.
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 # Ce workflow se declenche sur `pull_request`, donc potentiellement depuis un
 # fork : le job execute `npm ci` (scripts d'installation tiers) et les tests du
@@ -37,3 +44,10 @@ jobs:
       - run: npx tsc --noEmit
 
       - run: npm test -- --coverage
+
+      # Non bloquant, volontairement : dependabot n'ouvre plus les montees
+      # majeures automatiquement, donc c'est ici que les vulnerabilites qui en
+      # exigeraient une restent visibles. Un audit qui casse la CI sur une
+      # alerte transitive non corrigeable ne ferait qu'apprendre a l'ignorer.
+      - name: Audit (informatif)
+        run: npm audit --audit-level=high || true
