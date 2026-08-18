@@ -358,17 +358,41 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
     `LoL Skin Picker — v${app.getVersion()} (${channelLabel()})`,
   );
 
-  const toggleWindow = () => {
+  // `isFocused()` n'est PAS exploitable ici : ouvrir le menu du tray (ou
+  // cliquer sur son icone) donne le focus au shell Windows, donc la fenetre
+  // est deja vue comme "non focus" quand le handler tourne. Avec l'ancienne
+  // condition `isVisible() && isFocused()`, "Hide App" tombait
+  // systematiquement dans la branche else et re-affichait la fenetre au lieu
+  // de la masquer.
+  //
+  // Une fenetre reduite reste "visible" au sens d'Electron alors que pour
+  // l'utilisateur elle est rangee : on la traite comme masquee, ce qui
+  // correspond a ce que fait showWindow (restore + show).
+  const isWindowShown = () => {
     const w = getWin();
-    if (!w) return;
-    if (w.isVisible() && w.isFocused()) {
-      w.hide();
-    } else {
-      if (w.isMinimized()) w.restore();
-      w.show();
-      w.focus();
-      w.maximize();
-    }
+    return !!w && !w.isDestroyed() && w.isVisible() && !w.isMinimized();
+  };
+
+  const showWindow = () => {
+    const w = getWin();
+    if (!w || w.isDestroyed()) return;
+    if (w.isMinimized()) w.restore();
+    w.show();
+    w.focus();
+    w.maximize();
+  };
+
+  const hideWindow = () => {
+    const w = getWin();
+    if (!w || w.isDestroyed()) return;
+    w.hide();
+  };
+
+  // Clic / double-clic sur l'icone du tray : bascule d'apres l'etat reel de
+  // la fenetre.
+  const toggleWindow = () => {
+    if (isWindowShown()) hideWindow();
+    else showWindow();
   };
 
   const manualCheckForUpdates = async () => {
@@ -518,14 +542,17 @@ export function setupTray(getWin: () => Electron.BrowserWindow | null) {
   };
 
   const refreshTrayMenu = () => {
-    const w = getWin();
-    // Une fenetre reduite reste "visible" au sens d'Electron, alors que pour
-    // l'utilisateur elle est rangee : on la traite comme masquee, ce qui
-    // correspond aussi a ce que fera toggleWindow (restore + show).
-    const shown = !!w && w.isVisible() && !w.isMinimized();
-    const label = shown ? "Hide App" : "Show App";
+    const shown = isWindowShown();
+    // L'action est figee en meme temps que le libelle : "Hide App" masque
+    // toujours, "Show App" affiche toujours. Si l'etat change pendant que le
+    // menu est ouvert (la fenetre se masque seule au lancement d'une partie),
+    // le clic reste coherent avec ce que l'utilisateur a lu — et les deux
+    // operations sont idempotentes.
     const menu = Menu.buildFromTemplate([
-      { label, click: toggleWindow },
+      {
+        label: shown ? "Hide App" : "Show App",
+        click: shown ? hideWindow : showWindow,
+      },
       { type: "separator" },
       { label: "Check for Updates", click: manualCheckForUpdates },
       { type: "separator" },
