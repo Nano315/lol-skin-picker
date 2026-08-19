@@ -31,7 +31,7 @@ import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
 import { useOnboarding } from "@/features/onboarding/useOnboarding";
 import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
-import { api } from "@/features/api";
+import { api, companionApi } from "@/features/api";
 import { cn } from "@/lib/utils";
 
 export default function Settings() {
@@ -56,6 +56,8 @@ export default function Settings() {
   const [historyEnabled, setHistoryEnabled] = useState(true);
   const [historySize, setHistorySize] = useState(5);
   const [notificationSound, setNotificationSound] = useState(true);
+  const [companionEnabled, setCompanionEnabled] = useState(false);
+  const [companionHotkeys, setCompanionHotkeys] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -66,6 +68,8 @@ export default function Settings() {
       api.getHistorySettings(),
       api.getAutoAcceptMatch(),
       api.getWardAutoRoll(),
+      companionApi.getEnabled(),
+      companionApi.getHotkeysEnabled(),
     ]).then(
       ([
         incSrv,
@@ -75,6 +79,8 @@ export default function Settings() {
         historySrv,
         autoAcceptSrv,
         wardAutoRollSrv,
+        companionSrv,
+        companionHotkeysSrv,
       ]) => {
         const incPref = read("includeDefault");
         const autoPref = read("autoRoll");
@@ -89,6 +95,8 @@ export default function Settings() {
         setHistorySize(historySrv.historySize);
         setAutoAcceptMatch(autoAcceptSrv);
         setWardAutoRoll(wardAutoRollSrv);
+        setCompanionEnabled(companionSrv);
+        setCompanionHotkeys(companionHotkeysSrv);
         // notificationSound defaults to true if not set
         setNotificationSound(soundPref ?? true);
 
@@ -171,6 +179,39 @@ export default function Settings() {
                     description="Side of the screen where the floating match controls sit."
                   >
                     <SidePicker side={widgetSide} onChange={setWidgetSide} />
+                  </SettingRow>
+
+                  <SettingRow
+                    label="Draft companion"
+                    description="Opens a small window beside the League client during champion select. Made for single-monitor setups."
+                  >
+                    <Toggle
+                      checked={companionEnabled}
+                      onChange={(v) => {
+                        // Optimiste : le main persiste puis reapplique la
+                        // presentation. Un echec disque laisserait le toggle
+                        // en avance sur la realite, mais la valeur est relue
+                        // au prochain montage de la page.
+                        setCompanionEnabled(v);
+                        void companionApi.setEnabled(v).catch(() => {});
+                      }}
+                      aria-label="Draft companion"
+                    />
+                  </SettingRow>
+
+                  <SettingRow
+                    label="Draft shortcuts"
+                    description="Alt+R, Alt+S and Alt+C reroll without leaving the client. Registered only while the companion is open."
+                  >
+                    <Toggle
+                      checked={companionHotkeys}
+                      onChange={(v) => {
+                        setCompanionHotkeys(v);
+                        void companionApi.setHotkeysEnabled(v).catch(() => {});
+                      }}
+                      aria-label="Draft shortcuts"
+                      disabled={!companionEnabled}
+                    />
                   </SettingRow>
                 </div>
               </GlassCard>

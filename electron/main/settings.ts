@@ -2,7 +2,19 @@ import { app } from "electron";
 import { join, dirname } from "node:path";
 import { promises as fs } from "node:fs";
 import { logger as log } from "../logger";
-import { safeParseObject } from "../utils/jsonGuards";
+import {
+  isBoolean,
+  isFiniteNumber,
+  isPlainObject,
+  safeParseObject,
+} from "../utils/jsonGuards";
+
+export type CompanionBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 type Settings = {
   displayId?: number;
@@ -11,6 +23,12 @@ type Settings = {
   consentModalSeen?: boolean;
   autoAcceptMatch?: boolean;
   wardAutoRollEnabled?: boolean;
+  /** Sidecar de draft : ouverture automatique en champ select. */
+  companionEnabled?: boolean;
+  /** Raccourcis globaux du sidecar (actifs uniquement pendant la champ select). */
+  companionHotkeysEnabled?: boolean;
+  /** Derniere position/taille du sidecar, pour la restaurer au lancement. */
+  companionBounds?: CompanionBounds;
 };
 
 /**
@@ -26,24 +44,52 @@ function getSettingsPath(): string {
   return join(app.getPath("userData"), "settings.json");
 }
 
+/**
+ * Reglages booleens, tous coerces de la meme facon. Une liste plutot que N
+ * blocs `if` identiques : ajouter un reglage devient une entree ici, et non
+ * trois lignes de ceremonie qu'on peut oublier — les oublier signifiait
+ * perdre silencieusement la valeur au rechargement.
+ */
+const BOOLEAN_KEYS = [
+  "openAtLogin",
+  "telemetryEnabled",
+  "consentModalSeen",
+  "autoAcceptMatch",
+  "wardAutoRollEnabled",
+  "companionEnabled",
+  "companionHotkeysEnabled",
+] as const satisfies readonly (keyof Settings)[];
+
 function coerceSettings(raw: Record<string, unknown>): Settings {
   const out: Settings = {};
   if (typeof raw.displayId === "number" && Number.isInteger(raw.displayId)) {
     out.displayId = raw.displayId;
   }
-  if (typeof raw.openAtLogin === "boolean") out.openAtLogin = raw.openAtLogin;
-  if (typeof raw.telemetryEnabled === "boolean") {
-    out.telemetryEnabled = raw.telemetryEnabled;
+  for (const key of BOOLEAN_KEYS) {
+    if (isBoolean(raw[key])) out[key] = raw[key];
   }
-  if (typeof raw.consentModalSeen === "boolean") {
-    out.consentModalSeen = raw.consentModalSeen;
+  const bounds = coerceCompanionBounds(raw.companionBounds);
+  if (bounds) out.companionBounds = bounds;
+  return out;
+}
+
+/**
+ * Un `companionBounds` corrompu (edition manuelle, disque a moitie ecrit)
+ * produirait une fenetre de taille NaN ou hors ecran, donc invisible et
+ * impossible a recuperer sans supprimer settings.json. On rejette en bloc
+ * plutot que de coercer champ par champ : mieux vaut retomber sur la position
+ * par defaut.
+ */
+function coerceCompanionBounds(raw: unknown): CompanionBounds | null {
+  if (!isPlainObject(raw)) return null;
+  const keys = ["x", "y", "width", "height"] as const;
+  const out = {} as CompanionBounds;
+  for (const key of keys) {
+    const value = raw[key];
+    if (!isFiniteNumber(value)) return null;
+    out[key] = Math.round(value);
   }
-  if (typeof raw.autoAcceptMatch === "boolean") {
-    out.autoAcceptMatch = raw.autoAcceptMatch;
-  }
-  if (typeof raw.wardAutoRollEnabled === "boolean") {
-    out.wardAutoRollEnabled = raw.wardAutoRollEnabled;
-  }
+  if (out.width <= 0 || out.height <= 0) return null;
   return out;
 }
 

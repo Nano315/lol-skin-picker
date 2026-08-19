@@ -14,6 +14,30 @@ import { skinLineService } from "../services/skinLineService";
 import { logger } from "../logger";
 
 import { createMainWindow, getMainWindow } from "./windows/mainWindow";
+import { computePresentation } from "./windows/presentation";
+import { hardenWebContents } from "./windows/harden";
+import { broadcast } from "./windows/broadcast";
+import {
+  destroyCompanionWindow,
+  hideCompanionWindow,
+  showCompanionWindow,
+} from "./windows/companionWindow";
+import {
+  clearCompanionDismissal,
+  isCompanionDismissed,
+  onCompanionDismissalChange,
+} from "./windows/companionDismissal";
+import {
+  getCompanionPrefs,
+  initCompanionPrefs,
+  onCompanionPrefsChange,
+} from "./companionSettings";
+import {
+  initHotkeys,
+  releaseHotkeys,
+  setHotkeysActive,
+  type HotkeyAction,
+} from "./hotkeys";
 import { registerAllIpc } from "./ipc";
 import {
   setupTray,
@@ -50,6 +74,88 @@ const wards = new WardsService();
 
 // AUTO-UPDATE: Interval reference for cleanup on quit
 let updateCheckInterval: NodeJS.Timeout | null = null;
+
+/**
+ * Action de raccourci -> methode du service. Une table plutot qu'une cascade de
+ * ternaires : ajouter une quatrieme action devient une ligne, et l'exhaustivite
+ * est verifiee par le type au lieu de retomber silencieusement dans le `else`.
+ */
+const REROLL_BY_ACTION: Record<
+  HotkeyAction,
+  (svc: SkinsService) => Promise<unknown>
+> = {
+  both: (svc) => svc.rerollSkin(),
+  skin: (svc) => svc.rerollSkinOnly(),
+  chroma: (svc) => svc.rerollChroma(),
+};
+
+/**
+ * Les preferences du sidecar vivent dans `companionSettings` (cache synchrone,
+ * lu une fois au demarrage). On s'abonne ici pour reagir a un changement
+ * immediatement : activer l'option en pleine champ select doit faire apparaitre
+ * la fenetre sans attendre la partie suivante.
+ */
+onCompanionPrefsChange((prefs) => {
+  // Option decochee : on ferme pour de bon plutot que masquer, sinon une
+  // fenetre invisible resterait en memoire jusqu'a la fermeture de l'app.
+  if (!prefs.enabled) destroyCompanionWindow();
+  // Rallumer l'option en pleine draft est une demande explicite : elle prime
+  // sur une croix cliquee plus tot dans la meme draft.
+  else clearCompanionDismissal();
+  applyPresentation();
+});
+
+/** La croix du sidecar est une entree de la machine a etats, pas un `hide()`. */
+onCompanionDismissalChange(applyPresentation);
+
+/**
+ * Applique l'etat de presentation calcule aux fenetres reelles.
+ *
+ * Toute la logique du "qui est visible quand" vit dans `computePresentation`
+ * (fonction pure, testee) — ici on ne fait qu'executer sa decision. Avant, la
+ * regle etait recopiee dans les handlers `status` et `phase`, avec des
+ * conditions legerement differentes des deux cotes.
+ */
+function applyPresentation() {
+  const prefs = getCompanionPrefs();
+  const target = computePresentation({
+    companionEnabled: prefs.enabled,
+    lcuConnected: lcu.isConnected(),
+    phase: gameflow.phase,
+    companionDismissed: isCompanionDismissed(),
+  });
+
+  // Le sidecar d'abord : en champ select il remplace la fenetre principale, et
+  // l'ouvrir avant de masquer l'autre evite un clignotement du bureau entre
+  // les deux.
+  if (target.companion === "shown") {
+    void showCompanionWindow().catch((err) =>
+      logger.warn("[Companion] ouverture impossible", err)
+    );
+  } else {
+    hideCompanionWindow();
+  }
+
+  // Les raccourcis globaux vivent exactement le temps du sidecar : ils sont
+  // captes pour tout le systeme, on ne les garde pas une seconde de plus que
+  // la fenetre qui les documente.
+  setHotkeysActive(target.companion === "shown" && prefs.hotkeysEnabled);
+
+  const win = getMainWindow();
+  if (!win || win.isDestroyed()) return;
+
+  if (target.main === "shown") {
+    if (win.isMinimized()) win.restore();
+    if (!win.isVisible()) {
+      logger.info(`[App] Fenetre principale affichee (phase=${gameflow.phase})`);
+      win.show();
+    }
+    if (!win.isMaximized()) win.maximize();
+  } else if (win.isVisible()) {
+    logger.info(`[App] Fenetre principale masquee (phase=${gameflow.phase})`);
+    win.hide();
+  }
+}
 
 
 async function createWindowWithPrefs() {
@@ -103,7 +209,7 @@ function wireDomainEvents() {
 
   // 1. Gestion de la connexion globale au client LoL
   lcu.on("status", (status: LcuStatus, creds?: LockCreds) => {
-    getMainWindow()?.webContents.send("lcu-status", status);
+    broadcast("lcu-status", status);
 
     if (status !== lastTrackedStatus) {
       lastTrackedStatus = status;
@@ -118,23 +224,19 @@ function wireDomainEvents() {
       skins.start();
       readyCheck.setCreds(creds);
       wards.setCreds(creds);
-
-      // On affiche la fenetre au demarrage (sauf si une game est deja en cours,
-      // ce qui sera corrige une fraction de seconde plus tard par l'event 'phase')
-      const w = getMainWindow();
-      if (w) {
-          if (w.isMinimized()) w.restore();
-          w.show();
-          w.maximize(); // Force maximize au démarrage connecté
-      }
     } else {
-      // Le client s'est ferme : on arrete tout et on cache l'app
+      // Le client s'est ferme : on arrete tout.
       gameflow.stop();
       skins.stop();
       readyCheck.setCreds(null);
       wards.setCreds(null);
-      getMainWindow()?.hide();
     }
+
+    // Une seule source de verite pour la visibilite, dans les deux branches.
+    // Au passage, demarrer l'app alors qu'une partie tourne deja n'affiche plus
+    // la fenetre pour la masquer aussitot : la phase est prise en compte des
+    // le premier calcul.
+    applyPresentation();
   });
 
   // Auto-roll du ward au lock du champion. Le SkinsService emet
@@ -153,9 +255,6 @@ function wireDomainEvents() {
   // 2. AJOUT : Gestion de la visibilite selon la phase de jeu
   // ---------------------------------------------------------
   gameflow.on("phase", (phase: string) => {
-    const win = getMainWindow();
-    if (!win || win.isDestroyed()) return;
-
     // "InProgress" signifie que le joueur est en partie (ou ecran de chargement).
     // C'est aussi le seul moment où on peut affirmer que le skin sélectionné
     // a vraiment été "joué" — pendant le champ select l'utilisateur peut
@@ -168,40 +267,26 @@ function wireDomainEvents() {
         .catch((err) =>
           logger.warn("[Skins] commitSelectionToHistory failed", err)
         );
-      if (win.isVisible()) {
-        logger.info("[App] Partie detectee : Mise en veille de la fenetre");
-        win.hide();
-      }
     }
-    // Toutes les autres phases (Lobby, ChampSelect, EndOfGame, None...)
-    else {
-      // On reaffiche la fenetre seulement si elle etait cachee
-      // et que le client LoL est toujours connecte
-      if (!win.isVisible() && lcu.isConnected()) {
-        logger.info("[App] Fin de partie / Lobby : Reaffichage de la fenetre");
-        win.show();
-        win.maximize(); // Force maximize au retour de game
-      }
-    }
+
+    // La croix du sidecar ne vaut que pour la draft en cours : des qu'on en
+    // sort, elle est oubliee. A faire AVANT `applyPresentation`, qui la lit.
+    if (phase !== "ChampSelect") clearCompanionDismissal();
+
+    // La visibilite (masquer en partie, reafficher au retour, montrer le
+    // sidecar en draft) est entierement deleguee a la machine a etats.
+    applyPresentation();
   });
 }
 
-// Filet de securite global : `createMainWindow` durcit deja son propre
-// webContents, mais tout webContents cree par la suite (nouvelle fenetre,
-// webview) passerait sinon sans controle. On refuse par defaut ici.
+// Filet de securite global. C'est le SEUL point de durcissement : `app.on
+// ("web-contents-created")` se declenche pendant `new BrowserWindow(...)`,
+// avant tout chargement, donc chaque fenetre est couverte par construction.
+// Appeler `hardenWebContents` fenetre par fenetre laissait la protection
+// dependre du fait qu'on y pense — et une fenetre oubliee ne se voyait pas :
+// elle heritait de garde-fous plus faibles, en silence.
 app.on("web-contents-created", (_event, contents) => {
-  contents.setWindowOpenHandler(({ url }) => {
-    logger.warn(`[security] Ouverture de fenetre refusee par defaut: ${url}`);
-    return { action: "deny" };
-  });
-
-  contents.on("will-attach-webview", (event, webPreferences, params) => {
-    delete webPreferences.preload;
-    webPreferences.nodeIntegration = false;
-    webPreferences.contextIsolation = true;
-    event.preventDefault();
-    logger.warn(`[security] Attachement de webview refuse: ${params.src}`);
-  });
+  hardenWebContents(contents);
 });
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -211,13 +296,11 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    const win = getMainWindow();
-    if (win) {
-      if (win.isMinimized()) win.restore();
-      win.show();
-      win.focus();
-      win.maximize(); // UX Request: Force maximize on restore
-    }
+    // Passe par la machine a etats plutot que de refaire show/maximize a la
+    // main : relancer l'app pendant une draft ne doit pas faire surgir la
+    // fenetre principale maximisee par-dessus le sidecar.
+    applyPresentation();
+    getMainWindow()?.focus();
   });
 
   app.whenReady().then(async () => {
@@ -229,6 +312,21 @@ if (!gotTheLock) {
     // Restore the persisted auto-accept preference before any phase event fires.
     const persistedSettings = await loadSettings();
     readyCheck.setAutoAccept(persistedSettings.autoAcceptMatch ?? false);
+
+    // Idem pour le sidecar : la preference doit etre connue avant le premier
+    // calcul de presentation, sinon un demarrage en pleine champ select
+    // ouvrirait la fenetre principale au lieu du sidecar.
+    await initCompanionPrefs();
+
+    // Les rerolls sont declenches directement sur le service : passer par un
+    // renderer ferait dependre un raccourci global de la presence d'une
+    // fenetre, alors que SkinsService est la source de verite et porte deja
+    // ses propres gardes (match lock, pool vide).
+    initHotkeys((action: HotkeyAction) => {
+      void REROLL_BY_ACTION[action](skins).catch((err) =>
+        logger.warn(`[Hotkeys] reroll ${action} echoue`, err)
+      );
+    });
 
     // Same idea for the ward auto-roll toggle — populates the service before
     // the first champion-lock can fire.
@@ -302,5 +400,10 @@ app.on("before-quit", () => {
     updateCheckInterval = null;
   }
 });
+
+// Un raccourci global reste enregistre aupres de l'OS tant qu'on ne le libere
+// pas : sans ca, Alt+R resterait capte apres la fermeture de l'app.
+app.on("will-quit", releaseHotkeys);
+
 
 app.on("window-all-closed", () => process.platform !== "darwin" && app.quit());

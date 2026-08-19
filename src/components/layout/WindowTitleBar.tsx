@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Minus, Square, Copy, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 import UpdateAvailableChip from "@/components/UpdateAvailableChip";
+import TitleBarButton from "./TitleBarButton";
 
 /**
  * Custom titlebar for the frameless Electron window. Sits at top-0 with a
@@ -32,7 +32,10 @@ export default function WindowTitleBar() {
         <TitleBarButton onClick={handleMinimize} aria-label="Minimize">
           <Minus className="h-3.5 w-3.5" aria-hidden />
         </TitleBarButton>
-        <TitleBarButton onClick={handleToggleMax} aria-label={isMaximized ? "Restore" : "Maximize"}>
+        <TitleBarButton
+          onClick={handleToggleMax}
+          aria-label={isMaximized ? "Restore" : "Maximize"}
+        >
           {isMaximized ? (
             <Copy className="h-3 w-3 -scale-x-100" aria-hidden />
           ) : (
@@ -44,33 +47,5 @@ export default function WindowTitleBar() {
         </TitleBarButton>
       </div>
     </div>
-  );
-}
-
-function TitleBarButton({
-  children,
-  onClick,
-  variant = "default",
-  "aria-label": ariaLabel,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  variant?: "default" | "danger";
-  "aria-label": string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      className={cn(
-        "group inline-flex h-full w-11 items-center justify-center text-ink/60 transition-colors",
-        variant === "danger"
-          ? "hover:bg-red-500/90 hover:text-white"
-          : "hover:bg-white/[0.08] hover:text-white"
-      )}
-    >
-      {children}
-    </button>
   );
 }

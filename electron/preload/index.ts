@@ -91,6 +91,11 @@ const api = {
   getMatchLock: () => ipcRenderer.invoke("get-match-lock") as Promise<boolean>,
   setMatchLock: (locked: boolean) =>
     ipcRenderer.invoke("set-match-lock", locked),
+  onMatchLock: (cb: (locked: boolean) => void) => {
+    const listener = (_e: any, locked: boolean) => cb(locked);
+    ipcRenderer.on("match-lock-changed", listener);
+    return () => ipcRenderer.removeListener("match-lock-changed", listener);
+  },
   getSelection: () => ipcRenderer.invoke("get-selection"),
   onSelection: (
     cb: (s: {
@@ -208,7 +213,47 @@ const updates = {
   },
 };
 
+/** Draft Companion — preference du sidecar. La fenetre elle-meme est pilotee
+ *  par la machine a etats du main process, pas depuis le renderer. */
+const companion = {
+  getEnabled: () =>
+    ipcRenderer.invoke("companion:getEnabled") as Promise<boolean>,
+  setEnabled: (v: boolean) =>
+    ipcRenderer.invoke("companion:setEnabled", v) as Promise<boolean>,
+  hide: () => ipcRenderer.invoke("companion:hide") as Promise<void>,
+
+  /* --- Raccourcis globaux --- */
+  getHotkeysEnabled: () =>
+    ipcRenderer.invoke("companion:getHotkeysEnabled") as Promise<boolean>,
+  setHotkeysEnabled: (v: boolean) =>
+    ipcRenderer.invoke("companion:setHotkeysEnabled", v) as Promise<boolean>,
+  getHotkeys: () => ipcRenderer.invoke("companion:getHotkeys"),
+  onHotkeys: (cb: (map: any) => void) => {
+    const listener = (_e: any, map: any) => cb(map);
+    ipcRenderer.on("companion:hotkeys", listener);
+    return () => ipcRenderer.removeListener("companion:hotkeys", listener);
+  },
+  shouldSuggest: () =>
+    ipcRenderer.invoke("companion:shouldSuggest") as Promise<boolean>,
+
+  /* --- Relais premade --- */
+  publishRoom: (state: any) => ipcRenderer.invoke("companion:publishRoom", state),
+  getRoom: () => ipcRenderer.invoke("companion:getRoom"),
+  onRoom: (cb: (state: any) => void) => {
+    const listener = (_e: any, state: any) => cb(state);
+    ipcRenderer.on("companion:room", listener);
+    return () => ipcRenderer.removeListener("companion:room", listener);
+  },
+  sendAction: (action: any) => ipcRenderer.invoke("companion:action", action),
+  onAction: (cb: (action: any) => void) => {
+    const listener = (_e: any, action: any) => cb(action);
+    ipcRenderer.on("companion:action", listener);
+    return () => ipcRenderer.removeListener("companion:action", listener);
+  },
+};
+
 contextBridge.exposeInMainWorld("lcu", api);
 contextBridge.exposeInMainWorld("log", logApi);
 contextBridge.exposeInMainWorld("windowControls", windowControls);
 contextBridge.exposeInMainWorld("updates", updates);
+contextBridge.exposeInMainWorld("companion", companion);

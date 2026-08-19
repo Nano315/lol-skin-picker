@@ -18,6 +18,7 @@ import { registerOnboardingIpc } from "./onboarding.ipc";
 import { registerWindowIpc } from "./window.ipc";
 import { registerUpdatesIpc } from "./updates.ipc";
 import { registerWardsIpc } from "./wards.ipc";
+import { registerCompanionIpc } from "./companion.ipc";
 
 export function registerAllIpc(opts: {
   lcu: LcuWatcher;
@@ -27,10 +28,13 @@ export function registerAllIpc(opts: {
   readyCheck: ReadyCheckService;
   wards: WardsService;
   getWin: () => BrowserWindow | null;
+  /** Rappele quand la preference du sidecar change, pour l'appliquer aussitot. */
 }) {
   registerLcuIpc(opts.lcu);
-  registerGameflowIpc(opts.gameflow, opts.getWin);
-  registerSkinsIpc(opts.skins, opts.getWin);
+  // gameflow et skins diffusent a toutes les fenetres (cf. windows/broadcast) :
+  // seul registerWindowIpc a encore besoin de cibler la fenetre principale.
+  registerGameflowIpc(opts.gameflow);
+  registerSkinsIpc(opts.skins);
   registerMiscIpc(opts.readyCheck);
   registerLogIpc();
   registerHistoryIpc(opts.skins);
@@ -41,4 +45,5 @@ export function registerAllIpc(opts: {
   registerWindowIpc(opts.getWin);
   registerUpdatesIpc();
   registerWardsIpc(opts.wards);
+  registerCompanionIpc();
 }

@@ -22,7 +22,8 @@ export type OnboardingKey =
   | "rerollCoachSeen"
   | "matchLockCoachSeen"
   | "synergyCoachSeen"
-  | "exclusionToastSeen";
+  | "exclusionToastSeen"
+  | "companionCoachSeen";
 
 export type OnboardingState = {
   welcomeCompleted: boolean;
@@ -31,6 +32,7 @@ export type OnboardingState = {
   matchLockCoachSeen: boolean;
   synergyCoachSeen: boolean;
   exclusionToastSeen: boolean;
+  companionCoachSeen: boolean;
 };
 
 type Listener = (state: OnboardingState) => void;
@@ -42,6 +44,7 @@ const DEFAULT_STATE: OnboardingState = {
   matchLockCoachSeen: false,
   synergyCoachSeen: false,
   exclusionToastSeen: false,
+  companionCoachSeen: false,
 };
 
 const listeners = new Set<Listener>();
@@ -73,7 +76,8 @@ export const onboardingStore = {
       next.rerollCoachSeen === state.rerollCoachSeen &&
       next.matchLockCoachSeen === state.matchLockCoachSeen &&
       next.synergyCoachSeen === state.synergyCoachSeen &&
-      next.exclusionToastSeen === state.exclusionToastSeen;
+      next.exclusionToastSeen === state.exclusionToastSeen &&
+      next.companionCoachSeen === state.companionCoachSeen;
     const wasHydrated = hydrated;
     hydrated = true;
     if (same) {

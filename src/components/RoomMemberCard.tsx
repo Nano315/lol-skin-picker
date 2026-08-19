@@ -3,6 +3,7 @@ import { Check, Crown, Lock, UserMinus } from "lucide-react";
 import { useChromaColor } from "@/features/hooks/useChromaColor";
 import type { RoomMember } from "@/features/roomsClient";
 import { displayName } from "@/features/utils/displayText";
+import { championArtUrl, skinIndexOf } from "@/features/utils/championArt";
 import { cn } from "@/lib/utils";
 import fallbackSkin from "/fallback-skin.png?url";
 
@@ -62,13 +63,11 @@ export function RoomMemberCard({
   // Portrait loading screen
   let portraitUrl = "";
   if (championId && skinId && championAlias) {
-    const skinIndex = skinId - championId * 1000;
-    // `championAlias` vient d'un pair via `room-state` : on l'encode avant de
-    // l'interpoler dans le chemin, pour qu'il ne puisse pas sortir du prefixe
-    // attendu (la CSP `img-src` borne deja l'hote, pas le chemin).
-    portraitUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${encodeURIComponent(
-      championAlias
-    )}_${skinIndex}.jpg`;
+    portraitUrl = championArtUrl(
+      "loading",
+      championAlias,
+      skinIndexOf(championId, skinId)
+    );
   }
   const displayedSkin = portraitUrl || fallbackSkin;
 

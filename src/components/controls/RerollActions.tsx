@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { Dices, RefreshCw, Palette, Sparkles, Loader2 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { api } from "@/features/api";
 import { useMatchLock } from "@/features/matchLock/useMatchLock";
+import { useRerollAction } from "@/features/hooks/useRerollAction";
 import { cn } from "@/lib/utils";
 import type { OwnedSkin, Selection, ConnectionStatus } from "@/features/types";
 
@@ -35,8 +35,6 @@ type RerollActionsProps = {
     candidatesCount: number;
   };
 };
-
-type ActionKind = "both" | "skin" | "chroma";
 
 /**
  * Refonte Reroll.
@@ -87,27 +85,11 @@ export default function RerollActions({
   const currentSkin = skins.find((s) => s.id === selection.skinId);
   const hasChromas = (currentSkin?.chromas?.length ?? 0) > 0;
 
-  const [loading, setLoading] = useState<ActionKind | null>(null);
-  const lockRef = useRef(false);
-
-  async function runAction(kind: ActionKind) {
-    if (lockRef.current || !canInteract) return;
-    if (kind === "chroma" && !hasChromas) return;
-
-    lockRef.current = true;
-    setLoading(kind);
-    try {
-      if (kind === "both") await api.rerollSkin();
-      else if (kind === "skin") await api.rerollSkinOnly();
-      else await api.rerollChroma();
-      onChanged();
-      // Debounce post-action pour éviter le spam + laisser l'anim jouer.
-      await new Promise((r) => setTimeout(r, 450));
-    } finally {
-      lockRef.current = false;
-      setLoading(null);
-    }
-  }
+  const { pending: loading, run: runAction } = useRerollAction({
+    canAct: canInteract,
+    hasChromas,
+    onChanged,
+  });
 
   // Raccourcis clavier. On ignore les events quand un input/textarea est
   // focus, ou quand l'utilisateur tient un modifier (Cmd/Ctrl/Alt) —
@@ -121,7 +103,9 @@ export default function RerollActions({
     }
 
     function onKey(e: KeyboardEvent) {
-      if (!canInteract || lockRef.current) return;
+      // `runAction` porte sa propre garde de re-entrance ; ici on ne teste que
+      // de quoi decider s'il faut consommer la touche.
+      if (!canInteract) return;
       if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
       if (isEditableTarget(e.target)) return;
 
@@ -139,8 +123,7 @@ export default function RerollActions({
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canInteract, hasChromas]);
+  }, [canInteract, hasChromas, runAction]);
 
   // Message de statut quand on ne peut pas du tout interagir (pas connecté,
   // pas en champ select, pas verrouillé). On remplace alors tout par un

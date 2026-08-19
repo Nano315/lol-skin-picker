@@ -3,35 +3,11 @@ import path from "node:path";
 import { loadSettings, saveSettings } from "../settings";
 import { track } from "../telemetry";
 import type { ReadyCheckService } from "../../services/readyCheck.service";
-
-const OPEN_EXTERNAL_ALLOWED_HOSTS = new Set<string>([
-  "discord.com",
-  "www.discord.com",
-  "github.com",
-  "www.github.com",
-  "raw.githubusercontent.com",
-  "communitydragon.org",
-  "www.communitydragon.org",
-  "aptabase.com",
-  "www.aptabase.com",
-  "riotgames.com",
-  "www.riotgames.com",
-]);
-
-function isAllowedExternalUrl(url: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-  if (parsed.protocol !== "https:") return false;
-  return OPEN_EXTERNAL_ALLOWED_HOSTS.has(parsed.hostname.toLowerCase());
-}
+import { isAllowedExternalUrl } from "../../utils/urlSafety";
 
 export function registerMiscIpc(readyCheck: ReadyCheckService) {
   ipcMain.handle("open-external", (_e, url: string) => {
-    if (typeof url !== "string" || !isAllowedExternalUrl(url)) {
+    if (!isAllowedExternalUrl(url)) {
       console.warn(`[Security] open-external blocked: ${url}`);
       return;
     }

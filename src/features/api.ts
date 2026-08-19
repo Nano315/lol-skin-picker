@@ -57,6 +57,8 @@ export const api = {
   // match lock
   getMatchLock: () => lcu.getMatchLock(),
   setMatchLock: (locked: boolean) => lcu.setMatchLock(locked),
+  onMatchLock: (cb: (locked: boolean) => void): Unsub =>
+    asUnsub(lcu.onMatchLock(cb)),
   getSkinChromaColors: (championId: number, skinId: number) =>
     lcu.getSkinChromaColors({ championId, skinId }),
 
@@ -112,6 +114,32 @@ export const onboardingApi = {
   markCompleted: (key: OnboardingKey) =>
     window.lcu.onboardingMarkCompleted(key),
   reset: () => window.lcu.onboardingReset(),
+};
+
+// Draft Companion — preference du sidecar. La fenetre est pilotee par le main
+// process (machine a etats de presentation) ; le renderer ne fait que lire et
+// ecrire l'option.
+export const companionApi = {
+  getEnabled: () => window.companion.getEnabled(),
+  setEnabled: (v: boolean) => window.companion.setEnabled(v),
+  hide: () => window.companion.hide(),
+
+  getHotkeysEnabled: () => window.companion.getHotkeysEnabled(),
+  setHotkeysEnabled: (v: boolean) => window.companion.setHotkeysEnabled(v),
+  getHotkeys: () => window.companion.getHotkeys(),
+  onHotkeys: (cb: (map: CompanionHotkeyMap) => void): Unsub =>
+    asUnsub(window.companion.onHotkeys(cb)),
+  shouldSuggest: () => window.companion.shouldSuggest(),
+
+  // Relais premade : la fenetre principale publie, le sidecar consomme.
+  publishRoom: (state: CompanionRoomState | null) =>
+    window.companion.publishRoom(state),
+  getRoom: () => window.companion.getRoom(),
+  onRoom: (cb: (state: CompanionRoomState | null) => void): Unsub =>
+    asUnsub(window.companion.onRoom(cb)),
+  sendAction: (action: CompanionAction) => window.companion.sendAction(action),
+  onAction: (cb: (action: CompanionAction) => void): Unsub =>
+    asUnsub(window.companion.onAction(cb)),
 };
 
 // Updates exports — pilote la pastille in-app dans la title bar

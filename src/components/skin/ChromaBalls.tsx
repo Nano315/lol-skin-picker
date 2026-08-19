@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { api } from "@/features/api";
+import { extractChromaColor } from "@/features/utils/displayText";
 import { cn } from "@/lib/utils";
 
 type Chroma = { id: number; name: string };
@@ -14,17 +15,6 @@ type ChromaBallsProps = {
   /** Opt-out of selection while the app is busy elsewhere. */
   disabled?: boolean;
 };
-
-/**
- * LCU chroma names look like "Bard Café Chouchous (turquoise)".
- * Extract the parenthesized token for tooltips — the skin name is already
- * visible elsewhere on screen.
- */
-function prettyChromaName(fullName: string) {
-  const match = fullName.match(/\(([^)]+)\)/);
-  const raw = (match?.[1] ?? fullName).trim();
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
 
 /**
  * Overlay sélecteur de chromas, posé sur le splash art. "Default" = base
@@ -83,7 +73,7 @@ export default function ChromaBalls({
         return (
           <Ball
             key={c.id}
-            label={prettyChromaName(c.name)}
+            label={extractChromaColor(c.name)}
             color={colors[c.id] ?? null}
             active={active}
             disabled={disabled}
@@ -114,8 +104,22 @@ function Ball({
   onClick: () => void;
 }) {
   // Diagonal white+grey gradient for "Default" pastille, plain color otherwise.
+  //
+  // Deux details non negociables sur cette valeur, sous peine de revoir des
+  // aretes parasites a l'interieur du rond :
+  //
+  //  • `border-box` — sans lui, `background-origin` vaut `padding-box` : le
+  //    degrade est calcule sur 19x19 (22 moins les 2x1.5px de bordure) mais
+  //    peint sur 22x22, donc `background-repeat` recopie un bout de motif sur
+  //    le bord droit et bas. La diagonale ne passe alors plus par le centre et
+  //    laisse une couture nette dans l'anneau. Invisible sur une couleur
+  //    pleine — la repeter donne la meme couleur — d'ou un bug limite a la
+  //    seule pastille "Default".
+  //
+  //  • butee franche a 50% plutot qu'une bande 48%→52% : sur 22px cette bande
+  //    fait moins d'un pixel et ne rend qu'un liseré sale.
   const background = isBase
-    ? "linear-gradient(135deg, #f5f5f5 0%, #f5f5f5 48%, #1a1a1a 52%, #1a1a1a 100%)"
+    ? "linear-gradient(135deg, #f5f5f5 0 50%, #1a1a1a 50% 100%) border-box"
     : color ?? "rgba(255,255,255,0.12)";
 
   return (
@@ -132,7 +136,15 @@ function Ball({
       className={cn("chroma-ball", active && "is-active")}
       style={{ background }}
     >
-      <span className="chroma-ball-inner" aria-hidden />
+      {/*
+        `.chroma-ball-inner` (inset 2px, `background: inherit`) repeindrait la
+        diagonale de la pastille "Default" sur une boite plus petite de 4px :
+        les deux diagonales ne tomberaient plus au meme endroit, ce qui
+        reintroduirait l'arete que le `border-box` ci-dessus elimine. Comme
+        l'element ne peint QUE ce fond, ne pas le rendre du tout revient au
+        meme que le neutraliser.
+      */}
+      {!isBase && <span className="chroma-ball-inner" aria-hidden />}
     </motion.button>
   );
 }

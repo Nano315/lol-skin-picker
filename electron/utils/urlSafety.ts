@@ -82,3 +82,45 @@ export function encodeSegment(value: unknown, label = "segment"): string {
   }
   return encodeURIComponent(value);
 }
+
+/**
+ * Hotes vers lesquels un lien peut etre ouvert — dans le navigateur externe.
+ *
+ * Liste unique, partagee par les DEUX chemins qui peuvent ouvrir un lien :
+ * le handler IPC `open-external` et le `setWindowOpenHandler` installe sur
+ * chaque fenetre. Les deux avaient leur propre copie, et elles avaient deja
+ * diverge (aptabase absent d'un cote) : un lien s'ouvrait depuis un chemin et
+ * etait silencieusement bloque depuis l'autre.
+ */
+export const ALLOWED_EXTERNAL_HOSTS = new Set<string>([
+  "discord.com",
+  "www.discord.com",
+  "github.com",
+  "www.github.com",
+  "raw.githubusercontent.com",
+  "communitydragon.org",
+  "www.communitydragon.org",
+  "aptabase.com",
+  "www.aptabase.com",
+  "riotgames.com",
+  "www.riotgames.com",
+]);
+
+/**
+ * Un lien externe doit etre en HTTPS ET pointer vers un hote de la liste.
+ *
+ * On compare le `hostname` parse, jamais un prefixe de chaine : un
+ * `startsWith("https://github.com")` serait contourne par
+ * `https://github.com.evil.com`.
+ */
+export function isAllowedExternalUrl(url: unknown): boolean {
+  if (typeof url !== "string") return false;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "https:") return false;
+  return ALLOWED_EXTERNAL_HOSTS.has(parsed.hostname.toLowerCase());
+}

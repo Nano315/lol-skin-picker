@@ -13,9 +13,8 @@ import AutoRollPill from "@/components/controls/AutoRollPill";
 import { api } from "@/features/api";
 import { roomsClient } from "@/features/roomsClient";
 import { useOwnedSkins } from "@/features/hooks/useOwnedSkins";
-import type { GroupSkinOption } from "@/features/roomsClient";
 import { computeChromaColor } from "@/features/chromaColor";
-import { colorCache } from "@/features/utils/colorCache";
+import { useOwnedOptions } from "@/features/premade/useOwnedOptions";
 import { findMemberBySummonerName } from "@/features/utils/summonerUtils";
 import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
 import {
@@ -103,7 +102,13 @@ export function PremadePage() {
     }
   }, [isFatalError, error?.code, joined, leave, navigate, showToast]);
 
-  const [skinOptions, setSkinOptions] = useState<GroupSkinOption[]>([]);
+  // Calcule par OwnedOptionsConnector (monte dans AppShell) : le calcul doit
+  // survivre a la navigation, la page ne fait que le lire.
+  const {
+    options: skinOptions,
+    isSyncing,
+    progress: syncProgress,
+  } = useOwnedOptions();
 
   // Track previous phase to detect when leaving ChampSelect
   const prevPhaseRef = useRef(phase);
@@ -397,131 +402,6 @@ export function PremadePage() {
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1200);
   };
-
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncProgress, setSyncProgress] = useState(0);
-
-  // Calcul et envoi des skins possedes (Owned Options) - Parallelized with cache
-  useEffect(() => {
-    if (!joined || !isConnected || !selection.championId || !skins?.length)
-      return;
-
-    let isMounted = true;
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-    async function computeOptionWithCache(
-      championId: number,
-      skinId: number,
-      chromaId: number,
-    ): Promise<GroupSkinOption | null> {
-      // Check color cache first
-      const cachedColor = colorCache.get(championId, skinId, chromaId);
-
-      // Fetch skin line info and color in parallel for performance (Story 6.1)
-      const [color, skinLineInfo] = await Promise.all([
-        cachedColor
-          ? Promise.resolve(cachedColor)
-          : computeChromaColor({ championId, skinId, chromaId }),
-        window.lcu.getSkinLine(skinId),
-      ]);
-
-      // Cache the color if it was computed
-      if (color && !cachedColor) {
-        colorCache.set(championId, skinId, chromaId, color);
-      }
-
-      return {
-        skinId,
-        chromaId,
-        auraColor: color ?? null,
-        skinLineId: skinLineInfo?.id,
-        skinLineName: skinLineInfo?.name,
-      };
-    }
-
-    async function computeAndSend() {
-      if (!isMounted) return;
-
-      setIsSyncing(true);
-      setSyncProgress(0);
-
-      try {
-        // Build list of all computations needed
-        const computations: Array<{ skinId: number; chromaId: number }> = [];
-        for (const s of skins) {
-          if (s.championId !== selection.championId) continue;
-          // Base skin (chromaId = 0)
-          computations.push({ skinId: s.id, chromaId: 0 });
-          // Chromas
-          for (const c of s.chromas) {
-            computations.push({ skinId: s.id, chromaId: c.id });
-          }
-        }
-
-        if (computations.length === 0) {
-          setSkinOptions([]);
-          return;
-        }
-
-        let completed = 0;
-
-        // Process all computations in parallel
-        const promises = computations.map(async ({ skinId, chromaId }) => {
-          const result = await computeOptionWithCache(
-            selection.championId,
-            skinId,
-            chromaId,
-          );
-          completed++;
-          if (isMounted) {
-            setSyncProgress(
-              Math.round((completed / computations.length) * 100),
-            );
-          }
-          return result;
-        });
-
-        const results = await Promise.allSettled(promises);
-        if (!isMounted) return;
-
-        const options = results
-          .filter(
-            (r): r is PromiseFulfilledResult<GroupSkinOption | null> =>
-              r.status === "fulfilled",
-          )
-          .map((r) => r.value)
-          .filter((opt): opt is GroupSkinOption => opt !== null);
-
-        setSkinOptions(options);
-        if (options.length > 0) {
-          roomsClient.sendOwnedOptions({
-            championId: selection.championId,
-            championAlias: selection.championAlias,
-            options,
-          });
-        }
-      } finally {
-        if (isMounted) {
-          setIsSyncing(false);
-          setSyncProgress(100);
-        }
-      }
-    }
-
-    // Debounce to avoid multiple rapid computations
-    debounceTimer = setTimeout(computeAndSend, 300);
-
-    return () => {
-      isMounted = false;
-      if (debounceTimer) clearTimeout(debounceTimer);
-    };
-  }, [
-    joined,
-    selection.championId,
-    selection.championAlias,
-    isConnected,
-    skins,
-  ]);
 
   const activeRoomColor = useMemo(() => {
     if (!room?.synergy?.colors || !skinOptions.length) return undefined;

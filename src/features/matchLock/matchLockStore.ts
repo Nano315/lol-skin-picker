@@ -39,6 +39,21 @@ export const matchLockStore = {
     }
   },
 
+  /**
+   * Applique une valeur venue du main process, SANS la repousser vers lui.
+   *
+   * Chaque fenetre (principale et sidecar de draft) a son propre module, donc
+   * son propre `locked`. Le main rediffuse chaque bascule sur
+   * `match-lock-changed` ; passer par `setLocked` ici renverrait l'IPC en
+   * boucle. Le court-circuit `next === locked` la briserait en pratique, mais
+   * dependre de ce hasard pour l'absence de boucle serait fragile.
+   */
+  applyRemote(next: boolean): void {
+    if (next === locked) return;
+    locked = next;
+    for (const fn of listeners) fn(locked);
+  },
+
   toggle(): void {
     matchLockStore.setLocked(!locked);
   },

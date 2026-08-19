@@ -16,12 +16,15 @@ import { EmptyState } from "@/components/empty/EmptyState";
 import { Coachmark } from "@/components/coachmark/Coachmark";
 import { RecentSkinsCarousel } from "@/components/skin/RecentSkinsCarousel";
 
+import { extractChromaColor } from "@/features/utils/displayText";
 import { useConnection } from "@/features/hooks/useConnection";
 import { useGameflow } from "@/features/hooks/useGameflow";
 import { useOwnedSkins } from "@/features/hooks/useOwnedSkins";
 import { useSelection } from "@/features/hooks/useSelection";
 import { useChromaColor } from "@/features/hooks/useChromaColor";
 import { useCoachmark } from "@/features/onboarding/useCoachmark";
+import { useOnboarding } from "@/features/onboarding/useOnboarding";
+import { useCompanionSuggestion } from "@/features/companion/useCompanionSuggestion";
 import {
   useGlobalRecentSkins,
   type RecentSkinEntry,
@@ -41,17 +44,6 @@ const LAYOUT_TRANSITION = { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const };
  * hook's `lastGoodResult` cache so coming back to Solo feels instant.
  */
 let lastCarouselSkin: RecentSkinEntry | null = null;
-
-/**
- * LCU chroma names look like "Bard Café Chouchous (turquoise)".
- * We only want the parenthesized color token since the skin name is
- * already shown above. Fall back to the full string if no match.
- */
-function extractChromaColor(fullName: string): string {
-  const match = fullName.match(/\(([^)]+)\)/);
-  const raw = (match?.[1] ?? fullName).trim();
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
 
 /**
  * Build a `Selection`-shaped object from a recent skin entry, so the same
@@ -171,6 +163,17 @@ export default function Solo() {
   // the user can actually press the buttons we're highlighting).
   const rerollCoach = useCoachmark("rerollCoachSeen", hasLockedChampion);
 
+  // Decouverte du Draft Companion. Sequence APRES rerollCoach : les deux
+  // se declencheraient au meme premier champ select, et deux callouts
+  // simultanes s'annulent l'un l'autre. On enseigne le reroll d'abord, le
+  // sidecar a la draft suivante.
+  const { state: onboardingState } = useOnboarding();
+  const shouldSuggestCompanion = useCompanionSuggestion(inChampSelect);
+  const companionCoach = useCoachmark(
+    "companionCoachSeen",
+    shouldSuggestCompanion && onboardingState.rerollCoachSeen
+  );
+
   const isClientReady = status === "connected";
 
   if (!isClientReady) {
@@ -272,6 +275,17 @@ export default function Solo() {
                           value={<AnimatedValue value={String(chromaLabel)} />}
                         />
                       </div>
+                      {/* Ancre inline plutot qu'absolue : cette carte est la
+                          derniere de sa colonne, un callout positionne en
+                          absolu sortirait de la zone scrollable. */}
+                      <Coachmark
+                        visible={companionCoach.visible}
+                        onDismiss={companionCoach.dismiss}
+                        arrow="top"
+                        className="mt-1"
+                        title="Only one screen?"
+                        description="SkinPicker can dock a small window beside the client during draft — no more alt-tabbing. Turn it on in Settings, under Quick Controls."
+                      />
                     </GlassCard>
                   </motion.div>
                 )}

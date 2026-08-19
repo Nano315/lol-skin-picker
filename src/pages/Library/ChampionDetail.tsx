@@ -18,6 +18,8 @@ import { useChampionSkins } from "@/features/championLibrary/useChampionLibrary"
 import { useChampionExclusions } from "@/features/exclusions/useExclusions";
 import { useToast } from "@/features/hooks/useToast";
 import { api } from "@/features/api";
+import { extractChromaColor } from "@/features/utils/displayText";
+import { championArtUrl, skinIndexOf } from "@/features/utils/championArt";
 import { cn } from "@/lib/utils";
 import type { OwnedChampion } from "@/features/championLibrary/useChampionLibrary";
 
@@ -171,9 +173,8 @@ function ChampionHeader({
   loading: boolean;
   hasExclusions: boolean;
 }) {
-  const splashUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${encodeURIComponent(
-    champion.alias
-  )}_0.jpg`;
+  // `0` = skin de base du champion.
+  const splashUrl = championArtUrl("splash", champion.alias, 0);
 
   return (
     <GlassCard className="relative overflow-hidden p-0">
@@ -265,10 +266,11 @@ function SkinRow({
     };
   }, [chromasOpen, skin.championId, skin.id, skin.chromas.length]);
 
-  const skinNum = skin.id - skin.championId * 1000;
-  const splashUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${encodeURIComponent(
-    championAlias
-  )}_${skinNum}.jpg`;
+  const splashUrl = championArtUrl(
+    "splash",
+    championAlias,
+    skinIndexOf(skin.championId, skin.id)
+  );
 
   const includedChromas = skin.chromas.filter(
     (c) => !isChromaExcluded(c.id)
@@ -347,7 +349,7 @@ function SkinRow({
                 return (
                   <ChromaChip
                     key={chroma.id}
-                    label={extractChromaLabel(chroma.name)}
+                    label={extractChromaColor(chroma.name)}
                     color={chromaColors[chroma.id] ?? null}
                     excluded={excluded}
                     onClick={() => onToggleChroma(chroma.id)}
@@ -453,15 +455,3 @@ function formatMastery(points: number): string {
   return `${points} pts`;
 }
 
-/**
- * LCU chroma names look like "Pulsefire Ezreal (turquoise)". Strip the skin
- * name prefix when present — the skin name is already the row's title.
- */
-function extractChromaLabel(fullName: string): string {
-  const match = fullName.match(/\(([^)]+)\)/);
-  if (match) {
-    const raw = match[1].trim();
-    return raw.charAt(0).toUpperCase() + raw.slice(1);
-  }
-  return fullName;
-}

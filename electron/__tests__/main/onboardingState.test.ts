@@ -113,6 +113,7 @@ describe("onboardingState", () => {
         matchLockCoachSeen: false,
         synergyCoachSeen: false,
         exclusionToastSeen: false,
+        companionCoachSeen: false,
       });
     });
 
@@ -162,6 +163,7 @@ describe("onboardingState", () => {
         matchLockCoachSeen: false,
         synergyCoachSeen: false,
         exclusionToastSeen: false,
+        companionCoachSeen: false,
       });
     });
 
@@ -199,6 +201,7 @@ describe("onboardingState", () => {
         matchLockCoachSeen: true,
         synergyCoachSeen: true,
         exclusionToastSeen: true,
+        companionCoachSeen: false,
       });
     });
 
@@ -213,6 +216,7 @@ describe("onboardingState", () => {
         matchLockCoachSeen: false,
         synergyCoachSeen: false,
         exclusionToastSeen: false,
+        companionCoachSeen: false,
       });
     });
   });
@@ -249,6 +253,7 @@ describe("onboardingState", () => {
         matchLockCoachSeen: false,
         synergyCoachSeen: false,
         exclusionToastSeen: false,
+        companionCoachSeen: false,
       });
     });
   });
@@ -278,6 +283,7 @@ describe("onboardingState", () => {
         matchLockCoachSeen: false,
         synergyCoachSeen: false,
         exclusionToastSeen: false,
+        companionCoachSeen: false,
       });
     });
 
@@ -290,11 +296,13 @@ describe("onboardingState", () => {
       await markOnboardingCompleted("matchLockCoachSeen");
       await markOnboardingCompleted("synergyCoachSeen");
       await markOnboardingCompleted("exclusionToastSeen");
+      await markOnboardingCompleted("companionCoachSeen");
       const reset = await resetOnboardingState();
       expect(reset.rerollCoachSeen).toBe(false);
       expect(reset.matchLockCoachSeen).toBe(false);
       expect(reset.synergyCoachSeen).toBe(false);
       expect(reset.exclusionToastSeen).toBe(false);
+      expect(reset.companionCoachSeen).toBe(false);
     });
 
     it("persists the reset state to disk", async () => {

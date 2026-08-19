@@ -1,5 +1,6 @@
 import fallbackSkin from "/fallback-skin.png?url";
 import InclusionToggle from "./InclusionToggle";
+import { championArtUrl, skinIndexOf } from "@/features/utils/championArt";
 import ChromaBalls from "./ChromaBalls";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
@@ -28,9 +29,11 @@ export default function SkinPreview({
   const reduced = useReducedMotion();
   const splashUrl =
     selection.skinId && selection.championAlias
-      ? `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
-          selection.championAlias
-        }_${selection.skinId - selection.championId * 1000}.jpg`
+      ? championArtUrl(
+          "splash",
+          selection.championAlias,
+          skinIndexOf(selection.championId, selection.skinId)
+        )
       : "";
   const displayedSkin = splashUrl || fallbackSkin;
 

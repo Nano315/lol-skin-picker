@@ -1,11 +1,9 @@
-import { ipcMain, BrowserWindow } from "electron";
+import { ipcMain } from "electron";
 import { SkinsService } from "../../services/skins.service";
 import { track } from "../telemetry";
+import { broadcast } from "../windows/broadcast";
 
-export function registerSkinsIpc(
-  svc: SkinsService,
-  getWin: () => BrowserWindow | null
-) {
+export function registerSkinsIpc(svc: SkinsService) {
   ipcMain.handle("get-owned-skins", () => svc.skins);
 
   ipcMain.handle("get-include-default", () => svc.getIncludeDefault());
@@ -47,15 +45,19 @@ export function registerSkinsIpc(
     const next = !!locked;
     svc.setMatchLock(next);
     track("match_lock_toggled", { locked: next });
+    // Le lock est bascule depuis DEUX fenetres (widget principal et sidecar de
+    // draft), chacune avec son propre `matchLockStore`. Le main process est
+    // l'arbitre : il rediffuse pour que les deux convergent — et c'est ce qui
+    // permet a la fenetre principale de pousser `set-skin-lock` au serveur de
+    // rooms meme quand la bascule vient du sidecar.
+    broadcast("match-lock-changed", next);
   });
 
   ipcMain.handle("get-selection", () => svc.getSelection());
   ipcMain.handle("get-summoner-icon", () => svc.getProfileIcon());
 
   ipcMain.handle("get-summoner-name", () => svc.getSummonerName());
-  svc.on("summoner-name", (name) =>
-    getWin()?.webContents.send("summoner-name", name)
-  );
+  svc.on("summoner-name", (name) => broadcast("summoner-name", name));
 
   ipcMain.handle("apply-skin-id", (_e, skinId: unknown) => {
     if (
@@ -69,7 +71,9 @@ export function registerSkinsIpc(
     return svc.applySkin(skinId);
   });
 
-  svc.on("skins", (list) => getWin()?.webContents.send("owned-skins", list));
-  svc.on("selection", (sel) => getWin()?.webContents.send("selection", sel));
-  svc.on("icon", (id) => getWin()?.webContents.send("summoner-icon", id));
+  // Ces trois events pilotent tout l'affichage du skin courant : ils doivent
+  // atteindre la fenetre principale ET le sidecar de draft.
+  svc.on("skins", (list) => broadcast("owned-skins", list));
+  svc.on("selection", (sel) => broadcast("selection", sel));
+  svc.on("icon", (id) => broadcast("summoner-icon", id));
 }

@@ -65,6 +65,8 @@ declare global {
 
       getMatchLock: () => Promise<boolean>;
       setMatchLock: (locked: boolean) => Promise<void>;
+      /** Rediffusion du lock par le main : garde les 2 fenetres synchronisees. */
+      onMatchLock: (cb: (locked: boolean) => void) => Unsub;
 
       getSelection: () => Promise<{
         championId: number;
@@ -190,6 +192,86 @@ declare global {
       install: () => Promise<void>;
       onStatus: (cb: (state: UpdateState) => void) => Unsub;
     };
+
+    /** Draft Companion — voir electron/main/windows/companionWindow.ts */
+    companion: {
+      getEnabled: () => Promise<boolean>;
+      setEnabled: (v: boolean) => Promise<boolean>;
+      /** Masque le sidecar pour la draft en cours, sans toucher a l'option. */
+      hide: () => Promise<void>;
+
+      /* --- Raccourcis globaux --- */
+      getHotkeysEnabled: () => Promise<boolean>;
+      setHotkeysEnabled: (v: boolean) => Promise<boolean>;
+      /** Accelerateurs reellement enregistres — `null` = refuse par l'OS. */
+      getHotkeys: () => Promise<CompanionHotkeyMap>;
+      onHotkeys: (cb: (map: CompanionHotkeyMap) => void) => Unsub;
+      /** Un seul ecran et sidecar desactive : vaut-il la peine de le proposer ? */
+      shouldSuggest: () => Promise<boolean>;
+
+      /* --- Relais premade (voir CompanionBridgeConnector) --- */
+      /** Fenetre principale -> main : publie l'etat de room courant. */
+      publishRoom: (state: CompanionRoomState | null) => Promise<void>;
+      /** Sidecar : etat cache, pour s'hydrater a l'ouverture. */
+      getRoom: () => Promise<CompanionRoomState | null>;
+      /** Sidecar : abonnement aux mises a jour de room. */
+      onRoom: (cb: (state: CompanionRoomState | null) => void) => Unsub;
+      /** Sidecar -> fenetre principale : demande une action de groupe. */
+      sendAction: (action: CompanionAction) => Promise<void>;
+      /** Fenetre principale : recoit les actions du sidecar. */
+      onAction: (cb: (action: CompanionAction) => void) => Unsub;
+    };
+  }
+
+  /**
+   * Vue reduite de la room, taillee pour le sidecar.
+   *
+   * Volontairement plate et sans `options[]` : le sidecar n'a pas besoin des
+   * combinaisons possedees de chaque membre, et les relayer ferait transiter
+   * plusieurs centaines de lignes par push de room-state pour rien.
+   */
+  interface CompanionRoomState {
+    inRoom: boolean;
+    isOwner: boolean;
+    members: CompanionRoomMember[];
+    /** Couleur de synergie dominante (premiere du tri serveur), si elle existe. */
+    synergyColor: string | null;
+    /** Nb de membres partageant cette couleur. */
+    synergyCount: number;
+    /** Nb de membres ayant soumis leurs options — denominateur du badge. */
+    readyCount: number;
+  }
+
+  interface CompanionRoomMember {
+    id: string;
+    name: string;
+    isSelf: boolean;
+    isOwner: boolean;
+    /** A soumis ses owned-options pour son champion verrouille. */
+    ready: boolean;
+    lockedSkin: boolean;
+    /** Participe a la couleur de synergie dominante. */
+    inSynergy: boolean;
+  }
+
+  /**
+   * Le sidecar demande une intention, jamais une valeur : c'est la fenetre
+   * principale qui resout la couleur dominante au moment d'agir. Transmettre
+   * la couleur depuis le sidecar aurait ouvert une course — le sidecar peut
+   * avoir une synergie d'il y a deux secondes.
+   */
+  type CompanionAction = { type: "matchTeam" };
+
+  /**
+   * Accelerateur enregistre pour chaque action, ou `null` si l'OS l'a refuse
+   * parce qu'une autre application le detient. L'interface n'affiche une
+   * pastille clavier que pour les entrees non nulles : montrer un raccourci
+   * qui ne repond pas est pire que ne rien montrer.
+   */
+  interface CompanionHotkeyMap {
+    both: string | null;
+    skin: string | null;
+    chroma: string | null;
   }
 
   type UpdateStatus =
@@ -218,7 +300,8 @@ declare global {
     | "rerollCoachSeen"
     | "matchLockCoachSeen"
     | "synergyCoachSeen"
-    | "exclusionToastSeen";
+    | "exclusionToastSeen"
+    | "companionCoachSeen";
   interface OnboardingState {
     welcomeCompleted: boolean;
     consentRecorded: boolean;
@@ -226,5 +309,6 @@ declare global {
     matchLockCoachSeen: boolean;
     synergyCoachSeen: boolean;
     exclusionToastSeen: boolean;
+    companionCoachSeen: boolean;
   }
 }

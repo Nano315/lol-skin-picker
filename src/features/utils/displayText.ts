@@ -40,3 +40,20 @@ export function displayName(value: unknown, fallback = "Joueur"): string {
 export function displaySkinLineName(value: unknown, fallback = "Skin line"): string {
   return truncateForDisplay(value, MAX_DISPLAY_SKIN_LINE, fallback);
 }
+
+/**
+ * Extrait le token de couleur d'un nom de chroma du LCU.
+ *
+ * Les noms arrivent sous la forme "Bard Cafe Chouchous (turquoise)" : seul ce
+ * qui est entre parentheses nous interesse, le nom du skin etant deja affiche
+ * a cote. Sans parenthese, on renvoie la chaine complete.
+ *
+ * Il y en avait quatre copies (Solo, ChromaBalls, ChampionDetail, sidecar) :
+ * le format vient du LCU, donc un changement en amont les cassait toutes les
+ * quatre a la fois, et il fallait penser aux quatre pour le corriger.
+ */
+export function extractChromaColor(fullName: string): string {
+  const match = fullName.match(/\(([^)]+)\)/);
+  const raw = (match?.[1] ?? fullName).trim();
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}

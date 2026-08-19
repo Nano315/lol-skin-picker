@@ -24,6 +24,7 @@ import {
   CardHeader,
   GradientText,
 } from "@/components/ui";
+import { championArtUrl, skinIndexOf } from "@/features/utils/championArt";
 import { cn } from "@/lib/utils";
 import type { RecentSkinEntry } from "@/features/history/useGlobalRecentSkins";
 
@@ -59,11 +60,11 @@ function thumbnailUrl(skin: RecentSkinEntry): string {
   // Data Dragon "tile" art is the closest CDN asset to a thumbnail; using
   // the splash here too matches the existing SkinPreview behaviour and
   // saves us another asset host.
-  const skinIndex = skin.skinId - skin.championId * 1000;
-  // Alias issu de CommunityDragon : encode avant interpolation dans le chemin.
-  return `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${encodeURIComponent(
-    skin.championAlias
-  )}_${skinIndex}.jpg`;
+  return championArtUrl(
+    "tiles",
+    skin.championAlias,
+    skinIndexOf(skin.championId, skin.skinId)
+  );
 }
 
 export function RecentSkinsCarousel({

@@ -7,6 +7,9 @@ import { ToastProvider } from "@/components/ui/ToastProvider";
 import { RoomsClientConnector } from "./RoomsClientConnector";
 import { IdentityConnector } from "./IdentityConnector";
 import { MatchLockSyncConnector } from "./MatchLockSyncConnector";
+import { MatchLockBridge } from "@/features/matchLock/MatchLockBridge";
+import { CompanionBridgeConnector } from "./CompanionBridgeConnector";
+import { OwnedOptionsConnector } from "./OwnedOptionsConnector";
 import { TelemetryConsentModal } from "@/components/TelemetryConsentModal";
 import { WelcomeFlow } from "@/components/onboarding/WelcomeFlow";
 import { useTelemetryConsent } from "@/features/hooks/useTelemetryConsent";
@@ -141,7 +144,18 @@ export default function AppShell() {
       )}
       <RoomsClientConnector />
       <IdentityConnector />
+      {/* Alimente la synergie cote serveur. Ici et pas dans /premade : le
+          calcul doit survivre a la navigation, sinon rejoindre une room puis
+          changer de page desactive silencieusement toute la synergie. */}
+      <OwnedOptionsConnector />
+      {/* Recoit les bascules du lock venues du sidecar. Doit rester AVANT
+          MatchLockSyncConnector dans l'ordre de montage : c'est ce dernier qui
+          repousse ensuite l'etat vers le serveur de rooms. */}
+      <MatchLockBridge />
       <MatchLockSyncConnector />
+      {/* Pont premade vers le sidecar. Uniquement ici : cette fenetre detient
+          les sockets et le memberToken, le sidecar n'a que des intentions. */}
+      <CompanionBridgeConnector />
       <div>
         <RouterProvider router={router} />
         <MascotsLayer />

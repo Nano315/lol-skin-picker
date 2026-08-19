@@ -36,7 +36,8 @@ export type OnboardingKey =
   | "rerollCoachSeen"
   | "matchLockCoachSeen"
   | "synergyCoachSeen"
-  | "exclusionToastSeen";
+  | "exclusionToastSeen"
+  | "companionCoachSeen";
 
 export type OnboardingState = {
   welcomeCompleted: boolean;
@@ -45,6 +46,7 @@ export type OnboardingState = {
   matchLockCoachSeen: boolean;
   synergyCoachSeen: boolean;
   exclusionToastSeen: boolean;
+  companionCoachSeen: boolean;
 };
 
 const DEFAULT_STATE: OnboardingState = {
@@ -54,6 +56,7 @@ const DEFAULT_STATE: OnboardingState = {
   matchLockCoachSeen: false,
   synergyCoachSeen: false,
   exclusionToastSeen: false,
+  companionCoachSeen: false,
 };
 
 /**
@@ -90,6 +93,7 @@ function normalize(raw: unknown): OnboardingState {
     matchLockCoachSeen: raw.matchLockCoachSeen === true,
     synergyCoachSeen: raw.synergyCoachSeen === true,
     exclusionToastSeen: raw.exclusionToastSeen === true,
+    companionCoachSeen: raw.companionCoachSeen === true,
   };
 }
 
