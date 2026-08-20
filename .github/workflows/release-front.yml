@@ -259,3 +259,145 @@ jobs:
           fi
           [[ "$FAIL" -eq 0 ]] || exit 1
           echo "Release $TAG publiee et utilisable."
+
+      # ------------------------------------------------------------------
+      # Analyse VirusTotal de l'installeur, puis publication du verdict comme
+      # asset `virustotal.json` de la release.
+      #
+      # Pourquoi passer par un asset plutot que laisser le site interroger
+      # VirusTotal directement : le site n'a alors ni cle d'API a stocker, ni
+      # quota a consommer a chaque revalidation, et il continue de fonctionner
+      # si VirusTotal est indisponible. Il lit deja les assets de la release
+      # pour le nom de fichier et l'empreinte, donc le verdict arrive par le
+      # meme appel, sans dependance supplementaire.
+      #
+      # Le canal beta est exclu : le site ne publie que la derniere release
+      # stable, scanner les prereleases ne ferait que consommer du quota.
+      #
+      # `continue-on-error` est deliberre : une release reussie dont le scan a
+      # echoue reste une release valide. Cote site, l'absence de l'asset se
+      # traduit simplement par l'absence du lien VirusTotal.
+      - name: Scan installer on VirusTotal
+        if: env.CHANNEL == 'stable'
+        continue-on-error: true
+        shell: bash
+        env:
+          VT_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+
+          if [[ -z "${VT_API_KEY:-}" ]]; then
+            echo "::notice::VIRUSTOTAL_API_KEY absent — analyse ignoree."
+            exit 0
+          fi
+
+          INSTALLER=$(find release -maxdepth 1 -name '*.exe' ! -name '*.blockmap' | head -1)
+          if [[ -z "$INSTALLER" ]]; then
+            echo "::warning::Aucun installeur dans release/ — analyse ignoree."
+            exit 0
+          fi
+
+          NAME=$(basename "$INSTALLER")
+          SHA=$(sha256sum "$INSTALLER" | cut -d' ' -f1)
+          API="https://www.virustotal.com/api/v3"
+          echo "Fichier : $NAME"
+          echo "SHA-256 : $SHA"
+
+          # Interroge VirusTotal sur l'empreinte : ecrit le corps dans vt.json
+          # et renvoie le code HTTP sur la sortie standard.
+          report() {
+            curl -sS -o vt.json -w '%{http_code}' \
+              -H "x-apikey: $VT_API_KEY" "$API/files/$SHA"
+          }
+
+          CODE=$(report)
+          STATS=""
+          if [[ "$CODE" == "200" ]]; then
+            STATS=$(jq -c '.data.attributes.last_analysis_stats // empty' vt.json)
+          fi
+
+          if [[ -z "$STATS" ]]; then
+            if [[ "$CODE" == "404" ]]; then
+              echo "Fichier inconnu de VirusTotal — envoi en cours."
+              # Au-dela de 32 Mo, l'envoi passe par une URL dediee a usage
+              # unique. L'installeur fait ~75 Mo, donc ce detour est obligatoire.
+              UPLOAD_URL=$(curl -sS -H "x-apikey: $VT_API_KEY" \
+                "$API/files/upload_url" | jq -r '.data // empty')
+              if [[ -z "$UPLOAD_URL" ]]; then
+                echo "::warning::Pas d'URL d'envoi VirusTotal — analyse abandonnee."
+                exit 0
+              fi
+              if ! curl -sS -X POST -H "x-apikey: $VT_API_KEY" \
+                   -F "file=@${INSTALLER}" "$UPLOAD_URL" -o upload.json; then
+                echo "::warning::Envoi VirusTotal echoue — analyse abandonnee."
+                exit 0
+              fi
+              echo "Envoye."
+            fi
+
+            # Attente du verdict. Le quota gratuit autorise 4 requetes par
+            # minute : un intervalle de 20 s reste dessous tout en couvrant les
+            # quelques minutes que demande un binaire de cette taille.
+            for i in $(seq 1 24); do
+              sleep 20
+              CODE=$(report)
+              if [[ "$CODE" != "200" ]]; then
+                echo "Tentative $i : HTTP $CODE"
+                continue
+              fi
+              STATS=$(jq -c '.data.attributes.last_analysis_stats // empty' vt.json)
+              if [[ -n "$STATS" ]]; then
+                echo "Verdict recu apres environ $((i * 20)) s."
+                break
+              fi
+              echo "Tentative $i : analyse en cours."
+            done
+          fi
+
+          if [[ -z "$STATS" ]]; then
+            echo "::warning::Aucun verdict VirusTotal a temps — asset non publie."
+            exit 0
+          fi
+
+          MALICIOUS=$(printf '%s' "$STATS" | jq -r '.malicious // 0')
+          SUSPICIOUS=$(printf '%s' "$STATS" | jq -r '.suspicious // 0')
+          UNDETECTED=$(printf '%s' "$STATS" | jq -r '.undetected // 0')
+          HARMLESS=$(printf '%s' "$STATS" | jq -r '.harmless // 0')
+
+          # Denominateur honnete : seuls les moteurs qui ont rendu un avis.
+          # `type-unsupported`, `timeout` et `failure` sont exclus, sinon on
+          # afficherait « 0/78 » alors que six moteurs n'ont rien analyse.
+          ENGINES=$((MALICIOUS + SUSPICIOUS + UNDETECTED + HARMLESS))
+          if [[ "$ENGINES" -le 0 ]]; then
+            echo "::warning::Aucun moteur n'a rendu d'avis — asset non publie."
+            exit 0
+          fi
+
+          EPOCH=$(jq -r '.data.attributes.last_analysis_date // empty' vt.json)
+          ANALYZED_AT=""
+          if [[ -n "$EPOCH" ]]; then
+            ANALYZED_AT=$(date -u -d "@$EPOCH" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "")
+          fi
+
+          jq -n \
+            --arg sha "$SHA" \
+            --arg file "$NAME" \
+            --arg at "$ANALYZED_AT" \
+            --argjson malicious "$MALICIOUS" \
+            --argjson suspicious "$SUSPICIOUS" \
+            --argjson engines "$ENGINES" \
+            '{
+               sha256: $sha,
+               fileName: $file,
+               malicious: $malicious,
+               suspicious: $suspicious,
+               engines: $engines,
+               analyzedAt: $at,
+               permalink: ("https://www.virustotal.com/gui/file/" + $sha)
+             }' > virustotal.json
+
+          cat virustotal.json
+          gh release upload "v$VERSION" virustotal.json \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Verdict : $MALICIOUS/$ENGINES moteurs. Asset virustotal.json publie."
